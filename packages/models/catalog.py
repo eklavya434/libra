@@ -1,0 +1,268 @@
+﻿"""
+Libra Models - Canonical Open-Weight & Educational Model Catalog
+
+Curates official, verified open models across architectures and providers.
+"""
+
+from __future__ import annotations
+
+from packages.models.registry import (
+    HardwareClassifier,
+    HardwareTier,
+    LicenseType,
+    ModelMetadata,
+    ModelRegistry,
+)
+
+
+def get_default_registry() -> ModelRegistry:
+    """Instantiates and populates the default ModelRegistry with verified models."""
+    registry = ModelRegistry()
+
+    models: list[ModelMetadata] = [
+        # --- MOCK & OFFLINE TEST PROVIDER ---
+        ModelMetadata(
+            model_id="libra-mock-v1",
+            name="Libra Mock v1",
+            organization="Libra Laboratory",
+            provider="mock-provider",
+            architecture="Mock Provider Architecture",
+            parameter_count=1_000,
+            context_length=4_096,
+            license="MIT",
+            license_type=LicenseType.PERMISSIVE_OPEN_SOURCE,
+            quantization="FP32",
+            capabilities=["chat", "stream"],
+            description="Mock testing provider for zero-cost offline API verification.",
+        ),
+        # --- LIBRA EDUCATIONAL MODELS ---
+        ModelMetadata(
+            model_id="libra-tiny-llm",
+            name="Libra Tiny LLM (Educational Phase 1)",
+            organization="Libra Laboratory",
+            provider="libra_lab",
+            architecture="Decoder-only Absolute Positional Transformer",
+            parameter_count=477_000,
+            context_length=128,
+            license="Apache-2.0",
+            license_type=LicenseType.PERMISSIVE_OPEN_SOURCE,
+            quantization="FP32",
+            capabilities=["educational", "next_token_prediction"],
+            description="Educational transformer built from scratch in PyTorch.",
+        ),
+        ModelMetadata(
+            model_id="libra-llama-tied",
+            name="Libra Modern Llama (Educational Phase 4)",
+            organization="Libra Laboratory",
+            provider="libra_lab",
+            architecture="Llama-3-style (RoPE + RMSNorm + SwiGLU + Weight Tying)",
+            parameter_count=467_584,
+            context_length=256,
+            license="Apache-2.0",
+            license_type=LicenseType.PERMISSIVE_OPEN_SOURCE,
+            quantization="FP32",
+            capabilities=["educational", "next_token_prediction"],
+            description="Modern decoder-only transformer with RoPE and weight tying.",
+        ),
+
+        # --- LLAMA 3.2 (Meta) ---
+        ModelMetadata(
+            model_id="llama3.2:1b",
+            name="Llama 3.2 1B Instruct",
+            organization="Meta",
+            provider="ollama",
+            architecture="Llama-3.2 (Decoder-only Transformer with RoPE & GQA)",
+            parameter_count=1_230_000_000,
+            context_length=131_072,
+            license="Llama 3.2 Community License",
+            license_type=LicenseType.OPEN_WEIGHTS_COMMUNITY,
+            quantization="Q4_K_M",
+            capabilities=["chat", "reasoning", "coding", "fast_inference"],
+            description="Ultra-lightweight edge model designed for mobile and CPU.",
+        ),
+        ModelMetadata(
+            model_id="llama3.2:3b",
+            name="Llama 3.2 3B Instruct",
+            organization="Meta",
+            provider="ollama",
+            architecture="Llama-3.2 (Decoder-only Transformer with RoPE & GQA)",
+            parameter_count=3_210_000_000,
+            context_length=131_072,
+            license="Llama 3.2 Community License",
+            license_type=LicenseType.OPEN_WEIGHTS_COMMUNITY,
+            quantization="Q4_K_M",
+            capabilities=["chat", "reasoning", "coding", "tools"],
+            description="High-capability compact model excelling in multilingual & agentic tasks.",
+        ),
+
+        # --- DEEPSEEK R1 DISTILL ---
+        ModelMetadata(
+            model_id="deepseek-r1:1.5b",
+            name="DeepSeek-R1-Distill-Qwen-1.5B",
+            organization="DeepSeek / Alibaba",
+            provider="ollama",
+            architecture="Qwen-2.5 Architecture (Distilled with DeepSeek-R1 Reasoning)",
+            parameter_count=1_780_000_000,
+            context_length=32_768,
+            license="MIT License",
+            license_type=LicenseType.PERMISSIVE_OPEN_SOURCE,
+            quantization="Q4_K_M",
+            capabilities=["chat", "deep_reasoning", "math", "chain_of_thought"],
+            description="Distilled reasoning model producing explicit <think> tokens for complex math and logic.",
+        ),
+
+        # --- QWEN 2.5 (Alibaba) ---
+        ModelMetadata(
+            model_id="qwen2.5:0.5b",
+            name="Qwen 2.5 0.5B Instruct",
+            organization="Alibaba Cloud",
+            provider="ollama",
+            architecture="Qwen-2.5 Transformer with RoPE & SwiGLU",
+            parameter_count=490_000_000,
+            context_length=32_768,
+            license="Apache-2.0",
+            license_type=LicenseType.PERMISSIVE_OPEN_SOURCE,
+            quantization="Q4_K_M",
+            capabilities=["chat", "fast_inference", "coding"],
+            description="Extremely small, fast model capable of CPU real-time token streaming.",
+        ),
+        ModelMetadata(
+            model_id="qwen2.5:1.5b",
+            name="Qwen 2.5 1.5B Instruct",
+            organization="Alibaba Cloud",
+            provider="ollama",
+            architecture="Qwen-2.5 Transformer with RoPE & SwiGLU",
+            parameter_count=1_540_000_000,
+            context_length=32_768,
+            license="Apache-2.0",
+            license_type=LicenseType.PERMISSIVE_OPEN_SOURCE,
+            quantization="Q4_K_M",
+            capabilities=["chat", "coding", "multilingual"],
+            description="Versatile CPU-friendly model with strong multilingual and coding proficiency.",
+        ),
+        ModelMetadata(
+            model_id="qwen2.5:7b",
+            name="Qwen 2.5 7B Instruct",
+            organization="Alibaba Cloud",
+            provider="ollama",
+            architecture="Qwen-2.5 Transformer",
+            parameter_count=7_610_000_000,
+            context_length=131_072,
+            license="Apache-2.0",
+            license_type=LicenseType.PERMISSIVE_OPEN_SOURCE,
+            quantization="Q4_K_M",
+            capabilities=["chat", "coding", "math", "tools", "reasoning"],
+            description="Leaderboard-topping 7B generalist model.",
+        ),
+        ModelMetadata(
+            model_id="qwen2.5:14b",
+            name="Qwen 2.5 14B Instruct",
+            organization="Alibaba Cloud",
+            provider="ollama",
+            architecture="Qwen-2.5 Transformer",
+            parameter_count=14_700_000_000,
+            context_length=131_072,
+            license="Apache-2.0",
+            license_type=LicenseType.PERMISSIVE_OPEN_SOURCE,
+            quantization="Q4_K_M",
+            capabilities=["chat", "expert_coding", "expert_math", "reasoning"],
+            description="High-capacity 14B model; heavy memory footprint on 16GB RAM.",
+        ),
+        ModelMetadata(
+            model_id="qwen2.5:72b",
+            name="Qwen 2.5 72B Instruct",
+            organization="Alibaba Cloud",
+            provider="ollama",
+            architecture="Qwen-2.5 Transformer",
+            parameter_count=72_700_000_000,
+            context_length=131_072,
+            license="Qwen Research License",
+            license_type=LicenseType.OPEN_WEIGHTS_COMMUNITY,
+            quantization="Q4_K_M",
+            capabilities=["frontier_intelligence", "coding", "math", "reasoning"],
+            description="Frontier-class open weights model requiring server GPU clusters.",
+        ),
+
+        # --- GEMMA 2 (Google) ---
+        ModelMetadata(
+            model_id="gemma2:2b",
+            name="Gemma 2 2B Instruct",
+            organization="Google",
+            provider="ollama",
+            architecture="Gemma-2 (Sliding Window Attention + Logit Soft-Capping)",
+            parameter_count=2_610_000_000,
+            context_length=8_192,
+            license="Gemma Terms of Use",
+            license_type=LicenseType.OPEN_WEIGHTS_COMMUNITY,
+            quantization="Q4_K_M",
+            capabilities=["chat", "reasoning", "fast_inference"],
+            description="Efficient 2B parameter architecture with knowledge distillation from larger models.",
+        ),
+        ModelMetadata(
+            model_id="gemma2:9b",
+            name="Gemma 2 9B Instruct",
+            organization="Google",
+            provider="ollama",
+            architecture="Gemma-2 (Sliding Window Attention + Logit Soft-Capping)",
+            parameter_count=9_240_000_000,
+            context_length=8_192,
+            license="Gemma Terms of Use",
+            license_type=LicenseType.OPEN_WEIGHTS_COMMUNITY,
+            quantization="Q4_K_M",
+            capabilities=["chat", "reasoning", "coding"],
+            description="State-of-the-art 9B model; tight memory fit on 16GB CPU.",
+        ),
+
+        # --- MISTRAL (Mistral AI) ---
+        ModelMetadata(
+            model_id="mistral:7b-instruct-v0.3",
+            name="Mistral 7B Instruct v0.3",
+            organization="Mistral AI",
+            provider="ollama",
+            architecture="Mistral Transformer (Sliding Window Attention + GQA)",
+            parameter_count=7_250_000_000,
+            context_length=32_768,
+            license="Apache-2.0",
+            license_type=LicenseType.PERMISSIVE_OPEN_SOURCE,
+            quantization="Q4_K_M",
+            capabilities=["chat", "coding", "function_calling"],
+            description="Standard Apache 2.0 open-weights workhorse supporting function calling.",
+        ),
+
+        # --- PHI (Microsoft) ---
+        ModelMetadata(
+            model_id="phi3.5:3.8b",
+            name="Phi-3.5-mini Instruct",
+            organization="Microsoft",
+            provider="ollama",
+            architecture="Phi-3.5 Transformer (Curated Synthetic Data Architecture)",
+            parameter_count=3_820_000_000,
+            context_length=128_000,
+            license="MIT License",
+            license_type=LicenseType.PERMISSIVE_OPEN_SOURCE,
+            quantization="Q4_K_M",
+            capabilities=["chat", "reasoning", "code", "long_context"],
+            description="Trained on high-quality synthetic textbook data with 128k context support.",
+        ),
+
+        # --- NEMOTRON (NVIDIA) ---
+        ModelMetadata(
+            model_id="nemotron-mini:4b",
+            name="NVIDIA Nemotron-Mini 4B Instruct",
+            organization="NVIDIA",
+            provider="ollama",
+            architecture="Nemotron Hybrid Transformer",
+            parameter_count=4_180_000_000,
+            context_length=4_096,
+            license="NVIDIA Open Model License",
+            license_type=LicenseType.OPEN_WEIGHTS_COMMUNITY,
+            quantization="Q4_K_M",
+            capabilities=["chat", "tools", "roleplay"],
+            description="Optimized by NVIDIA for compact device assistant tasks and tool calling.",
+        ),
+    ]
+
+    for model in models:
+        registry.register(model)
+
+    return registry
