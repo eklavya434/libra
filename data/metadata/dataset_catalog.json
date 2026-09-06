@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "catalog_version": "1.0.0",
+  "last_updated": "2026-09-06",
+  "storage_quota_enforced": true,
+  "quota_limit_gb": 15.0,
+  "datasets": [
+    {
+      "id": "educational-science-corpus",
+      "name": "Educational Science & Logic Corpus",
+      "organization": "Project Libra Educational Lab",
+      "source": "Curated from standard open scientific definitions and public domain reference texts",
+      "official_url": "https://github.com/eklavya434/libra",
+      "license": "CC0-1.0 (Public Domain)",
+      "license_type": "open data",
+      "commercial_restrictions": "None (Commercially Usable)",
+      "redistribution_restrictions": "None (Freely Redistributable)",
+      "hardware_requirements": "CPU-friendly (Minimal RAM < 1 MB)",
+      "file_path": "data/raw/educational_science_corpus.txt",
+      "format": "plain text (UTF-8)",
+      "date_checked": "2026-09-06"
+    },
+    {
+      "id": "tiny-llm-corpus",
+      "name": "Tiny Transformer Educational Demo Corpus",
+      "organization": "Project Libra Educational Lab",
+      "source": "Project Libra internal synthetic educational primer",
+      "official_url": "https://github.com/eklavya434/libra",
+      "license": "Apache-2.0",
+      "license_type": "permissive open source",
+      "commercial_restrictions": "None",
+      "redistribution_restrictions": "Must retain license notice",
+      "hardware_requirements": "CPU-friendly (Minimal RAM < 1 MB)",
+      "file_path": "data/raw/tiny_corpus.txt",
+      "format": "plain text (UTF-8)",
+      "date_checked": "2026-09-06"
+    }
+  ]
+}

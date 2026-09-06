@@ -1,0 +1,13 @@
+Physics is the natural science of matter, its fundamental constituents, its motion and behavior through space and time, and the related entities of energy and force. One of the most fundamental scientific disciplines, the main goal of physics is to understand how the universe behaves.
+
+In classical mechanics, Isaac Newton formulated the three laws of motion that describe the relationship between the motion of an object and the forces acting upon it. The first law states that an object at rest remains at rest, and an object in motion remains in motion at constant speed unless acted upon by a net external force.
+
+Thermodynamics is the branch of physics that deals with heat, work, and temperature, and their relation to energy, entropy, and the physical properties of matter. The first law of thermodynamics, also known as the law of conservation of energy, states that energy cannot be created or destroyed, only transformed from one form to another.
+
+Biology is the scientific study of life and living organisms. It encompasses diverse fields, ranging from cellular biochemistry to evolutionary ecology. All life on Earth is based on cells, which use nucleic acids like DNA and RNA to store and transmit genetic information across generations.
+
+Computer science is the study of computation, information, and automation. Algorithms are step-by-step procedures for calculation, data processing, and automated reasoning. Alan Turing formalized the mathematical concept of computation through the theoretical Turing machine, demonstrating fundamental limits on what computers can solve.
+
+Artificial intelligence focuses on creating systems capable of performing tasks that typically require human cognition. In machine learning, algorithms learn statistical patterns from data rather than following statically programmed instructions. Deep neural networks use layered mathematical transformations to extract abstract features from raw inputs.
+
+Natural language processing enables computers to process and generate human language. Transformer architectures rely on attention mechanisms to compute relationships between words regardless of their positional distance, fundamentally transforming language modeling and conversational artificial intelligence.
