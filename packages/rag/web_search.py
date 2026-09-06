@@ -38,15 +38,13 @@ class BaseWebSearchProvider(ABC):
         import asyncio
 
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                import concurrent.futures
-
-                with concurrent.futures.ThreadPoolExecutor() as pool:
-                    return pool.submit(asyncio.run, self.search(query, max_results)).result()
-            return loop.run_until_complete(self.search(query, max_results))
+            loop = asyncio.get_running_loop()
         except RuntimeError:
             return asyncio.run(self.search(query, max_results))
+
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            return pool.submit(asyncio.run, self.search(query, max_results)).result()
 
 
 class MockSearchProvider(BaseWebSearchProvider):

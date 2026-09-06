@@ -36,41 +36,31 @@
 | **Phase 13** | RAG: Vector Retrieval & Chunking | ✅ COMPLETE | First-principles vector embeddings, cosine similarity, recursive chunker, in-memory store, Knowledge Base UI (`27fc1dc`) |
 | **Phase 14** | Advanced RAG & Web Search | ✅ COMPLETE | Okapi BM25 sparse index, RRF fusion, multi-factor re-ranking, DuckDuckGo & Mock Web Search providers (`f3b1128`) |
 | **Phase 15** | Streaming UX & Deep Research Agent | ✅ COMPLETE | StreamingMarkdown, CodeBlock, AbortController, DeepResearchAgent multi-query workflow & synthesis (`028ee59`) |
-| **Phase 16** | Tool Use & Sandbox Execution | ⏳ NEXT | Function calling, JSON schema tool definitions, safe execution sandbox, multi-step agent tools |
+| **Phase 16** | Tool Use & Sandbox Execution | ✅ COMPLETE | Process-isolated sandbox, AST allowlist, Windows Job Objects memory ceiling, CalculatorTool, WebSearchTool, KnowledgeBaseTool, 5 adversarial tests passing (`main`) |
+| **Phase 17** | Structured Outputs & Grammar Decoders | ⏳ NEXT | JSON Schema enforcement, CFG guided generation, constrained decoding |
 
 ---
 
-## 3. Phase 14 & 15 Ecosystem: Web Search & Deep Research Status
+## 3. Phase 16 Ecosystem: Tool Use & Sandboxed Execution Status
 
-### A. Web Search Provider Status (Phase 14)
-- **Active Provider**: `DuckDuckGoSearchProvider` (`packages/rag/web_search.py`) is active by default, providing live, zero-cost, zero-API-key HTTPS web search without billing or subscription requirements.
-- **Offline / Air-Gapped Fallback**: `MockSearchProvider` is bundled for deterministic offline testing and CI, returning realistic domain-specific knowledge hits without network egress.
-- **REST Endpoint**: `GET /api/v1/rag/search` exposes web search for query processing.
+### A. Tool Architecture & Registry
+- **Base Abstraction**: `BaseTool` and `ToolResult` (`packages/tools/base.py`) with Pydantic validation, schema generation (`to_openai_schema()`), and timing isolation.
+- **Tool Registry**: `ToolRegistry` (`packages/tools/registry.py`) with singleton `get_tool_registry()`, pre-registering:
+  1. `CalculatorTool`: AST-based arithmetic and math evaluation without `eval()`.
+  2. `PythonInterpreterTool`: Multi-line Python execution in a secure sandbox.
+  3. `WebSearchTool`: DuckDuckGo / Mock live web search integration.
+  4. `KnowledgeBaseTool`: Hybrid BM25 + Dense vector retrieval over indexed documents.
+- **Tool Call Parser**: `ToolCallParser` (`packages/tools/parser.py`) extracts tool calls from XML `<tool_call>...</tool_call>`, Markdown code fences, or direct JSON structures, with conversational text cleaning (`strip_tool_calls`).
+- **REST Endpoints**: `GET /api/v1/tools`, `GET /api/v1/tools/schemas`, `POST /api/v1/tools/execute`, `POST /api/v1/tools/parse` (`apps/backend/api/v1/endpoints/tools.py`).
 
-### B. Deep Research Agent Workflow (Phase 15)
-- **Agent Orchestrator**: `DeepResearchAgent` (`packages/rag/deep_research.py`) executes multi-step research investigations:
-  1. **Query Decomposition**: Decomposes complex user inquiries into 3-5 orthogonal exploratory sub-queries (architecture, performance, implementation).
-  2. **Multi-Source Collection**: Queries live web search in parallel with local knowledge base indices via `HybridRetriever`.
-  3. **Passage Deduplication & Synthesis**: Deduplicates overlapping domain URLs and compiles key empirical excerpts.
-  4. **Report Dossier Compilation**: Produces structured academic-grade Markdown reports containing Executive Summary, Thematic Findings, Conclusions, and numbered source citations.
-- **REST Endpoint**: `POST /api/v1/rag/research` executes end-to-end deep research agent workflows.
-- **Streaming UX & Code Highlighting**: `StreamingMarkdown.tsx` and `CodeBlock.tsx` render research dossiers, code fences, and collapsible `<think>` reasoning processes in real-time with abortable generation.
-
-### C. Vector Database Architectural Decision: pgvector vs. Qdrant
-- **Evaluation & Choice**:
-  - **pgvector**: Requires a live PostgreSQL database server process or Docker container, which introduces heavy memory overhead (~200MB+ idle) and violates Directive 5 (*No Docker Before Phase 34*). Since Libra already uses lightweight SQLite WAL for relational memory, introducing PostgreSQL would add unnecessary operational friction on a 16GB CPU machine.
-  - **Qdrant (Selected Target)**: Chosen as the dedicated vector database target because:
-    1. **Embedded Mode**: `qdrant-client` supports embedded local file-based storage (`path="./data/qdrant"`) and in-memory execution with zero Docker dependencies and zero external background daemons.
-    2. **Rust & SIMD Optimization**: Ultra-fast CPU execution with AVX2/AVX-512 vector acceleration on Intel Core i5-12450H.
-    3. **Native Hybrid Search**: Out-of-the-box support for sparse vectors and dense-sparse hybrid fusion, perfectly matching Phase 14 requirements.
-- **Current Implementation**: `InMemoryVectorStore` + `BM25Index` using vectorized NumPy dot products and inverted indices, achieving sub-millisecond CPU retrieval. An abstract base interface allows seamless transition to embedded Qdrant when scaling persistent collections.
-- **Deviations from Plan**: Phase 14 combines first-principles Hybrid Search (BM25 + Dense + RRF) with Web Search; Phase 15 combines Real-Time Streaming UX with Autonomous Deep Research agent workflows. Both tracks are fully implemented, verified, and operational.
-
-### D. Ollama & Local Inference Status
-- **Ollama Adapter**: `packages/providers/ollama.py` ready for local runtime.
-- **Hugging Face Adapter**: `packages/providers/huggingface.py` running on CPU.
-- **PyTorch Lab Checkpoint**: Serving `checkpoints/best_engine_model.pt` at 349.5 tok/s on CPU.
-- **vLLM Status**: Not installed (Directive 6 enforced).
+### B. Multi-Layer Sandboxing & Adversarial Hardening
+- **Out-of-Process OS Child Execution**: Child process launched via `subprocess.Popen([sys._base_executable, runner_path])` with `-I -s` isolation, completely eradicating thread abandonment and GIL starvation.
+- **Kernel-Enforced Memory Limit**: Windows Job Object Extended Limit Information (`ProcessMemoryLimit` / `JobMemoryLimit`) enforces hard memory caps (64–128 MB), denying memory bombs and runaway loops.
+- **Preemptive OS Timeout Termination**: `proc.kill()` calls Win32 `TerminateProcess` / POSIX `SIGKILL` on timeout, guaranteeing immediate process eradication.
+- **Filesystem Chroot Isolation**: Custom `safe_open()` checks `os.path.commonpath()` against an ephemeral `tempfile.TemporaryDirectory()`, blocking directory traversal (`../../`) and absolute system paths.
+- **Kernel Subprocess Blocking**: Windows Job Object `ActiveProcessLimit = 1` prevents executed code from spawning child processes or subprocesses.
+- **Network Blackholing**: Proxy environment variables directed to `127.0.0.1:0`.
+- **AST Security Visitor**: Prohibits non-allowlisted imports, reflection dunders (`__subclasses__`, `__class__`), and dangerous builtins.
 
 ---
 
@@ -79,12 +69,13 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,201.28 MB** (~1.20 GB)
+- **Total Workspace Footprint**: **1,157.31 MB** (~1.16 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,158.72 MB** (92.18% free)
+- **Remaining Storage Quota**: **14,202.69 MB** (92.47% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **131 passed, 0 failed** (in 31.89s)
+- **Pytest Status**: **181 passed, 0 failed** (in 25.21s)
+- **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 
 
