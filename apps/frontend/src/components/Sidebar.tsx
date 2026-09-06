@@ -5,9 +5,15 @@ import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal } from 'lucid
 
 interface SidebarProps {
   currentSessionId: string;
+  activeTab?: 'chat' | 'arena';
+  onSelectTab?: (tab: 'chat' | 'arena') => void;
 }
 
-export default function Sidebar({ currentSessionId: _ }: SidebarProps) {
+export default function Sidebar({
+  currentSessionId: _,
+  activeTab = 'chat',
+  onSelectTab,
+}: SidebarProps) {
   return (
     <aside className="w-64 bg-slate-950 border-r border-slate-800/80 flex flex-col justify-between h-full select-none">
       {/* Brand Header */}
@@ -28,6 +34,7 @@ export default function Sidebar({ currentSessionId: _ }: SidebarProps) {
         </div>
 
         <button
+          onClick={() => onSelectTab && onSelectTab('chat')}
           className="mt-4 w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-750 hover:border-slate-700 py-2 px-3 rounded-lg text-xs font-medium transition-all shadow-sm group"
         >
           <Plus className="w-3.5 h-3.5 text-indigo-400 group-hover:scale-110 transition-transform" />
@@ -37,40 +44,60 @@ export default function Sidebar({ currentSessionId: _ }: SidebarProps) {
 
       {/* Navigation Sections */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 text-xs">
+        {/* Workspace Modes */}
         <div>
           <div className="flex items-center gap-1.5 text-slate-400 font-medium px-2 mb-2 tracking-wider uppercase text-[10px]">
             <Layers className="w-3 h-3 text-indigo-400" />
-            <span>Educational Lab</span>
+            <span>Workspace</span>
           </div>
           <div className="space-y-1">
-            <button className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md bg-indigo-950/40 border border-indigo-800/40 text-indigo-300 text-left">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <div className="truncate">
-                <p className="font-medium truncate">Phase 0: Foundation</p>
-                <p className="text-[10px] text-indigo-400/80">Active & Verified</p>
-              </div>
+            <button
+              onClick={() => onSelectTab && onSelectTab('chat')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${
+                activeTab === 'chat'
+                  ? 'bg-indigo-600/20 border border-indigo-500/40 text-indigo-200 font-medium'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+              }`}
+            >
+              <MessageSquare className={`w-4 h-4 ${activeTab === 'chat' ? 'text-indigo-400' : 'text-slate-400'}`} />
+              <span>Interactive Chat</span>
             </button>
 
-            <div className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-slate-400 opacity-60 text-left">
-              <Terminal className="w-3.5 h-3.5 shrink-0" />
-              <div className="truncate">
-                <p className="font-medium truncate">Phase 1: Tiny CPU LLM</p>
-                <p className="text-[10px] text-slate-400">Next Milestone</p>
-              </div>
-            </div>
+            <button
+              onClick={() => onSelectTab && onSelectTab('arena')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${
+                activeTab === 'arena'
+                  ? 'bg-indigo-600/20 border border-indigo-500/40 text-indigo-200 font-medium'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+              }`}
+            >
+              <Sparkles className={`w-4 h-4 ${activeTab === 'arena' ? 'text-indigo-400' : 'text-slate-400'}`} />
+              <span>Model Arena</span>
+            </button>
           </div>
         </div>
 
         <div>
           <div className="flex items-center gap-1.5 text-slate-400 font-medium px-2 mb-2 tracking-wider uppercase text-[10px]">
-            <MessageSquare className="w-3 h-3 text-cyan-400" />
-            <span>Recent Chats</span>
+            <Terminal className="w-3 h-3 text-cyan-400" />
+            <span>Educational Milestones</span>
           </div>
           <div className="space-y-1">
-            <button className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md hover:bg-slate-900 text-slate-300 text-left transition-colors">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-              <span className="truncate">Welcome to Libra Lab</span>
-            </button>
+            <div className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md bg-emerald-950/30 border border-emerald-800/30 text-emerald-300 text-left">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+              <div className="truncate">
+                <p className="font-medium truncate">Phases 0 - 10</p>
+                <p className="text-[10px] text-emerald-400/80">Completed & Verified</p>
+              </div>
+            </div>
+
+            <div className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md bg-indigo-950/40 border border-indigo-800/40 text-indigo-300 text-left">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0 animate-pulse" />
+              <div className="truncate">
+                <p className="font-medium truncate">Phase 11: Real Chat UI</p>
+                <p className="text-[10px] text-indigo-400/80">Live SSE & Arena</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
