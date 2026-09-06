@@ -34,24 +34,29 @@
 | **Phase 11** | Real Libra Chat UI | ✅ COMPLETE | Next.js frontend, live SSE streaming, dynamic model picker, sampling modal, Arena UI (`bb2be8b`) |
 | **Phase 12** | Multi-Turn Conversation Memory | ✅ COMPLETE | SQLite WAL storage, message cascade, ContextWindowManager sliding window, session CRUD (`b9ee315`) |
 | **Phase 13** | RAG: Vector Retrieval & Chunking | ✅ COMPLETE | First-principles vector embeddings, cosine similarity, recursive chunker, in-memory store, Knowledge Base UI (`27fc1dc`) |
-| **Phase 14** | Advanced RAG: Hybrid Search & Re-ranking | ✅ COMPLETE | Okapi BM25 sparse index, Reciprocal Rank Fusion (RRF), multi-factor re-ranking, chunk deduplication, Hybrid UI (`f3b1128`) |
-| **Phase 15** | Real-Time SSE Streaming & Markdown Rendering | ✅ COMPLETE | StreamingMarkdown parser, syntax-highlighted CodeBlock, AbortController cancellation, regenerate response, telemetry |
+| **Phase 14** | Advanced RAG & Web Search | ✅ COMPLETE | Okapi BM25 sparse index, RRF fusion, multi-factor re-ranking, DuckDuckGo & Mock Web Search providers (`f3b1128`) |
+| **Phase 15** | Streaming UX & Deep Research Agent | ✅ COMPLETE | StreamingMarkdown, CodeBlock, AbortController, DeepResearchAgent multi-query workflow & synthesis (`028ee59`) |
 | **Phase 16** | Tool Use & Sandbox Execution | ⏳ NEXT | Function calling, JSON schema tool definitions, safe execution sandbox, multi-step agent tools |
 
 ---
 
-## 3. Phase 15 Ecosystem & Streaming UX Status
+## 3. Phase 14 & 15 Ecosystem: Web Search & Deep Research Status
 
-### A. Phase 15 Outcome: Streaming Markdown, Syntax Highlighting & Generation Telemetry
-- **Streaming Markdown Parser**: `apps/frontend/src/components/StreamingMarkdown.tsx` implements a zero-dependency streaming state machine handling open/unclosed code fences in-flight without layout shifting or hydration errors.
-- **Code Block Component**: `apps/frontend/src/components/CodeBlock.tsx` features language detection, line numbers, one-click copy with feedback, and regex-based multi-token syntax highlighting (keywords, strings, numbers, comments, builtins).
-- **Collapsible Reasoning**: `<think>...</think>` tags are extracted and rendered in an expandable accordion block with animated thinking indicators for reasoning models (DeepSeek-R1, Qwen 2.5).
-- **Stream Abort & Cancellation**: `streamChat` accepts `signal: AbortSignal`. The UI includes a Stop Generation button (`Square` icon) in the input bar and handles `AbortError` gracefully, finalizing telemetry up to the cancellation point.
-- **Regenerate Response**: Last user turn can be regenerated with a single click (`RefreshCw` icon).
-- **Telemetry Display**: Displays TTFT (ms), latency (ms), token velocity (tok/s), token counts, and cost calculation.
-- **Educational Guide & Demo**: `docs/educational/PHASE_15_STREAMING_UX_AND_MARKDOWN.md` and `scripts/run_phase15_streaming_demo.py`.
+### A. Web Search Provider Status (Phase 14)
+- **Active Provider**: `DuckDuckGoSearchProvider` (`packages/rag/web_search.py`) is active by default, providing live, zero-cost, zero-API-key HTTPS web search without billing or subscription requirements.
+- **Offline / Air-Gapped Fallback**: `MockSearchProvider` is bundled for deterministic offline testing and CI, returning realistic domain-specific knowledge hits without network egress.
+- **REST Endpoint**: `GET /api/v1/rag/search` exposes web search for query processing.
 
-### B. Vector Database Architectural Decision: pgvector vs. Qdrant
+### B. Deep Research Agent Workflow (Phase 15)
+- **Agent Orchestrator**: `DeepResearchAgent` (`packages/rag/deep_research.py`) executes multi-step research investigations:
+  1. **Query Decomposition**: Decomposes complex user inquiries into 3-5 orthogonal exploratory sub-queries (architecture, performance, implementation).
+  2. **Multi-Source Collection**: Queries live web search in parallel with local knowledge base indices via `HybridRetriever`.
+  3. **Passage Deduplication & Synthesis**: Deduplicates overlapping domain URLs and compiles key empirical excerpts.
+  4. **Report Dossier Compilation**: Produces structured academic-grade Markdown reports containing Executive Summary, Thematic Findings, Conclusions, and numbered source citations.
+- **REST Endpoint**: `POST /api/v1/rag/research` executes end-to-end deep research agent workflows.
+- **Streaming UX & Code Highlighting**: `StreamingMarkdown.tsx` and `CodeBlock.tsx` render research dossiers, code fences, and collapsible `<think>` reasoning processes in real-time with abortable generation.
+
+### C. Vector Database Architectural Decision: pgvector vs. Qdrant
 - **Evaluation & Choice**:
   - **pgvector**: Requires a live PostgreSQL database server process or Docker container, which introduces heavy memory overhead (~200MB+ idle) and violates Directive 5 (*No Docker Before Phase 34*). Since Libra already uses lightweight SQLite WAL for relational memory, introducing PostgreSQL would add unnecessary operational friction on a 16GB CPU machine.
   - **Qdrant (Selected Target)**: Chosen as the dedicated vector database target because:
@@ -59,9 +64,9 @@
     2. **Rust & SIMD Optimization**: Ultra-fast CPU execution with AVX2/AVX-512 vector acceleration on Intel Core i5-12450H.
     3. **Native Hybrid Search**: Out-of-the-box support for sparse vectors and dense-sparse hybrid fusion, perfectly matching Phase 14 requirements.
 - **Current Implementation**: `InMemoryVectorStore` + `BM25Index` using vectorized NumPy dot products and inverted indices, achieving sub-millisecond CPU retrieval. An abstract base interface allows seamless transition to embedded Qdrant when scaling persistent collections.
-- **Deviations from Plan**: None.
+- **Deviations from Plan**: Phase 14 combines first-principles Hybrid Search (BM25 + Dense + RRF) with Web Search; Phase 15 combines Real-Time Streaming UX with Autonomous Deep Research agent workflows. Both tracks are fully implemented, verified, and operational.
 
-### C. Ollama & Local Inference Status
+### D. Ollama & Local Inference Status
 - **Ollama Adapter**: `packages/providers/ollama.py` ready for local runtime.
 - **Hugging Face Adapter**: `packages/providers/huggingface.py` running on CPU.
 - **PyTorch Lab Checkpoint**: Serving `checkpoints/best_engine_model.pt` at 349.5 tok/s on CPU.
@@ -74,12 +79,12 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,201.19 MB** (~1.20 GB)
+- **Total Workspace Footprint**: **1,201.28 MB** (~1.20 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,158.81 MB** (92.18% free)
+- **Remaining Storage Quota**: **14,158.72 MB** (92.18% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **126 passed, 0 failed** (in 18.47s)
+- **Pytest Status**: **131 passed, 0 failed** (in 31.89s)
 
 
 

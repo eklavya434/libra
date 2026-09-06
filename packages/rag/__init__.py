@@ -23,9 +23,22 @@ from packages.rag.models import (
     RAGQueryResponse,
     SearchResult,
 )
+from packages.rag.deep_research import (
+    DeepResearchAgent,
+    DeepResearchReport,
+    ResearchSection,
+    ResearchSource,
+)
 from packages.rag.reranker import BaseReRanker, HeuristicReRanker
 from packages.rag.synthesizer import RAGPromptSynthesizer
 from packages.rag.vector_store import InMemoryVectorStore, get_vector_store
+from packages.rag.web_search import (
+    BaseWebSearchProvider,
+    DuckDuckGoSearchProvider,
+    MockSearchProvider,
+    WebSearchResult,
+    get_web_search_provider,
+)
 
 __all__ = [
     "Document",
@@ -52,4 +65,13 @@ __all__ = [
     "jaccard_similarity",
     "HybridRetriever",
     "get_hybrid_retriever",
+    "WebSearchResult",
+    "BaseWebSearchProvider",
+    "DuckDuckGoSearchProvider",
+    "MockSearchProvider",
+    "get_web_search_provider",
+    "DeepResearchAgent",
+    "DeepResearchReport",
+    "ResearchSection",
+    "ResearchSource",
 ]

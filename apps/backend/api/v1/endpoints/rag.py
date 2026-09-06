@@ -9,14 +9,19 @@ from __future__ import annotations
 
 from typing import Any
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 from packages.rag import (
+    DeepResearchAgent,
+    DeepResearchReport,
     Document,
     IngestDocumentRequest,
     RAGPromptSynthesizer,
     RAGQueryRequest,
     RAGQueryResponse,
+    WebSearchResult,
     get_hybrid_retriever,
+    get_web_search_provider,
 )
 
 router = APIRouter()
@@ -90,3 +95,22 @@ async def query_vector_store(request: RAGQueryRequest) -> RAGQueryResponse:
         augmented_prompt=augmented_prompt,
         total_candidates=len(results),
     )
+
+
+class ResearchRequest(BaseModel):
+    topic: str = Field(..., min_length=2, description="Research question or topic to investigate")
+    max_iterations: int = Field(3, ge=1, le=5, description="Number of iterative search angles")
+
+
+@router.get("/search", response_model=list[WebSearchResult], summary="Execute web search")
+async def execute_web_search(query: str, max_results: int = 5) -> list[WebSearchResult]:
+    """Search the web using the active WebSearchProvider (DuckDuckGo with Mock fallback)."""
+    search_provider = get_web_search_provider()
+    return await search_provider.search(query, max_results=max_results)
+
+
+@router.post("/research", response_model=DeepResearchReport, summary="Autonomous deep research agent workflow")
+async def execute_deep_research(request: ResearchRequest) -> DeepResearchReport:
+    """Decompose inquiry, gather web and local knowledge, synthesize citations, and generate report."""
+    agent = DeepResearchAgent()
+    return await agent.execute_research(topic=request.topic, max_iterations=request.max_iterations)
