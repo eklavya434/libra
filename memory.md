@@ -37,30 +37,31 @@
 | **Phase 14** | Advanced RAG & Web Search | ✅ COMPLETE | Okapi BM25 sparse index, RRF fusion, multi-factor re-ranking, DuckDuckGo & Mock Web Search providers (`f3b1128`) |
 | **Phase 15** | Streaming UX & Deep Research Agent | ✅ COMPLETE | StreamingMarkdown, CodeBlock, AbortController, DeepResearchAgent multi-query workflow & synthesis (`028ee59`) |
 | **Phase 16** | Tool Use & Sandbox Execution | ✅ COMPLETE | Process-isolated sandbox, AST allowlist, Windows Job Objects memory ceiling, CalculatorTool, WebSearchTool, KnowledgeBaseTool, 5 adversarial tests passing (`main`) |
-| **Phase 17** | Structured Outputs & Grammar Decoders | ⏳ NEXT | JSON Schema enforcement, CFG guided generation, constrained decoding |
+| **Phase 17** | Structured Outputs & Grammar Decoders | ✅ COMPLETE | Incremental JSON Pushdown Automaton, SchemaCompiler, ConstrainedLogitsProcessor, self-healing repair loop, POST /api/v1/structured/generate (`main`) |
+| **Phase 18** | Multi-Step Agentic Loops | ⏳ NEXT | ReAct reasoning loops, Plan-and-Solve orchestrator, multi-tool chaining, stateful agent execution |
 
 ---
 
-## 3. Phase 16 Ecosystem: Tool Use & Sandboxed Execution Status
+## 3. Phase 16 & 17 Ecosystem: Tools & Structured Outputs
 
-### A. Tool Architecture & Registry
+### A. Phase 16: Tool Use & Secure Sandboxed Execution
 - **Base Abstraction**: `BaseTool` and `ToolResult` (`packages/tools/base.py`) with Pydantic validation, schema generation (`to_openai_schema()`), and timing isolation.
-- **Tool Registry**: `ToolRegistry` (`packages/tools/registry.py`) with singleton `get_tool_registry()`, pre-registering:
-  1. `CalculatorTool`: AST-based arithmetic and math evaluation without `eval()`.
-  2. `PythonInterpreterTool`: Multi-line Python execution in a secure sandbox.
-  3. `WebSearchTool`: DuckDuckGo / Mock live web search integration.
-  4. `KnowledgeBaseTool`: Hybrid BM25 + Dense vector retrieval over indexed documents.
-- **Tool Call Parser**: `ToolCallParser` (`packages/tools/parser.py`) extracts tool calls from XML `<tool_call>...</tool_call>`, Markdown code fences, or direct JSON structures, with conversational text cleaning (`strip_tool_calls`).
-- **REST Endpoints**: `GET /api/v1/tools`, `GET /api/v1/tools/schemas`, `POST /api/v1/tools/execute`, `POST /api/v1/tools/parse` (`apps/backend/api/v1/endpoints/tools.py`).
+- **Tool Registry**: `ToolRegistry` (`packages/tools/registry.py`) with singleton `get_tool_registry()`, pre-registering `CalculatorTool`, `PythonInterpreterTool`, `WebSearchTool`, and `KnowledgeBaseTool`.
+- **Multi-Layer Sandboxing**:
+  - Out-of-process execution via `subprocess.Popen([sys._base_executable, runner_path])` with `-I -s` isolation.
+  - Windows Job Object kernel memory limits (`ProcessMemoryLimit` / `JobMemoryLimit`).
+  - Preemptive hard timeout process termination (`proc.kill()`).
+  - Filesystem chroot isolation via scoped `safe_open()`.
+  - Kernel subprocess blocking (`ActiveProcessLimit = 1`).
+  - Network blackholing (`HTTP_PROXY=127.0.0.1:0`).
+  - AST security visitor with strict module allowlist.
 
-### B. Multi-Layer Sandboxing & Adversarial Hardening
-- **Out-of-Process OS Child Execution**: Child process launched via `subprocess.Popen([sys._base_executable, runner_path])` with `-I -s` isolation, completely eradicating thread abandonment and GIL starvation.
-- **Kernel-Enforced Memory Limit**: Windows Job Object Extended Limit Information (`ProcessMemoryLimit` / `JobMemoryLimit`) enforces hard memory caps (64–128 MB), denying memory bombs and runaway loops.
-- **Preemptive OS Timeout Termination**: `proc.kill()` calls Win32 `TerminateProcess` / POSIX `SIGKILL` on timeout, guaranteeing immediate process eradication.
-- **Filesystem Chroot Isolation**: Custom `safe_open()` checks `os.path.commonpath()` against an ephemeral `tempfile.TemporaryDirectory()`, blocking directory traversal (`../../`) and absolute system paths.
-- **Kernel Subprocess Blocking**: Windows Job Object `ActiveProcessLimit = 1` prevents executed code from spawning child processes or subprocesses.
-- **Network Blackholing**: Proxy environment variables directed to `127.0.0.1:0`.
-- **AST Security Visitor**: Prohibits non-allowlisted imports, reflection dunders (`__subclasses__`, `__class__`), and dangerous builtins.
+### B. Phase 17: Structured Outputs & Grammar-Constrained Decoders
+- **Incremental JSON State Machine (PDA)**: `IncrementalJSONStateMachine` (`packages/core/grammar/json_state_machine.py`) tracks nested objects, arrays, strings, escapes, numbers, and literals character-by-character, reporting prefix validity, allowed next characters, and completion.
+- **JSON Schema Compiler**: `SchemaCompiler` (`packages/core/grammar/schema_compiler.py`) compiles Pydantic models and raw schemas into validation rules and OpenAI/Ollama `response_format` schemas.
+- **Constrained Logits Processor**: `ConstrainedLogitsProcessor` (`packages/core/grammar/logits_processor.py`) intercepts autoregressive logits and applies $-\infty$ masks to tokens violating the JSON grammar.
+- **Structured Output Generator & Self-Healing Loop**: `StructuredOutputGenerator` (`packages/providers/structured.py`) orchestrates generation with multi-turn reflection repair: automatically feeding validation error feedback back to the model for correction.
+- **REST Endpoints**: `POST /api/v1/structured/generate` and `POST /api/v1/structured/validate` (`apps/backend/api/v1/endpoints/structured.py`).
 
 ---
 
@@ -74,7 +75,7 @@
 - **Remaining Storage Quota**: **14,202.69 MB** (92.47% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **181 passed, 0 failed** (in 25.21s)
+- **Pytest Status**: **196 passed, 0 failed** (in 26.10s)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 

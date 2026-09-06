@@ -22,11 +22,14 @@ from packages.providers.ollama import OllamaProvider
 from packages.providers.openai import OpenAIProvider
 from packages.providers.prompt_template import PromptTemplate
 from packages.providers.router import ProviderRouter, get_router
+from packages.providers.structured import StructuredOutputGenerator, StructuredResult
 from packages.providers.vllm_stub import VLLMProvider
 
 __all__ = [
     "BaseProvider",
     "ModelMetadata",
+    "StructuredOutputGenerator",
+    "StructuredResult",
     "MockProvider",
     "OllamaProvider",
     "HuggingFaceProvider",
