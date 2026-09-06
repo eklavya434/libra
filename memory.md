@@ -38,11 +38,12 @@
 | **Phase 15** | Streaming UX & Deep Research Agent | ✅ COMPLETE | StreamingMarkdown, CodeBlock, AbortController, DeepResearchAgent multi-query workflow & synthesis (`028ee59`) |
 | **Phase 16** | Tool Use & Sandbox Execution | ✅ COMPLETE | Process-isolated sandbox, AST allowlist, Windows Job Objects memory ceiling, CalculatorTool, WebSearchTool, KnowledgeBaseTool, 5 adversarial tests passing (`main`) |
 | **Phase 17** | Structured Outputs & Grammar Decoders | ✅ COMPLETE | Incremental JSON Pushdown Automaton, SchemaCompiler, ConstrainedLogitsProcessor, self-healing repair loop, POST /api/v1/structured/generate (`main`) |
-| **Phase 18** | Multi-Step Agentic Loops | ⏳ NEXT | ReAct reasoning loops, Plan-and-Solve orchestrator, multi-tool chaining, stateful agent execution |
+| **Phase 18** | Multi-Step Agentic Loops | ✅ COMPLETE | ReAct agent loop, Plan-and-Solve orchestrator, real-time SSE step streaming, circuit breakers, budget guards (`main`) |
+| **Phase 19** | Code Generation & Auto-Debugging | ⏳ NEXT | Program-Aided Language Models (PAL), automated code execution, test-driven self-correction |
 
 ---
 
-## 3. Phase 16 & 17 Ecosystem: Tools & Structured Outputs
+## 3. Phase 16, 17 & 18 Ecosystem: Tools, Structured Outputs & Agents
 
 ### A. Phase 16: Tool Use & Secure Sandboxed Execution
 - **Base Abstraction**: `BaseTool` and `ToolResult` (`packages/tools/base.py`) with Pydantic validation, schema generation (`to_openai_schema()`), and timing isolation.
@@ -57,11 +58,17 @@
   - AST security visitor with strict module allowlist.
 
 ### B. Phase 17: Structured Outputs & Grammar-Constrained Decoders
-- **Incremental JSON State Machine (PDA)**: `IncrementalJSONStateMachine` (`packages/core/grammar/json_state_machine.py`) tracks nested objects, arrays, strings, escapes, numbers, and literals character-by-character, reporting prefix validity, allowed next characters, and completion.
+- **Incremental JSON State Machine (PDA)**: `IncrementalJSONStateMachine` (`packages/core/grammar/json_state_machine.py`) tracks nested objects, arrays, strings, escapes, numbers, and literals character-by-character.
 - **JSON Schema Compiler**: `SchemaCompiler` (`packages/core/grammar/schema_compiler.py`) compiles Pydantic models and raw schemas into validation rules and OpenAI/Ollama `response_format` schemas.
 - **Constrained Logits Processor**: `ConstrainedLogitsProcessor` (`packages/core/grammar/logits_processor.py`) intercepts autoregressive logits and applies $-\infty$ masks to tokens violating the JSON grammar.
-- **Structured Output Generator & Self-Healing Loop**: `StructuredOutputGenerator` (`packages/providers/structured.py`) orchestrates generation with multi-turn reflection repair: automatically feeding validation error feedback back to the model for correction.
-- **REST Endpoints**: `POST /api/v1/structured/generate` and `POST /api/v1/structured/validate` (`apps/backend/api/v1/endpoints/structured.py`).
+- **Structured Output Generator & Self-Healing Loop**: `StructuredOutputGenerator` (`packages/providers/structured.py`) orchestrates generation with multi-turn reflection repair.
+- **REST Endpoints**: `POST /api/v1/structured/generate` and `POST /api/v1/structured/validate`.
+
+### C. Phase 18: Autonomous Multi-Step Agent Loops
+- **ReAct Agent**: `ReActAgent` (`packages/agents/react.py`) implements interleaved `Thought` -> `Action` -> `Observation` loops with scratchpad history, tool dispatching, circuit breakers (`max_tool_failures=3`), and budget limits (`max_steps=10`, `timeout_sec=60.0`).
+- **Plan-and-Solve Agent**: `PlanAndSolveAgent` (`packages/agents/plan_and_solve.py`) decomposes complex inquiries into explicit milestones via `StructuredOutputGenerator`, executes tools per milestone, and synthesizes findings.
+- **Real-Time Step Streaming**: `POST /api/v1/agents/react/stream` SSE endpoint emitting real-time `thought`, `action`, `observation`, and `final_answer` events.
+- **REST Endpoints**: `POST /api/v1/agents/react`, `POST /api/v1/agents/react/stream`, `POST /api/v1/agents/plan-and-solve` (`apps/backend/api/v1/endpoints/agents.py`).
 
 ---
 
@@ -75,7 +82,7 @@
 - **Remaining Storage Quota**: **14,202.69 MB** (92.47% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **196 passed, 0 failed** (in 26.10s)
+- **Pytest Status**: **205 passed, 0 failed** (in 29.11s)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 
