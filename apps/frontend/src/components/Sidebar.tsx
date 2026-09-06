@@ -1,18 +1,27 @@
 'use client';
 
 import React from 'react';
-import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal } from 'lucide-react';
+import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2 } from 'lucide-react';
+import { ConversationSummary } from '@/lib/api';
 
 interface SidebarProps {
   currentSessionId: string;
   activeTab?: 'chat' | 'arena';
+  conversations?: ConversationSummary[];
   onSelectTab?: (tab: 'chat' | 'arena') => void;
+  onSelectConversation?: (id: string) => void;
+  onNewConversation?: () => void;
+  onDeleteConversation?: (id: string) => void;
 }
 
 export default function Sidebar({
-  currentSessionId: _,
+  currentSessionId,
   activeTab = 'chat',
+  conversations = [],
   onSelectTab,
+  onSelectConversation,
+  onNewConversation,
+  onDeleteConversation,
 }: SidebarProps) {
   return (
     <aside className="w-64 bg-slate-950 border-r border-slate-800/80 flex flex-col justify-between h-full select-none">
@@ -34,7 +43,10 @@ export default function Sidebar({
         </div>
 
         <button
-          onClick={() => onSelectTab && onSelectTab('chat')}
+          onClick={() => {
+            if (onSelectTab) onSelectTab('chat');
+            if (onNewConversation) onNewConversation();
+          }}
           className="mt-4 w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-750 hover:border-slate-700 py-2 px-3 rounded-lg text-xs font-medium transition-all shadow-sm group"
         >
           <Plus className="w-3.5 h-3.5 text-indigo-400 group-hover:scale-110 transition-transform" />
@@ -77,25 +89,83 @@ export default function Sidebar({
           </div>
         </div>
 
+        {/* Recent Conversations List */}
+        <div>
+          <div className="flex items-center justify-between px-2 mb-2">
+            <span className="flex items-center gap-1.5 text-slate-400 font-medium tracking-wider uppercase text-[10px]">
+              <MessageSquare className="w-3 h-3 text-cyan-400" />
+              <span>Conversations</span>
+            </span>
+            <span className="text-[10px] text-slate-400 font-mono">
+              {conversations.length}
+            </span>
+          </div>
+          <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+            {conversations.length === 0 ? (
+              <div className="px-3 py-2 text-slate-400 italic text-[11px]">
+                No stored conversations
+              </div>
+            ) : (
+              conversations.map((conv) => {
+                const isSelected = activeTab === 'chat' && currentSessionId === conv.id;
+                return (
+                  <div
+                    key={conv.id}
+                    onClick={() => {
+                      if (onSelectTab) onSelectTab('chat');
+                      if (onSelectConversation) onSelectConversation(conv.id);
+                    }}
+                    className={`group flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer transition-all ${
+                      isSelected
+                        ? 'bg-indigo-950/60 border border-indigo-700/60 text-indigo-200 font-medium'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/70 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 truncate pr-1">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSelected ? 'bg-indigo-400' : 'bg-slate-600'}`} />
+                      <span className="truncate text-xs">{conv.title}</span>
+                    </div>
+
+                    {onDeleteConversation && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteConversation(conv.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 hover:text-rose-400 text-slate-400 transition-opacity p-0.5"
+                        title="Delete conversation"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Milestones */}
         <div>
           <div className="flex items-center gap-1.5 text-slate-400 font-medium px-2 mb-2 tracking-wider uppercase text-[10px]">
-            <Terminal className="w-3 h-3 text-cyan-400" />
-            <span>Educational Milestones</span>
+            <Terminal className="w-3 h-3 text-emerald-400" />
+            <span>Milestones</span>
           </div>
           <div className="space-y-1">
-            <div className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md bg-emerald-950/30 border border-emerald-800/30 text-emerald-300 text-left">
+            <div className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-emerald-950/30 border border-emerald-800/30 text-emerald-300 text-left">
               <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
               <div className="truncate">
-                <p className="font-medium truncate">Phases 0 - 10</p>
-                <p className="text-[10px] text-emerald-400/80">Completed & Verified</p>
+                <p className="font-medium truncate">Phases 0 - 11</p>
+                <p className="text-[10px] text-emerald-400/80">Completed</p>
               </div>
             </div>
 
-            <div className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md bg-indigo-950/40 border border-indigo-800/40 text-indigo-300 text-left">
+            <div className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-indigo-950/40 border border-indigo-800/40 text-indigo-300 text-left">
               <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0 animate-pulse" />
               <div className="truncate">
-                <p className="font-medium truncate">Phase 11: Real Chat UI</p>
-                <p className="text-[10px] text-indigo-400/80">Live SSE & Arena</p>
+                <p className="font-medium truncate">Phase 12: Memory</p>
+                <p className="text-[10px] text-indigo-400/80">SQLite & Context</p>
               </div>
             </div>
           </div>

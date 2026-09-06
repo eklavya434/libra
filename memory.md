@@ -31,22 +31,21 @@
 | **Phase 8** | Local Inference Engine | ✅ COMPLETE | Ollama adapter, Hugging Face adapter, local PyTorch server, SSE streaming (`66d83a8`) |
 | **Phase 9** | External Provider Adapters | ✅ COMPLETE | OpenAI, Gemini, Claude, DeepSeek, Groq, OpenRouter, cost tracker, error normalization (`a3d7d96`) |
 | **Phase 10** | Model Comparison Arena | ✅ COMPLETE | Side-by-side benchmarking, TTFT, token velocity, cost ranking, POST /api/v1/arena/compare (`67268a0`) |
-| **Phase 11** | Real Libra Chat UI | ✅ COMPLETE | Next.js frontend, live SSE streaming, dynamic model picker, sampling modal, Arena UI |
-| **Phase 12** | Multi-Turn Conversation Memory | ⏳ NEXT | SQLite/JSON session store, conversation history, context truncation |
+| **Phase 11** | Real Libra Chat UI | ✅ COMPLETE | Next.js frontend, live SSE streaming, dynamic model picker, sampling modal, Arena UI (`bb2be8b`) |
+| **Phase 12** | Multi-Turn Conversation Memory | ✅ COMPLETE | SQLite WAL storage, message cascade, ContextWindowManager sliding window, session CRUD |
+| **Phase 13** | RAG: Vector Retrieval & Chunking | ⏳ NEXT | First-principles vector embeddings, cosine similarity, document chunking |
 
 ---
 
-## 3. Phase 11 Ecosystem & Frontend Status
+## 3. Phase 12 Ecosystem & Memory Status
 
-### A. Phase 11 Outcome: Real Libra Chat UI & Arena View
-- **Frontend Architecture**: Next.js 14 App Router (TypeScript strict, Tailwind CSS, Lucide icons).
-- **Streaming Client**: `apps/frontend/src/lib/api.ts` implements an asynchronous generator over `ReadableStreamDefaultReader`, parsing OpenAI-compatible SSE events (`text/event-stream`) in real time.
-- **Model Selector**: `apps/frontend/src/components/ModelSelector.tsx` dynamically populates models from `GET /api/v1/models` with hardware and zero-cost badges.
-- **Hyperparameter Controls**: `apps/frontend/src/components/HyperparametersModal.tsx` provides live adjustment of `temperature`, `max_tokens`, and `top_p`.
-- **Interactive Chat Area**: `apps/frontend/src/components/ChatArea.tsx` with animated token cursor, per-message latency/speed badges, copy and regeneration actions.
-- **Comparison Arena UI**: `apps/frontend/src/components/ArenaView.tsx` with side-by-side multi-model generation and real-time metric leaderboards.
-- **Navigation Mode Switcher**: `apps/frontend/src/components/Sidebar.tsx` and `page.tsx` allow seamless switching between Chat Assistant and Model Arena.
-- **Build Status**: Verified via `npm run build` (0 TypeScript errors, static pages optimized).
+### A. Phase 12 Outcome: Multi-Turn Conversation Memory & Context Management
+- **Storage Engine**: `packages/core/memory/sqlite_store.py` (`SQLiteConversationStore`) with Write-Ahead Logging (WAL), foreign key cascade deletion, and auto-titling from initial user prompts.
+- **Context Management**: `packages/core/memory/context_manager.py` (`ContextWindowManager`) prevents model context overflow by calculating token budgets and performing sliding-window truncation while preserving system prompts.
+- **Backend Endpoints**: `apps/backend/api/v1/endpoints/conversations.py` (`/api/v1/conversations`) provides RESTful session CRUD.
+- **Chat Endpoint Integration**: `apps/backend/api/v1/endpoints/chat.py` accepts `conversation_id`, auto-appends user turns, dynamically trims context, and persists streamed responses upon completion.
+- **Frontend State**: `apps/frontend/src/components/Sidebar.tsx` renders dynamic conversations list with deletion; `ChatArea.tsx` hydrates previous session messages.
+- **Interactive Script**: `scripts/run_phase12_memory_demo.py` verifies end-to-end memory accumulation, auto-titling, and context truncation.
 
 ### B. Ollama & Local Inference Status
 - **Ollama Adapter**: `packages/providers/ollama.py` ready for local runtime.
@@ -61,11 +60,12 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,191.55 MB** (~1.19 GB)
+- **Total Workspace Footprint**: **1,193.75 MB** (~1.19 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,168.45 MB** (92.24% free)
+- **Remaining Storage Quota**: **14,166.25 MB** (92.23% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **75 passed, 0 failed** (in 23.90s)
+- **Pytest Status**: **91 passed, 0 failed** (in 15.69s)
+
 
 

@@ -5,7 +5,13 @@ import { Send, Bot, User, Sliders, Zap, RotateCcw, AlertCircle, Copy, Check } fr
 import StatusBadge from './StatusBadge';
 import ModelSelector from './ModelSelector';
 import HyperparametersModal from './HyperparametersModal';
-import { streamChat, ChatMessage, ChatTelemetry } from '@/lib/api';
+import {
+  streamChat,
+  ChatMessage,
+  ChatTelemetry,
+  fetchConversation,
+  clearConversationMessages,
+} from '@/lib/api';
 
 interface ExtendedMessage extends ChatMessage {
   id: string;
@@ -14,13 +20,18 @@ interface ExtendedMessage extends ChatMessage {
   error?: boolean;
 }
 
-export default function ChatArea() {
+interface ChatAreaProps {
+  conversationId?: string;
+  onConversationUpdated?: () => void;
+}
+
+export default function ChatArea({ conversationId, onConversationUpdated }: ChatAreaProps) {
   const [messages, setMessages] = useState<ExtendedMessage[]>([
     {
       id: 'welcome',
       role: 'assistant',
       content:
-        '👋 Welcome to **Libra**!\n\nThis is your personal AI Assistant and educational Large Language Model laboratory, built from first principles.\n\nNow equipped with:\n- **Local & Cloud Model Selection**: Switch between your custom PyTorch model (`libra-llama-tied`), Ollama, and cloud endpoints.\n- **Real-Time Token Streaming**: Server-Sent Events (SSE) word-by-word streaming on CPU.\n- **Telemetry Feedback**: High-precision TTFT, latency, token velocity (tok/s), and real-time cost tracking.',
+        '👋 Welcome to **Libra**!\n\nThis is your personal AI Assistant and educational Large Language Model laboratory, built from first principles.\n\nNow equipped with:\n- **Local & Cloud Model Selection**: Switch between your custom PyTorch model (`libra-llama-tied`), Ollama, and cloud endpoints.\n- **Real-Time Token Streaming**: Server-Sent Events (SSE) word-by-word streaming on CPU.\n- **Telemetry Feedback**: High-precision TTFT, latency, token velocity (tok/s), and real-time cost tracking.\n- **Multi-Turn Persistent Memory**: Powered by SQLite with sliding-window context management.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -35,6 +46,40 @@ export default function ChatArea() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load conversation messages when conversationId changes
+  useEffect(() => {
+    async function loadConv() {
+      if (!conversationId) return;
+      const conv = await fetchConversation(conversationId);
+      if (conv) {
+        if (conv.model) setSelectedModel(conv.model);
+        if (conv.messages && conv.messages.length > 0) {
+          setMessages(
+            conv.messages.map((m) => ({
+              id: m.id,
+              role: m.role,
+              content: m.content,
+              timestamp: new Date(m.created_at).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+            }))
+          );
+        } else {
+          setMessages([
+            {
+              id: 'empty-session',
+              role: 'assistant',
+              content: `Session: **${conv.title}**\n\nAsk anything to begin this conversation.`,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            },
+          ]);
+        }
+      }
+    }
+    loadConv();
+  }, [conversationId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -80,6 +125,7 @@ export default function ChatArea() {
     }));
 
     await streamChat(historyForApi, selectedModel, {
+      conversationId,
       temperature,
       maxTokens,
       onToken: (token) => {
@@ -96,6 +142,7 @@ export default function ChatArea() {
           )
         );
         setLoading(false);
+        if (onConversationUpdated) onConversationUpdated();
       },
       onError: (err) => {
         setMessages((prev) =>
@@ -116,7 +163,11 @@ export default function ChatArea() {
     });
   };
 
-  const handleClearHistory = () => {
+  const handleClearHistory = async () => {
+    if (conversationId) {
+      await clearConversationMessages(conversationId);
+      if (onConversationUpdated) onConversationUpdated();
+    }
     setMessages([
       {
         id: 'new-session',

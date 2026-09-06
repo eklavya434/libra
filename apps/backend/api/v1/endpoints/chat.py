@@ -1,8 +1,9 @@
-﻿"""
+"""
 Libra API v1 - Chat Completions Endpoint
 
 Supports non-streaming and Server-Sent Events (SSE) streaming chat completions
-routed through Ollama, Local Transformer (PyTorch), or Mock providers.
+routed through Ollama, Local Transformer (PyTorch), or Mock providers,
+with optional conversation memory persistence and context window management.
 """
 
 from __future__ import annotations
@@ -14,6 +15,10 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from packages.core.memory import (
+    ContextWindowManager,
+    get_conversation_store,
+)
 from packages.providers.router import get_router
 
 router = APIRouter()
@@ -28,6 +33,8 @@ class ChatCompletionRequest(BaseModel):
     messages: list[ChatMessage] = Field(..., min_length=1, description="Conversation history")
     model: str = Field("libra-llama-tied", description="Target model ID")
     provider: Optional[str] = Field(None, description="Optional explicit provider: ollama, libra_lab, mock-provider")
+    conversation_id: Optional[str] = Field(None, description="Optional persistent conversation session ID")
+    system_prompt: Optional[str] = Field(None, description="Optional system prompt override")
     temperature: float = Field(0.7, ge=0.0, le=2.0, description="Sampling randomness")
     max_tokens: int = Field(512, ge=1, le=4096, description="Max generated tokens")
     top_p: float = Field(0.9, ge=0.0, le=1.0, description="Nucleus sampling threshold")
@@ -47,12 +54,56 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    messages_raw = [{"role": m.role, "content": m.content} for m in request.messages]
+    context_manager = ContextWindowManager(
+        max_context_tokens=2048,
+        reserved_completion_tokens=request.max_tokens,
+    )
+
+    store = get_conversation_store() if request.conversation_id else None
+
+    # Handle persistent conversation memory
+    if store and request.conversation_id:
+        conv = store.get_conversation(request.conversation_id)
+        if not conv:
+            store.create_conversation(
+                conv_id=request.conversation_id,
+                model=request.model,
+                system_prompt=request.system_prompt,
+            )
+
+        # Append incoming user turn if present
+        last_req_msg = request.messages[-1]
+        if last_req_msg.role == "user":
+            db_messages = store.get_messages(request.conversation_id)
+            # Avoid duplicate insertion if user passed full history
+            if not db_messages or db_messages[-1].content != last_req_msg.content or db_messages[-1].role != "user":
+                store.add_message(
+                    conversation_id=request.conversation_id,
+                    role=last_req_msg.role,
+                    content=last_req_msg.content,
+                )
+
+        # Retrieve full conversation history from persistent store
+        history = store.get_messages(request.conversation_id)
+        active_system_prompt = request.system_prompt or (conv.system_prompt if conv else None)
+        processed_context = context_manager.prepare_context(
+            messages=history,
+            override_system_prompt=active_system_prompt,
+        )
+        messages_to_send = processed_context.messages
+    else:
+        # Ephemeral context budgeting
+        messages_raw = [{"role": m.role, "content": m.content} for m in request.messages]
+        processed_context = context_manager.prepare_context(
+            messages=messages_raw,
+            override_system_prompt=request.system_prompt,
+        )
+        messages_to_send = processed_context.messages
 
     if not request.stream:
         try:
             response = await provider.chat(
-                messages=messages_raw,
+                messages=messages_to_send,
                 model=request.model,
                 temperature=request.temperature,
                 max_tokens=request.max_tokens,
@@ -60,6 +111,17 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
                 top_k=request.top_k,
                 stop=request.stop,
             )
+            # If persistent, store the assistant response
+            if store and request.conversation_id:
+                assistant_text = ""
+                if isinstance(response, dict) and "choices" in response:
+                    assistant_text = response["choices"][0].get("message", {}).get("content", "")
+                if assistant_text:
+                    store.add_message(
+                        conversation_id=request.conversation_id,
+                        role="assistant",
+                        content=assistant_text,
+                    )
             return response
         except ConnectionError as e:
             raise HTTPException(status_code=503, detail=str(e))
@@ -68,9 +130,10 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
 
     # Streaming mode via Server-Sent Events (SSE)
     async def event_generator():
+        accumulated_chunks = []
         try:
             async for token in provider.stream(
-                messages=messages_raw,
+                messages=messages_to_send,
                 model=request.model,
                 temperature=request.temperature,
                 max_tokens=request.max_tokens,
@@ -78,6 +141,7 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
                 top_k=request.top_k,
                 stop=request.stop,
             ):
+                accumulated_chunks.append(token)
                 chunk = {
                     "choices": [
                         {
@@ -88,6 +152,16 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
                     ]
                 }
                 yield f"data: {json.dumps(chunk)}\n\n"
+
+            # Stream finished successfully: persist assistant output
+            if store and request.conversation_id and accumulated_chunks:
+                full_text = "".join(accumulated_chunks)
+                store.add_message(
+                    conversation_id=request.conversation_id,
+                    role="assistant",
+                    content=full_text,
+                )
+
             yield "data: [DONE]\n\n"
         except Exception as e:
             err_chunk = {"error": str(e)}
@@ -95,3 +169,4 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
             yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+

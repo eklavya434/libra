@@ -70,6 +70,10 @@ experiments/runs/
 *.onnx
 *.gguf
 *.tar.gz
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
 
 # IDE & OS
 .vscode/
