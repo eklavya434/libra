@@ -1,0 +1,15 @@
+Libra is an educational laboratory and artificial intelligence assistant.
+Large language models learn patterns from text by predicting the next token.
+First, text is converted into numbers called tokens.
+Next, tokens are mapped into vectors called embeddings.
+Attention allows tokens to look at other tokens in the context.
+Causal masking ensures that tokens can only look into the past, never into the future.
+The multi-head attention mechanism combines information from different representation subspaces.
+A feed-forward neural network processes each token representation independently.
+Residual connections and layer normalization help gradients flow smoothly during backpropagation.
+The model outputs numbers called logits for every word in the vocabulary.
+Cross entropy loss measures how well the model predicted the next token.
+An optimizer like AdamW updates the parameters to decrease the loss over time.
+With each training step, the loss decreases, and the predictions become more accurate.
+Libra is designed to run efficiently on a standard CPU with zero cost.
+Knowledge and understanding grow through experimentation and first principles.

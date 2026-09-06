@@ -1,4 +1,4 @@
-﻿# Python & Environments
+# Python & Environments
 __pycache__/
 *.py[cod]
 *$py.class
@@ -58,12 +58,11 @@ lerna-debug.log*
 *.key
 *.cert
 
-# LLM Lab: Models, Checkpoints & Datasets (Keep local, do not commit heavy artifacts)
-models/
-checkpoints/
-data/raw/
-data/processed/
-data/tokenized/
+# LLM Lab: Models, Checkpoints & Large Datasets (Keep local, do not commit heavy artifacts)
+/models/
+/checkpoints/
+/data/processed/
+/data/tokenized/
 experiments/runs/
 *.pt
 *.bin
