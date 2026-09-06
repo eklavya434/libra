@@ -1,0 +1,25 @@
+﻿{
+  "name": "libra-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal LLM Laboratory + ChatGPT-Like AI Assistant",
+  "scripts": {
+    "dev:backend": "powershell -Command \".\\.venv\\Scripts\\uvicorn apps.backend.main:app --reload --port 8000\"",
+    "dev:frontend": "npm run dev --prefix apps/frontend",
+    "dev": "echo 'Run dev:backend and dev:frontend in separate terminals'",
+    "test:backend": "powershell -Command \".\\.venv\\Scripts\\pytest -v tests/\"",
+    "test:frontend": "npm run test --prefix apps/frontend",
+    "lint:backend": "powershell -Command \".\\.venv\\Scripts\\ruff check .\"",
+    "format:backend": "powershell -Command \".\\.venv\\Scripts\\ruff format .\""
+  },
+  "keywords": [
+    "llm",
+    "transformer",
+    "chatgpt",
+    "ai-assistant",
+    "deep-learning",
+    "pytorch"
+  ],
+  "author": "Libra Authors",
+  "license": "Apache-2.0"
+}
