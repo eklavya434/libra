@@ -1,4 +1,4 @@
-﻿# Project Libra — Persistent Engineering Memory
+# Project Libra — Persistent Engineering Memory
 
 ## 1. Project Overview & Directives
 - **Dual-Track Objective**:
@@ -29,52 +29,47 @@
 | **Comprehension Gate** | 4-Pillar Milestone Gate | ✅ PASSED | 4/4 correct on tokens, attention, training steps, checkpoints |
 | **Phase 7** | Model Registry & Hardware Sizing | ✅ COMPLETE | 16 models categorized, RAM formula, CPU compatibility checks (`ae3819c`) |
 | **Phase 8** | Local Inference Engine | ✅ COMPLETE | Ollama adapter, Hugging Face adapter, local PyTorch server, SSE streaming (`66d83a8`) |
-| **Phase 9** | External Provider Adapters | ⏳ NEXT | OpenAI, Gemini, Claude, Groq with offline fallback |
+| **Phase 9** | External Provider Adapters | ✅ COMPLETE | OpenAI, Gemini, Claude, DeepSeek, Groq, OpenRouter, cost tracker, error normalization |
+| **Phase 10** | Model Comparison Arena | ⏳ NEXT | Side-by-side completions, latency/cost benchmarking |
 
 ---
 
-## 3. Phase 8 Outcome & Local Inference Status
+## 3. Phase 8 & 9 Provider Ecosystem Status
 
-### A. Ollama Status
-- **Adapter**: Implemented in `packages/providers/ollama.py` (Async REST/SSE client).
-- **Daemon Status**: Offline (`http://127.0.0.1:11434` currently unreachable; user can run `ollama serve` or desktop app when desired).
-- **Currently Running Models via Ollama**: None active at this moment because daemon is stopped.
-- **Recommended Models for Ollama on this Machine**:
-  - `llama3.2:1b` (0.8 GB RAM footprint)
-  - `deepseek-r1:1.5b` (1.1 GB RAM footprint — reasoning model)
-  - `qwen2.5:1.5b` (1.0 GB RAM footprint — coding/multilingual)
-  - `llama3.2:3b` (2.1 GB RAM footprint)
-- **Fallback Behavior**: When Ollama daemon is offline, router gracefully defaults to `libra_lab` (local PyTorch model) or `mock-provider` with informative guidance.
+### A. Phase 9 Outcome: Provider Abstraction & Cost Economics
+- **Providers Implemented**: 11 total adapters:
+  1. `ollama`: Ollama local CPU runtime
+  2. `libra_lab`: PyTorch `ModernTransformerLM` checkpoint serving
+  3. `huggingface`: Hugging Face `transformers` CPU pipeline
+  4. `mock-provider`: Deterministic zero-cost offline test provider
+  5. `openai`: Official OpenAI GPT models (GPT-4o, GPT-4o-mini)
+  6. `gemini`: Google Gemini REST and streaming
+  7. `anthropic`: Anthropic Claude Messages API
+  8. `deepseek`: DeepSeek-V3 & DeepSeek-R1 reasoning models
+  9. `groq`: Groq Cloud LPU ultra-low latency inference
+  10. `openrouter`: OpenRouter multi-model aggregation gateway
+  11. `vllm`: Future GPU-only architecture stub (Directive 6)
+- **Token Economics Engine**: `packages/providers/cost.py` pricing tables for all major commercial models with strict zero-cost guarantee ($0.000000) for local and mock execution.
+- **Normalized Error Hierarchy**: `packages/providers/errors.py` unifying 401, 403, 404, 429, 500 across providers.
+- **Intelligent Fallback**: Automatic routing with graceful offline fallback to `mock-provider` or local models when API keys are unconfigured.
 
-### B. Hugging Face Transformers Status
-- **Adapter**: Implemented in `packages/providers/huggingface.py` (`HuggingFaceProvider`).
-- **Dependencies**: `transformers==5.16.1` installed in `.venv`.
-- **Capability**: Loads and generates from Hugging Face models on CPU with sampling controls.
-
-### C. Local Educational Model & Checkpoint State
-- **Active Checkpoint**: `checkpoints/best_engine_model.pt` (6.29 MB) and `checkpoints/modern_transformer_phase4.pt` (2.54 MB).
-- **Architecture**: `ModernTransformerLM` (467,584 parameters, weight-tied, RoPE, RMSNorm, SwiGLU).
-- **Tokenizer**: `EducationalBPETokenizer` loaded from `data/tokenized/libra_educational_bpe.json` (vocab size: 300).
-- **Inference Speed**: **349.5 tokens/sec** on Intel Core i5-12450H CPU.
-- **Serving Provider**: `LocalTransformerProvider` (`libra_lab`) serving chat and streaming completions.
-
-### D. vLLM Status
-- **Status**: **NOT INSTALLED** on this machine in strict accordance with **Directive 6** of `AGENTS.md`.
-- **Placeholder**: `packages/providers/vllm_stub.py` defines the future GPU specification and returns clear disablement messages.
-
-### E. Deviations from Plan
-- **None**: All deliverables across Ollama, Hugging Face, PyTorch local transformer, prompt templating, and SSE streaming completed with zero architectural shortcuts.
+### B. Ollama & Local Inference Status
+- **Ollama Adapter**: `packages/providers/ollama.py` ready for local runtime.
+- **Hugging Face Adapter**: `packages/providers/huggingface.py` running on CPU.
+- **PyTorch Lab Checkpoint**: Serving `checkpoints/best_engine_model.pt` at 349.5 tok/s on CPU.
+- **vLLM Status**: Not installed (Directive 6 enforced).
 
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
 
-- **Venv Size**: 855.62 MB
-- **Frontend node_modules**: 281.61 MB
+- **Venv Size**: ~855 MB
+- **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,183.99 MB** (~1.18 GB)
+- **Total Workspace Footprint**: **1,184.38 MB** (~1.18 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,176.01 MB** (>92% free)
+- **Remaining Storage Quota**: **14,175.62 MB** (92.29% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **59 passed, 0 failed** (in 14.91s)
+- **Pytest Status**: **72 passed, 0 failed** (in 25.42s)
+

@@ -1,19 +1,25 @@
-﻿"""
+"""
 Libra Providers - Unified Model Provider Router
 
-Routes inference requests across available providers (Ollama, Local Lab, Mock, vLLM, HuggingFace).
-Handles graceful fallback and provider discovery.
+Orchestrates multi-provider routing across local runtimes (Ollama, HF, Libra Lab),
+cloud services (OpenAI, Gemini, Claude, DeepSeek, Groq, OpenRouter), and offline fallbacks.
 """
 
 from __future__ import annotations
 
 from typing import Any, Optional
 
+from packages.providers.anthropic import AnthropicProvider
 from packages.providers.base import BaseProvider
+from packages.providers.deepseek import DeepSeekProvider
+from packages.providers.gemini import GeminiProvider
+from packages.providers.generic_openai import OpenRouterProvider
+from packages.providers.groq import GroqProvider
 from packages.providers.huggingface import HuggingFaceProvider
 from packages.providers.local_transformer import LocalTransformerProvider
 from packages.providers.mock import MockProvider
 from packages.providers.ollama import OllamaProvider
+from packages.providers.openai import OpenAIProvider
 from packages.providers.vllm_stub import VLLMProvider
 
 
@@ -24,51 +30,94 @@ class ProviderRouter:
         self._providers: dict[str, BaseProvider] = {
             "ollama": OllamaProvider(),
             "libra_lab": LocalTransformerProvider(),
-            "mock-provider": MockProvider(),
-            "vllm": VLLMProvider(),
             "huggingface": HuggingFaceProvider(),
+            "mock-provider": MockProvider(),
+            "openai": OpenAIProvider(),
+            "gemini": GeminiProvider(),
+            "anthropic": AnthropicProvider(),
+            "deepseek": DeepSeekProvider(),
+            "groq": GroqProvider(),
+            "openrouter": OpenRouterProvider(),
+            "vllm": VLLMProvider(),
         }
 
+    @property
+    def providers(self) -> dict[str, BaseProvider]:
+        """Access registered providers dictionary."""
+        return self._providers
+
     def get_provider(self, name: str) -> BaseProvider:
-        """Retrieve a specific provider by name."""
-        name_clean = name.lower()
+        """Retrieve a specific provider by name or alias."""
+        name_clean = name.lower().strip()
         if name_clean in self._providers:
             return self._providers[name_clean]
-        # Check aliases
-        if "hf" in name_clean or "hugging" in name_clean:
-            return self._providers["huggingface"]
+
+        # Aliases
         if "mock" in name_clean:
             return self._providers["mock-provider"]
+        if "claude" in name_clean:
+            return self._providers["anthropic"]
+        if "google" in name_clean:
+            return self._providers["gemini"]
+        if "hf" in name_clean or "hugging" in name_clean:
+            return self._providers["huggingface"]
         if "lab" in name_clean or "libra" in name_clean:
             return self._providers["libra_lab"]
+
         raise ValueError(f"Unknown provider '{name}'. Available: {list(self._providers.keys())}")
 
-    async def resolve_provider_for_model(self, model_id: str, requested_provider: Optional[str] = None) -> BaseProvider:
-        """Determines the best active provider for a model request."""
+    async def resolve_provider_for_model(
+        self,
+        model_id: str,
+        requested_provider: Optional[str] = None,
+    ) -> BaseProvider:
+        """Determines the best active provider for a model request with safe fallbacks."""
         if requested_provider:
             return self.get_provider(requested_provider)
 
         model_lower = model_id.lower()
 
-        # If it is a Hugging Face model
+        # 1. Cloud routing heuristics by model prefix
+        if model_lower.startswith("gpt-") or model_lower.startswith("o1") or model_lower.startswith("text-embedding"):
+            prov = self._providers["openai"]
+            if getattr(prov, "api_key", None):
+                return prov
+
+        if "gemini" in model_lower:
+            prov = self._providers["gemini"]
+            if getattr(prov, "api_key", None):
+                return prov
+
+        if "claude" in model_lower:
+            prov = self._providers["anthropic"]
+            if getattr(prov, "api_key", None):
+                return prov
+
+        if "groq" in model_lower:
+            prov = self._providers["groq"]
+            if getattr(prov, "api_key", None):
+                return prov
+
+        # 2. Local routing
         if model_lower.startswith("hf/") or "gpt2" in model_lower:
             return self._providers["huggingface"]
 
-        # If it is an educational Libra model
         if "libra" in model_lower and "mock" not in model_lower:
             return self._providers["libra_lab"]
 
-        # If it is a mock model
         if "mock" in model_lower:
             return self._providers["mock-provider"]
 
-        # Check if Ollama is running locally
+        # 3. Check local Ollama daemon
         ollama_health = await self._providers["ollama"].health()
         if ollama_health.get("connected"):
             return self._providers["ollama"]
 
-        # If Ollama is offline and mock is available, gracefully use mock
+        # 4. Zero-cost fallback to MockProvider
         return self._providers["mock-provider"]
+
+    def list_registered_providers(self) -> list[str]:
+        return list(self._providers.keys())
 
 
 _default_router: Optional[ProviderRouter] = None
