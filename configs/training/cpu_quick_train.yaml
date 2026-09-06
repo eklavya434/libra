@@ -1,0 +1,13 @@
+max_steps: 150
+batch_size: 4
+gradient_accumulation_steps: 2
+max_lr: 0.001
+min_lr: 0.0001
+warmup_steps: 20
+weight_decay: 0.01
+max_grad_norm: 1.0
+eval_interval: 30
+eval_batches: 4
+checkpoint_dir: checkpoints
+device: cpu
+cpu_budget_seconds: 900.0
