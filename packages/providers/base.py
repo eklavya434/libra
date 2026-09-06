@@ -21,6 +21,7 @@ class ModelMetadata:
     is_local: bool = False
     requires_gpu: bool = False
     hardware_tier: str = "cpu-light"  # cpu-light, cpu-medium, cpu-large, gpu-required
+    quantization: str = "FP16" 
     capabilities: dict[str, bool] = field(
         default_factory=lambda: {
             "supports_text": True,
@@ -43,6 +44,7 @@ class ModelMetadata:
             "is_local": self.is_local,
             "requires_gpu": self.requires_gpu,
             "hardware_tier": self.hardware_tier,
+            "quantization": self.quantization,
             "capabilities": self.capabilities,
         }
 
