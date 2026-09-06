@@ -3,6 +3,7 @@ Unit test proving that Causal Masking prevents future information leakage.
 """
 
 import torch
+
 from packages.models.config import TinyTransformerConfig
 from packages.models.transformer import TinyTransformerLM
 

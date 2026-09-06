@@ -4,7 +4,8 @@ Proves that loss, gradient computation, and backpropagation are mathematically f
 """
 
 import torch
-import torch.optim as optim
+from torch import optim
+
 from packages.models.config import TinyTransformerConfig
 from packages.models.transformer import TinyTransformerLM
 
@@ -41,4 +42,6 @@ def test_model_overfits_tiny_batch():
     final_val = loss.item()
 
     # The loss MUST decrease significantly
-    assert final_val < init_val * 0.5, f"Loss did not decrease sufficiently: {init_val} -> {final_val}"
+    assert final_val < init_val * 0.5, (
+        f"Loss did not decrease sufficiently: {init_val} -> {final_val}"
+    )

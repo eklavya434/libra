@@ -6,8 +6,9 @@ Raw Text -> Tokenization -> Untrained Generation -> CPU Training -> Checkpoint -
 
 import os
 import sys
-from pathlib import Path
 import time
+from pathlib import Path
+
 import torch
 
 # Ensure UTF-8 output on Windows terminal
@@ -42,12 +43,12 @@ def main() -> None:
 
     # Model Hyperparameters
     config = TinyTransformerConfig(
-        vocab_size=256,          # Byte-level vocabulary
+        vocab_size=256,  # Byte-level vocabulary
         max_context_length=128,  # Sequence context window
-        d_model=128,             # Hidden embedding size
-        n_heads=4,               # 4 Attention heads (head_dim = 32)
-        n_layers=2,              # 2 Transformer blocks
-        mlp_ratio=4,             # FeedForward inner dim = 512
+        d_model=128,  # Hidden embedding size
+        n_heads=4,  # 4 Attention heads (head_dim = 32)
+        n_layers=2,  # 2 Transformer blocks
+        mlp_ratio=4,  # FeedForward inner dim = 512
         dropout=0.1,
         device="cpu",
     )

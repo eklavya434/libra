@@ -3,7 +3,6 @@ Libra Models - Text Generation & Sampling
 Generates new tokens autoregressively from a trained TinyTransformerLM.
 """
 
-from typing import List
 import torch
 import torch.nn.functional as F
 
@@ -33,7 +32,11 @@ def generate(
 
     for _ in range(max_new_tokens):
         # Crop context to model max_context_length if needed
-        idx_cond = idx if idx.size(1) <= model.config.max_context_length else idx[:, -model.config.max_context_length:]
+        idx_cond = (
+            idx
+            if idx.size(1) <= model.config.max_context_length
+            else idx[:, -model.config.max_context_length :]
+        )
 
         with torch.no_grad():
             logits, _ = model(idx_cond)
@@ -63,11 +66,11 @@ def generate(
     return idx
 
 
-def encode_string(text: str) -> List[int]:
+def encode_string(text: str) -> list[int]:
     """Encodes a string into byte/ASCII token IDs (0-255)."""
     return list(text.encode("utf-8"))
 
 
-def decode_tokens(tokens: List[int]) -> str:
+def decode_tokens(tokens: list[int]) -> str:
     """Decodes byte/ASCII token IDs back into a human-readable string."""
     return bytes(tokens).decode("utf-8", errors="replace")

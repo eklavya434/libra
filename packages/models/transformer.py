@@ -12,10 +12,10 @@ Pipeline:
 """
 
 import math
-from typing import Optional, Tuple
+
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from packages.models.config import TinyTransformerConfig
 
@@ -72,7 +72,9 @@ class CausalSelfAttention(nn.Module):
 
         # Lower-triangular causal mask buffer (registered so it is moved to device with module)
         mask = torch.tril(torch.ones(config.max_context_length, config.max_context_length))
-        self.register_buffer("causal_mask", mask.view(1, 1, config.max_context_length, config.max_context_length))
+        self.register_buffer(
+            "causal_mask", mask.view(1, 1, config.max_context_length, config.max_context_length)
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, T, C = x.shape  # Batch, Sequence Length, Channels (d_model)
@@ -170,9 +172,9 @@ class TinyTransformerLM(nn.Module):
     def forward(
         self,
         idx: torch.Tensor,
-        targets: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        B, T = idx.shape
+        targets: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
+        _, T = idx.shape
         if T > self.config.max_context_length:
             raise ValueError(
                 f"Sequence length ({T}) exceeds maximum context length ({self.config.max_context_length})"

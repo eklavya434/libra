@@ -9,14 +9,14 @@ from typing import Any
 
 @dataclass
 class TinyTransformerConfig:
-    vocab_size: int = 256          # Character / byte-level vocabulary (0-255)
+    vocab_size: int = 256  # Character / byte-level vocabulary (0-255)
     max_context_length: int = 128  # Maximum sequence length (tokens)
-    d_model: int = 128             # Hidden embedding dimension
-    n_heads: int = 4               # Number of attention heads (each head_dim = d_model // n_heads = 32)
-    n_layers: int = 2              # Number of stacked Transformer blocks
-    mlp_ratio: int = 4             # Multiplier for FeedForward inner dimension (4 * 128 = 512)
-    dropout: float = 0.1           # Regularization dropout probability
-    device: str = "cpu"            # Target device ("cpu" for our target hardware)
+    d_model: int = 128  # Hidden embedding dimension
+    n_heads: int = 4  # Number of attention heads (each head_dim = d_model // n_heads = 32)
+    n_layers: int = 2  # Number of stacked Transformer blocks
+    mlp_ratio: int = 4  # Multiplier for FeedForward inner dimension (4 * 128 = 512)
+    dropout: float = 0.1  # Regularization dropout probability
+    device: str = "cpu"  # Target device ("cpu" for our target hardware)
 
     def __post_init__(self) -> None:
         if self.d_model % self.n_heads != 0:
