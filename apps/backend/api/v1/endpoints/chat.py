@@ -41,6 +41,8 @@ class ChatCompletionRequest(BaseModel):
     top_k: int = Field(40, ge=1, description="Top-k tokens consideration")
     stop: Optional[list[str]] = Field(None, description="Optional stop sequences")
     stream: bool = Field(False, description="Whether to stream back response tokens via SSE")
+    use_rag: bool = Field(False, description="Whether to ground the user prompt with RAG knowledge base search")
+    rag_top_k: int = Field(3, ge=1, le=10, description="Top-k chunks to retrieve if use_rag is True")
 
 
 @router.post("/chat/completions", summary="Create chat completion (streaming or standard)")
@@ -99,6 +101,18 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
             override_system_prompt=request.system_prompt,
         )
         messages_to_send = processed_context.messages
+
+    # Apply RAG knowledge base context grounding if requested
+    if request.use_rag and request.messages and request.messages[-1].role == "user":
+        from packages.rag import RAGPromptSynthesizer, get_vector_store
+
+        vector_store = get_vector_store()
+        last_query = request.messages[-1].content
+        rag_matches = vector_store.similarity_search(query=last_query, top_k=request.rag_top_k)
+        if rag_matches and messages_to_send and messages_to_send[-1]["role"] == "user":
+            synthesizer = RAGPromptSynthesizer()
+            grounded_prompt = synthesizer.build_grounded_prompt(last_query, rag_matches)
+            messages_to_send[-1]["content"] = grounded_prompt
 
     if not request.stream:
         try:

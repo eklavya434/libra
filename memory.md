@@ -32,20 +32,24 @@
 | **Phase 9** | External Provider Adapters | ✅ COMPLETE | OpenAI, Gemini, Claude, DeepSeek, Groq, OpenRouter, cost tracker, error normalization (`a3d7d96`) |
 | **Phase 10** | Model Comparison Arena | ✅ COMPLETE | Side-by-side benchmarking, TTFT, token velocity, cost ranking, POST /api/v1/arena/compare (`67268a0`) |
 | **Phase 11** | Real Libra Chat UI | ✅ COMPLETE | Next.js frontend, live SSE streaming, dynamic model picker, sampling modal, Arena UI (`bb2be8b`) |
-| **Phase 12** | Multi-Turn Conversation Memory | ✅ COMPLETE | SQLite WAL storage, message cascade, ContextWindowManager sliding window, session CRUD |
-| **Phase 13** | RAG: Vector Retrieval & Chunking | ⏳ NEXT | First-principles vector embeddings, cosine similarity, document chunking |
+| **Phase 12** | Multi-Turn Conversation Memory | ✅ COMPLETE | SQLite WAL storage, message cascade, ContextWindowManager sliding window, session CRUD (`b9ee315`) |
+| **Phase 13** | RAG: Vector Retrieval & Chunking | ✅ COMPLETE | First-principles vector embeddings, cosine similarity, recursive chunker, in-memory store, Knowledge Base UI |
+| **Phase 14** | Advanced RAG: Hybrid Search & Re-ranking | ⏳ NEXT | BM25 sparse + dense hybrid search, Reciprocal Rank Fusion (RRF), re-ranking, chunk deduplication |
 
 ---
 
-## 3. Phase 12 Ecosystem & Memory Status
+## 3. Phase 13 Ecosystem & Knowledge Base Status
 
-### A. Phase 12 Outcome: Multi-Turn Conversation Memory & Context Management
-- **Storage Engine**: `packages/core/memory/sqlite_store.py` (`SQLiteConversationStore`) with Write-Ahead Logging (WAL), foreign key cascade deletion, and auto-titling from initial user prompts.
-- **Context Management**: `packages/core/memory/context_manager.py` (`ContextWindowManager`) prevents model context overflow by calculating token budgets and performing sliding-window truncation while preserving system prompts.
-- **Backend Endpoints**: `apps/backend/api/v1/endpoints/conversations.py` (`/api/v1/conversations`) provides RESTful session CRUD.
-- **Chat Endpoint Integration**: `apps/backend/api/v1/endpoints/chat.py` accepts `conversation_id`, auto-appends user turns, dynamically trims context, and persists streamed responses upon completion.
-- **Frontend State**: `apps/frontend/src/components/Sidebar.tsx` renders dynamic conversations list with deletion; `ChatArea.tsx` hydrates previous session messages.
-- **Interactive Script**: `scripts/run_phase12_memory_demo.py` verifies end-to-end memory accumulation, auto-titling, and context truncation.
+### A. Phase 13 Outcome: RAG Vector Retrieval, Chunking & In-Memory Store
+- **Document Chunking**: `packages/rag/chunking.py` (`RecursiveCharacterChunker`) hierarchically splits text via natural boundaries (`\n\n`, `\n`, `. `, ` `, `""`) preserving semantic units with configurable token chunk size and sliding overlap.
+- **Dense Embeddings**: `packages/rag/embeddings.py` (`EducationalDenseEmbedder`, $D=128$, L2 unit-normalized n-gram hashing projection) for zero-dependency CPU embedding, alongside `OllamaEmbeddingProvider` for local neural embeddings.
+- **Vector Store**: `packages/rag/vector_store.py` (`InMemoryVectorStore`) performs sub-millisecond CPU cosine similarity search via vectorized NumPy matrix-vector multiplication without external vector DB dependencies.
+- **Synthesizer**: `packages/rag/synthesizer.py` (`RAGPromptSynthesizer`) constructs grounded prompts with explicit source citation tags.
+- **REST Endpoints**: `apps/backend/api/v1/endpoints/rag.py` provides `/api/v1/rag/documents` (ingest, list, delete) and `/api/v1/rag/query` (semantic search).
+- **Chat Grounding**: `apps/backend/api/v1/endpoints/chat.py` integrates optional RAG grounding (`use_rag: bool`), retrieving top-$k$ relevant chunks and injecting knowledge context.
+- **Frontend UI**: `apps/frontend/src/components/KnowledgeBaseView.tsx` provides full document management, chunk inspection, and semantic query testing; `ChatArea.tsx` includes real-time RAG grounding toggle.
+- **Educational Guide**: `docs/educational/PHASE_13_RAG_PIPELINE.md`.
+- **Demo Script**: `scripts/run_phase13_rag_demo.py`.
 
 ### B. Ollama & Local Inference Status
 - **Ollama Adapter**: `packages/providers/ollama.py` ready for local runtime.
@@ -60,12 +64,13 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,193.75 MB** (~1.19 GB)
+- **Total Workspace Footprint**: **1,197.13 MB** (~1.20 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,166.25 MB** (92.23% free)
+- **Remaining Storage Quota**: **14,162.87 MB** (92.21% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **91 passed, 0 failed** (in 15.69s)
+- **Pytest Status**: **108 passed, 0 failed** (in 18.22s)
+
 
 
 

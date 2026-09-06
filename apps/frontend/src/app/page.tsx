@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from '@/components/Sidebar';
 import ChatArea from '@/components/ChatArea';
 import ArenaView from '@/components/ArenaView';
+import KnowledgeBaseView from '@/components/KnowledgeBaseView';
 import {
   ConversationSummary,
   fetchConversations,
@@ -12,7 +13,7 @@ import {
 } from '@/lib/api';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'chat' | 'arena'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag'>('chat');
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
@@ -67,14 +68,14 @@ export default function Home() {
         onDeleteConversation={handleDeleteConversation}
       />
       <main className="flex-1 flex flex-col h-full overflow-hidden">
-        {activeTab === 'chat' ? (
+        {activeTab === 'chat' && (
           <ChatArea
             conversationId={currentSessionId}
             onConversationUpdated={loadConversations}
           />
-        ) : (
-          <ArenaView />
         )}
+        {activeTab === 'arena' && <ArenaView />}
+        {activeTab === 'rag' && <KnowledgeBaseView />}
       </main>
     </div>
   );

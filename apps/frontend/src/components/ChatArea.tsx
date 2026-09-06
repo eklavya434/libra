@@ -41,6 +41,7 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(512);
   const [topP, setTopP] = useState(0.9);
+  const [useRag, setUseRag] = useState(false);
   const [isParamsOpen, setIsParamsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -126,6 +127,7 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
 
     await streamChat(historyForApi, selectedModel, {
       conversationId,
+      useRag,
       temperature,
       maxTokens,
       onToken: (token) => {
@@ -182,8 +184,23 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
     <div className="flex-1 flex flex-col h-full bg-slate-950 overflow-hidden">
       {/* Top Header Bar */}
       <header className="h-14 border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between bg-slate-950/70 backdrop-blur-md z-10">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <ModelSelector selectedModel={selectedModel} onSelectModel={setSelectedModel} />
+
+          {/* RAG Grounding Toggle */}
+          <button
+            type="button"
+            onClick={() => setUseRag(!useRag)}
+            className={`flex items-center gap-1.5 text-xs rounded-lg px-2.5 py-1.5 transition-all border ${
+              useRag
+                ? 'bg-emerald-950/60 border-emerald-600/60 text-emerald-300 font-medium shadow-sm shadow-emerald-500/10'
+                : 'text-slate-400 hover:text-slate-200 bg-slate-900/60 hover:bg-slate-900 border-slate-800'
+            }`}
+            title="Toggle Retrieval-Augmented Generation Grounding"
+          >
+            <span className={`w-2 h-2 rounded-full ${useRag ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`} />
+            <span className="hidden sm:inline">RAG {useRag ? 'ON' : 'OFF'}</span>
+          </button>
 
           <button
             type="button"
@@ -205,6 +222,7 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
             <span className="hidden sm:inline">Clear</span>
           </button>
         </div>
+
 
         <div>
           <StatusBadge />
