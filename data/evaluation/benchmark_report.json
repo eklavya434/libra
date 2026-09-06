@@ -1,0 +1,392 @@
+{
+  "model_name": "Trained-Libra-Llama",
+  "device": "cpu",
+  "loss_metrics": {
+    "total_tokens": 451,
+    "mean_loss": 2.4301,
+    "perplexity": 11.3597,
+    "bits_per_token": 3.5059
+  },
+  "overall_accuracy": 0.1765,
+  "overall_total_probes": 17,
+  "overall_correct_probes": 3,
+  "category_scores": {
+    "mathematics": {
+      "category": "mathematics",
+      "total": 4,
+      "correct": 0,
+      "accuracy": 0.0,
+      "chance_accuracy": 0.25
+    },
+    "reasoning": {
+      "category": "reasoning",
+      "total": 4,
+      "correct": 1,
+      "accuracy": 0.25,
+      "chance_accuracy": 0.25
+    },
+    "coding": {
+      "category": "coding",
+      "total": 4,
+      "correct": 1,
+      "accuracy": 0.25,
+      "chance_accuracy": 0.25
+    },
+    "instruction_following": {
+      "category": "instruction_following",
+      "total": 3,
+      "correct": 0,
+      "accuracy": 0.0,
+      "chance_accuracy": 0.25
+    },
+    "safety": {
+      "category": "safety",
+      "total": 2,
+      "correct": 1,
+      "accuracy": 0.5,
+      "chance_accuracy": 0.25
+    }
+  },
+  "sample_results": [
+    {
+      "prompt": "2 + 3 = ",
+      "choices": [
+        " 5",
+        " 4",
+        " 6",
+        " 7"
+      ],
+      "correct_index": 0,
+      "predicted_index": 3,
+      "is_correct": false,
+      "scores": [
+        {
+          "choice": " 5",
+          "log_likelihood": -19.7968,
+          "norm_log_likelihood": -9.8984
+        },
+        {
+          "choice": " 4",
+          "log_likelihood": -19.817,
+          "norm_log_likelihood": -9.9085
+        },
+        {
+          "choice": " 6",
+          "log_likelihood": -19.9496,
+          "norm_log_likelihood": -9.9748
+        },
+        {
+          "choice": " 7",
+          "log_likelihood": -19.6789,
+          "norm_log_likelihood": -9.8394
+        }
+      ]
+    },
+    {
+      "prompt": "10 - 4 = ",
+      "choices": [
+        " 7",
+        " 6",
+        " 5",
+        " 14"
+      ],
+      "correct_index": 1,
+      "predicted_index": 0,
+      "is_correct": false,
+      "scores": [
+        {
+          "choice": " 7",
+          "log_likelihood": -18.5965,
+          "norm_log_likelihood": -9.2982
+        },
+        {
+          "choice": " 6",
+          "log_likelihood": -18.8822,
+          "norm_log_likelihood": -9.4411
+        },
+        {
+          "choice": " 5",
+          "log_likelihood": -18.6578,
+          "norm_log_likelihood": -9.3289
+        },
+        {
+          "choice": " 14",
+          "log_likelihood": -28.3157,
+          "norm_log_likelihood": -9.4386
+        }
+      ]
+    },
+    {
+      "prompt": "7 * 8 = ",
+      "choices": [
+        " 54",
+        " 56",
+        " 48",
+        " 64"
+      ],
+      "correct_index": 1,
+      "predicted_index": 2,
+      "is_correct": false,
+      "scores": [
+        {
+          "choice": " 54",
+          "log_likelihood": -29.7692,
+          "norm_log_likelihood": -9.9231
+        },
+        {
+          "choice": " 56",
+          "log_likelihood": -29.8563,
+          "norm_log_likelihood": -9.9521
+        },
+        {
+          "choice": " 48",
+          "log_likelihood": -29.5041,
+          "norm_log_likelihood": -9.8347
+        },
+        {
+          "choice": " 64",
+          "log_likelihood": -30.212,
+          "norm_log_likelihood": -10.0707
+        }
+      ]
+    },
+    {
+      "prompt": "Which number is larger: 15 or 8? Answer: ",
+      "choices": [
+        " 15",
+        " 8",
+        " equal",
+        " 0"
+      ],
+      "correct_index": 0,
+      "predicted_index": 2,
+      "is_correct": false,
+      "scores": [
+        {
+          "choice": " 15",
+          "log_likelihood": -29.4936,
+          "norm_log_likelihood": -9.8312
+        },
+        {
+          "choice": " 8",
+          "log_likelihood": -19.2351,
+          "norm_log_likelihood": -9.6176
+        },
+        {
+          "choice": " equal",
+          "log_likelihood": -31.9304,
+          "norm_log_likelihood": -6.3861
+        },
+        {
+          "choice": " 0",
+          "log_likelihood": -19.1978,
+          "norm_log_likelihood": -9.5989
+        }
+      ]
+    },
+    {
+      "prompt": "The sequence continues: Monday, Tuesday, Wednesday, ",
+      "choices": [
+        " Thursday",
+        " Saturday",
+        " Friday",
+        " Sunday"
+      ],
+      "correct_index": 0,
+      "predicted_index": 3,
+      "is_correct": false,
+      "scores": [
+        {
+          "choice": " Thursday",
+          "log_likelihood": -51.8506,
+          "norm_log_likelihood": -5.7612
+        },
+        {
+          "choice": " Saturday",
+          "log_likelihood": -53.3148,
+          "norm_log_likelihood": -6.6644
+        },
+        {
+          "choice": " Friday",
+          "log_likelihood": -42.9947,
+          "norm_log_likelihood": -6.1421
+        },
+        {
+          "choice": " Sunday",
+          "log_likelihood": -40.296,
+          "norm_log_likelihood": -5.7566
+        }
+      ]
+    },
+    {
+      "prompt": "Complete the pattern: A, B, C, D, ",
+      "choices": [
+        " E",
+        " Z",
+        " 1",
+        " F"
+      ],
+      "correct_index": 0,
+      "predicted_index": 0,
+      "is_correct": true,
+      "scores": [
+        {
+          "choice": " E",
+          "log_likelihood": -15.5807,
+          "norm_log_likelihood": -7.7904
+        },
+        {
+          "choice": " Z",
+          "log_likelihood": -18.5046,
+          "norm_log_likelihood": -9.2523
+        },
+        {
+          "choice": " 1",
+          "log_likelihood": -18.024,
+          "norm_log_likelihood": -9.012
+        },
+        {
+          "choice": " F",
+          "log_likelihood": -18.5601,
+          "norm_log_likelihood": -9.28
+        }
+      ]
+    },
+    {
+      "prompt": "Ice is cold. Fire is ",
+      "choices": [
+        " hot",
+        " blue",
+        " wet",
+        " frozen"
+      ],
+      "correct_index": 0,
+      "predicted_index": 1,
+      "is_correct": false,
+      "scores": [
+        {
+          "choice": " hot",
+          "log_likelihood": -22.9815,
+          "norm_log_likelihood": -5.7454
+        },
+        {
+          "choice": " blue",
+          "log_likelihood": -27.3083,
+          "norm_log_likelihood": -5.4617
+        },
+        {
+          "choice": " wet",
+          "log_likelihood": -27.793,
+          "norm_log_likelihood": -6.9482
+        },
+        {
+          "choice": " frozen",
+          "log_likelihood": -43.8068,
+          "norm_log_likelihood": -8.7614
+        }
+      ]
+    },
+    {
+      "prompt": "A bird flies in the sky. A fish swims in the ",
+      "choices": [
+        " water",
+        " tree",
+        " cloud",
+        " desert"
+      ],
+      "correct_index": 0,
+      "predicted_index": 2,
+      "is_correct": false,
+      "scores": [
+        {
+          "choice": " water",
+          "log_likelihood": -37.1777,
+          "norm_log_likelihood": -9.2944
+        },
+        {
+          "choice": " tree",
+          "log_likelihood": -29.6336,
+          "norm_log_likelihood": -7.4084
+        },
+        {
+          "choice": " cloud",
+          "log_likelihood": -31.166,
+          "norm_log_likelihood": -5.1943
+        },
+        {
+          "choice": " desert",
+          "log_likelihood": -37.4418,
+          "norm_log_likelihood": -6.2403
+        }
+      ]
+    },
+    {
+      "prompt": "In Python, to define a function you write: ",
+      "choices": [
+        " def",
+        " function",
+        " func",
+        " fn"
+      ],
+      "correct_index": 0,
+      "predicted_index": 2,
+      "is_correct": false,
+      "scores": [
+        {
+          "choice": " def",
+          "log_likelihood": -21.6665,
+          "norm_log_likelihood": -5.4166
+        },
+        {
+          "choice": " function",
+          "log_likelihood": -43.3141,
+          "norm_log_likelihood": -6.1877
+        },
+        {
+          "choice": " func",
+          "log_likelihood": -25.44,
+          "norm_log_likelihood": -5.088
+        },
+        {
+          "choice": " fn",
+          "log_likelihood": -18.7754,
+          "norm_log_likelihood": -6.2585
+        }
+      ]
+    },
+    {
+      "prompt": "x = [1, 2, 3]. The type of x is a: ",
+      "choices": [
+        " list",
+        " dict",
+        " tuple",
+        " int"
+      ],
+      "correct_index": 0,
+      "predicted_index": 2,
+      "is_correct": false,
+      "scores": [
+        {
+          "choice": " list",
+          "log_likelihood": -27.8715,
+          "norm_log_likelihood": -6.9679
+        },
+        {
+          "choice": " dict",
+          "log_likelihood": -31.1846,
+          "norm_log_likelihood": -7.7961
+        },
+        {
+          "choice": " tuple",
+          "log_likelihood": -30.4546,
+          "norm_log_likelihood": -5.0758
+        },
+        {
+          "choice": " int",
+          "log_likelihood": -25.8024,
+          "norm_log_likelihood": -8.6008
+        }
+      ]
+    }
+  ]
+}
