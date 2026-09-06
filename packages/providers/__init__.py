@@ -1,6 +1,7 @@
 ﻿"""Libra Providers Package."""
 
 from packages.providers.base import BaseProvider, ModelMetadata
+from packages.providers.huggingface import HuggingFaceProvider
 from packages.providers.local_transformer import LocalTransformerProvider
 from packages.providers.mock import MockProvider
 from packages.providers.ollama import OllamaProvider
@@ -13,6 +14,7 @@ __all__ = [
     "ModelMetadata",
     "MockProvider",
     "OllamaProvider",
+    "HuggingFaceProvider",
     "LocalTransformerProvider",
     "VLLMProvider",
     "PromptTemplate",

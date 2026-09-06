@@ -1,7 +1,7 @@
 ﻿"""
 Libra Providers - Unified Model Provider Router
 
-Routes inference requests across available providers (Ollama, Local Lab, Mock, vLLM).
+Routes inference requests across available providers (Ollama, Local Lab, Mock, vLLM, HuggingFace).
 Handles graceful fallback and provider discovery.
 """
 
@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from packages.providers.base import BaseProvider
+from packages.providers.huggingface import HuggingFaceProvider
 from packages.providers.local_transformer import LocalTransformerProvider
 from packages.providers.mock import MockProvider
 from packages.providers.ollama import OllamaProvider
@@ -25,6 +26,7 @@ class ProviderRouter:
             "libra_lab": LocalTransformerProvider(),
             "mock-provider": MockProvider(),
             "vllm": VLLMProvider(),
+            "huggingface": HuggingFaceProvider(),
         }
 
     def get_provider(self, name: str) -> BaseProvider:
@@ -33,6 +35,8 @@ class ProviderRouter:
         if name_clean in self._providers:
             return self._providers[name_clean]
         # Check aliases
+        if "hf" in name_clean or "hugging" in name_clean:
+            return self._providers["huggingface"]
         if "mock" in name_clean:
             return self._providers["mock-provider"]
         if "lab" in name_clean or "libra" in name_clean:
@@ -45,6 +49,10 @@ class ProviderRouter:
             return self.get_provider(requested_provider)
 
         model_lower = model_id.lower()
+
+        # If it is a Hugging Face model
+        if model_lower.startswith("hf/") or "gpt2" in model_lower:
+            return self._providers["huggingface"]
 
         # If it is an educational Libra model
         if "libra" in model_lower and "mock" not in model_lower:
