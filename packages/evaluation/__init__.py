@@ -1,5 +1,6 @@
-﻿"""Libra Evaluation & Benchmarking Package."""
+"""Libra Evaluation & Benchmarking Package."""
 
+from packages.evaluation.arena import ModelComparisonArena
 from packages.evaluation.harness import CategoryScore, EvaluationHarness, EvaluationReport
 from packages.evaluation.loss_eval import (
     LossMetrics,
@@ -8,6 +9,7 @@ from packages.evaluation.loss_eval import (
     evaluate_dataset_loss,
     evaluate_tokens_loss,
 )
+from packages.evaluation.metrics import ArenaModelMetric
 from packages.evaluation.multiple_choice import (
     ChoiceScore,
     MultipleChoiceEvaluator,
@@ -30,4 +32,7 @@ __all__ = [
     "CategoryScore",
     "EvaluationReport",
     "EvaluationHarness",
+    "ModelComparisonArena",
+    "ArenaModelMetric",
 ]
+
