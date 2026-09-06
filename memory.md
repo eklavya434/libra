@@ -51,7 +51,17 @@
 - **Educational Guide**: `docs/educational/PHASE_13_RAG_PIPELINE.md`.
 - **Demo Script**: `scripts/run_phase13_rag_demo.py`.
 
-### B. Ollama & Local Inference Status
+### B. Vector Database Architectural Decision: pgvector vs. Qdrant
+- **Evaluation & Choice**:
+  - **pgvector**: Requires a live PostgreSQL database server process or Docker container, which introduces heavy memory overhead (~200MB+ idle) and violates Directive 5 (*No Docker Before Phase 34*). Since Libra already uses lightweight SQLite WAL for relational memory, introducing PostgreSQL would add unnecessary operational friction on a 16GB CPU machine.
+  - **Qdrant (Selected Target)**: Chosen as the dedicated vector database target because:
+    1. **Embedded Mode**: `qdrant-client` supports embedded local file-based storage (`path="./data/qdrant"`) and in-memory execution with zero Docker dependencies and zero external background daemons.
+    2. **Rust & SIMD Optimization**: Ultra-fast CPU execution with AVX2/AVX-512 vector acceleration on Intel Core i5-12450H.
+    3. **Native Hybrid Search**: Out-of-the-box support for sparse vectors and dense-sparse hybrid fusion, perfectly matching Phase 14 requirements.
+- **Current Phase 13 Implementation**: For educational transparency (Directive 1) and zero external dependencies, Phase 13 implements `InMemoryVectorStore` using vectorized NumPy dot products ($S = E \vec{q}$), achieving sub-millisecond CPU retrieval. An abstract base interface allows seamless transition to embedded Qdrant when scaling persistent collections.
+- **Deviations from Plan**: None. Ingestion, recursive chunking, dense embeddings, vector retrieval, prompt synthesis, REST APIs, and the Knowledge Base UI are fully operational end-to-end.
+
+### C. Ollama & Local Inference Status
 - **Ollama Adapter**: `packages/providers/ollama.py` ready for local runtime.
 - **Hugging Face Adapter**: `packages/providers/huggingface.py` running on CPU.
 - **PyTorch Lab Checkpoint**: Serving `checkpoints/best_engine_model.pt` at 349.5 tok/s on CPU.
