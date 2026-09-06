@@ -1,0 +1,11 @@
+vocab_size: 512
+max_context_length: 256
+d_model: 128
+n_heads: 4
+n_layers: 2
+hidden_dim: 352
+rope_theta_base: 10000.0
+norm_eps: 0.000001
+dropout: 0.0
+tie_weights: true
+device: cpu
