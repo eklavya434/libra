@@ -142,6 +142,9 @@ class InMemoryVectorStore:
                         chunk=self._chunks[idx],
                         score=round(score, 4),
                         rank=rank,
+                        dense_score=round(score, 4),
+                        dense_rank=rank,
+                        retrieval_mode="dense",
                     )
                 )
                 rank += 1

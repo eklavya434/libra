@@ -16,7 +16,7 @@ from packages.rag import (
     RAGPromptSynthesizer,
     RAGQueryRequest,
     RAGQueryResponse,
-    get_vector_store,
+    get_hybrid_retriever,
 )
 
 router = APIRouter()
@@ -25,15 +25,15 @@ router = APIRouter()
 @router.get("/documents", response_model=list[Document], summary="List all indexed documents")
 async def list_documents() -> list[Document]:
     """Retrieve all indexed documents with chunk statistics."""
-    store = get_vector_store()
-    return store.list_documents()
+    retriever = get_hybrid_retriever()
+    return retriever.vector_store.list_documents()
 
 
 @router.post("/documents", response_model=Document, summary="Ingest and index a document")
 async def ingest_document(request: IngestDocumentRequest) -> Document:
-    """Ingest a text document, segment it into chunks, and compute vector embeddings."""
-    store = get_vector_store()
-    doc, _ = store.add_document(
+    """Ingest a text document, segment into chunks, compute embeddings, and index in BM25."""
+    retriever = get_hybrid_retriever()
+    doc, _ = retriever.add_document(
         title=request.title,
         content=request.content,
         metadata=request.metadata,
@@ -44,30 +44,39 @@ async def ingest_document(request: IngestDocumentRequest) -> Document:
 @router.get("/documents/{doc_id}", response_model=Document, summary="Get document details")
 async def get_document(doc_id: str) -> Document:
     """Fetch an indexed document by ID."""
-    store = get_vector_store()
-    doc = store.get_document(doc_id)
+    retriever = get_hybrid_retriever()
+    doc = retriever.vector_store.get_document(doc_id)
     if not doc:
         raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found")
     return doc
 
 
-@router.delete("/documents/{doc_id}", summary="Delete document and purge vectors")
+@router.delete("/documents/{doc_id}", summary="Delete document and purge vectors/BM25")
 async def delete_document(doc_id: str) -> dict[str, Any]:
-    """Delete a document and purge all its chunk embeddings from vector memory."""
-    store = get_vector_store()
-    success = store.delete_document(doc_id)
+    """Delete a document and purge all its chunks from dense and BM25 index."""
+    retriever = get_hybrid_retriever()
+    success = retriever.delete_document(doc_id)
     if not success:
         raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found")
     return {"status": "deleted", "id": doc_id}
 
 
-@router.post("/query", response_model=RAGQueryResponse, summary="Semantic vector search & prompt synthesis")
+@router.post("/query", response_model=RAGQueryResponse, summary="Hybrid vector/BM25 search & prompt synthesis")
 async def query_vector_store(request: RAGQueryRequest) -> RAGQueryResponse:
-    """Execute cosine similarity search and return top-k chunks with augmented prompt."""
-    store = get_vector_store()
-    results = store.similarity_search(
+    """
+    Execute dense, sparse (BM25), or hybrid retrieval with optional
+    Reciprocal Rank Fusion, multi-factor re-ranking, and chunk deduplication.
+    """
+    retriever = get_hybrid_retriever()
+    results = retriever.search(
         query=request.query,
         top_k=request.top_k,
+        mode=request.mode,
+        alpha=request.alpha,
+        use_rrf=request.use_rrf,
+        use_reranking=request.use_reranking,
+        use_deduplication=request.use_deduplication,
+        rrf_k=request.rrf_k,
         min_score=request.min_score,
     )
 
@@ -76,6 +85,8 @@ async def query_vector_store(request: RAGQueryRequest) -> RAGQueryResponse:
 
     return RAGQueryResponse(
         query=request.query,
+        mode=request.mode,
         results=results,
         augmented_prompt=augmented_prompt,
+        total_candidates=len(results),
     )

@@ -33,23 +33,23 @@
 | **Phase 10** | Model Comparison Arena | ✅ COMPLETE | Side-by-side benchmarking, TTFT, token velocity, cost ranking, POST /api/v1/arena/compare (`67268a0`) |
 | **Phase 11** | Real Libra Chat UI | ✅ COMPLETE | Next.js frontend, live SSE streaming, dynamic model picker, sampling modal, Arena UI (`bb2be8b`) |
 | **Phase 12** | Multi-Turn Conversation Memory | ✅ COMPLETE | SQLite WAL storage, message cascade, ContextWindowManager sliding window, session CRUD (`b9ee315`) |
-| **Phase 13** | RAG: Vector Retrieval & Chunking | ✅ COMPLETE | First-principles vector embeddings, cosine similarity, recursive chunker, in-memory store, Knowledge Base UI |
-| **Phase 14** | Advanced RAG: Hybrid Search & Re-ranking | ⏳ NEXT | BM25 sparse + dense hybrid search, Reciprocal Rank Fusion (RRF), re-ranking, chunk deduplication |
+| **Phase 13** | RAG: Vector Retrieval & Chunking | ✅ COMPLETE | First-principles vector embeddings, cosine similarity, recursive chunker, in-memory store, Knowledge Base UI (`27fc1dc`) |
+| **Phase 14** | Advanced RAG: Hybrid Search & Re-ranking | ✅ COMPLETE | Okapi BM25 sparse index, Reciprocal Rank Fusion (RRF), multi-factor re-ranking, chunk deduplication, Hybrid UI |
+| **Phase 15** | Real-Time SSE Streaming & Markdown Rendering | ⏳ NEXT | Markdown streaming parsers, code block syntax highlighting, copy-to-clipboard, token metrics UI |
 
 ---
 
-## 3. Phase 13 Ecosystem & Knowledge Base Status
+## 3. Phase 14 Ecosystem & Advanced Hybrid RAG Status
 
-### A. Phase 13 Outcome: RAG Vector Retrieval, Chunking & In-Memory Store
-- **Document Chunking**: `packages/rag/chunking.py` (`RecursiveCharacterChunker`) hierarchically splits text via natural boundaries (`\n\n`, `\n`, `. `, ` `, `""`) preserving semantic units with configurable token chunk size and sliding overlap.
-- **Dense Embeddings**: `packages/rag/embeddings.py` (`EducationalDenseEmbedder`, $D=128$, L2 unit-normalized n-gram hashing projection) for zero-dependency CPU embedding, alongside `OllamaEmbeddingProvider` for local neural embeddings.
-- **Vector Store**: `packages/rag/vector_store.py` (`InMemoryVectorStore`) performs sub-millisecond CPU cosine similarity search via vectorized NumPy matrix-vector multiplication without external vector DB dependencies.
-- **Synthesizer**: `packages/rag/synthesizer.py` (`RAGPromptSynthesizer`) constructs grounded prompts with explicit source citation tags.
-- **REST Endpoints**: `apps/backend/api/v1/endpoints/rag.py` provides `/api/v1/rag/documents` (ingest, list, delete) and `/api/v1/rag/query` (semantic search).
-- **Chat Grounding**: `apps/backend/api/v1/endpoints/chat.py` integrates optional RAG grounding (`use_rag: bool`), retrieving top-$k$ relevant chunks and injecting knowledge context.
-- **Frontend UI**: `apps/frontend/src/components/KnowledgeBaseView.tsx` provides full document management, chunk inspection, and semantic query testing; `ChatArea.tsx` includes real-time RAG grounding toggle.
-- **Educational Guide**: `docs/educational/PHASE_13_RAG_PIPELINE.md`.
-- **Demo Script**: `scripts/run_phase13_rag_demo.py`.
+### A. Phase 14 Outcome: Hybrid Search (BM25 + Dense), RRF, Re-Ranking & Deduplication
+- **Okapi BM25 Index**: `packages/rag/bm25.py` (`BM25Index`) implements Robertson-Spärck Jones IDF and saturation/length-normalized scoring ($k_1=1.5, b=0.75$) with lightweight suffix stemming.
+- **Search Fusion**: `packages/rag/fusion.py` provides Reciprocal Rank Fusion (`reciprocal_rank_fusion`, $k=60$) to bridge dense cosine similarity and sparse BM25 scores without distribution mismatch, along with normalized weighted linear interpolation.
+- **Multi-Factor Re-Ranking**: `packages/rag/reranker.py` (`HeuristicReRanker`) calculates exact phrase bonuses, query keyword coverage ratios, and term proximity spans on candidate chunks.
+- **Chunk Deduplication & MMR**: `packages/rag/deduplication.py` (`ChunkDeduplicator`) applies Jaccard threshold filtering ($J \ge 0.70$) and Maximal Marginal Relevance (MMR) diversification to eliminate redundant overlapping windows.
+- **Unified Hybrid Retriever**: `packages/rag/hybrid.py` (`HybridRetriever`) orchestrates two-stage retrieval across dense `InMemoryVectorStore` and sparse `BM25Index`.
+- **Backend & Chat Integration**: `apps/backend/api/v1/endpoints/rag.py` (`/api/v1/rag/query`) supports `mode="hybrid"|"dense"|"bm25"`, RRF, reranking, and deduplication; `apps/backend/api/v1/endpoints/chat.py` activates hybrid search for factual chat grounding.
+- **Frontend UI**: `apps/frontend/src/components/KnowledgeBaseView.tsx` features interactive mode toggles (Hybrid, Dense, BM25), reranking and deduplication checkboxes, and score breakdown pills.
+- **Educational Guide & Demo**: `docs/educational/PHASE_14_HYBRID_SEARCH_AND_RERANKING.md` and `scripts/run_phase14_hybrid_rag_demo.py`.
 
 ### B. Vector Database Architectural Decision: pgvector vs. Qdrant
 - **Evaluation & Choice**:
@@ -58,8 +58,8 @@
     1. **Embedded Mode**: `qdrant-client` supports embedded local file-based storage (`path="./data/qdrant"`) and in-memory execution with zero Docker dependencies and zero external background daemons.
     2. **Rust & SIMD Optimization**: Ultra-fast CPU execution with AVX2/AVX-512 vector acceleration on Intel Core i5-12450H.
     3. **Native Hybrid Search**: Out-of-the-box support for sparse vectors and dense-sparse hybrid fusion, perfectly matching Phase 14 requirements.
-- **Current Phase 13 Implementation**: For educational transparency (Directive 1) and zero external dependencies, Phase 13 implements `InMemoryVectorStore` using vectorized NumPy dot products ($S = E \vec{q}$), achieving sub-millisecond CPU retrieval. An abstract base interface allows seamless transition to embedded Qdrant when scaling persistent collections.
-- **Deviations from Plan**: None. Ingestion, recursive chunking, dense embeddings, vector retrieval, prompt synthesis, REST APIs, and the Knowledge Base UI are fully operational end-to-end.
+- **Current Phase 14 Implementation**: For educational transparency (Directive 1) and zero external dependencies, Phase 14 implements `InMemoryVectorStore` + `BM25Index` using vectorized NumPy dot products and inverted indices, achieving sub-millisecond CPU retrieval. An abstract base interface allows seamless transition to embedded Qdrant when scaling persistent collections.
+- **Deviations from Plan**: None.
 
 ### C. Ollama & Local Inference Status
 - **Ollama Adapter**: `packages/providers/ollama.py` ready for local runtime.
@@ -74,12 +74,13 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,197.13 MB** (~1.20 GB)
+- **Total Workspace Footprint**: **1,198.95 MB** (~1.20 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,162.87 MB** (92.21% free)
+- **Remaining Storage Quota**: **14,161.05 MB** (92.19% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **108 passed, 0 failed** (in 18.22s)
+- **Pytest Status**: **123 passed, 0 failed** (in 31.86s)
+
 
 
 

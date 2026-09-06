@@ -104,11 +104,11 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
 
     # Apply RAG knowledge base context grounding if requested
     if request.use_rag and request.messages and request.messages[-1].role == "user":
-        from packages.rag import RAGPromptSynthesizer, get_vector_store
+        from packages.rag import RAGPromptSynthesizer, get_hybrid_retriever
 
-        vector_store = get_vector_store()
+        retriever = get_hybrid_retriever()
         last_query = request.messages[-1].content
-        rag_matches = vector_store.similarity_search(query=last_query, top_k=request.rag_top_k)
+        rag_matches = retriever.search(query=last_query, top_k=request.rag_top_k, mode="hybrid")
         if rag_matches and messages_to_send and messages_to_send[-1]["role"] == "user":
             synthesizer = RAGPromptSynthesizer()
             grounded_prompt = synthesizer.build_grounded_prompt(last_query, rag_matches)

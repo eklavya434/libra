@@ -6,15 +6,18 @@ import pytest
 from fastapi.testclient import TestClient
 
 from apps.backend.main import app
-from packages.rag import InMemoryVectorStore
+from packages.rag import InMemoryVectorStore, HybridRetriever
 import packages.rag.vector_store as rag_module
+import packages.rag.hybrid as hybrid_module
 
 
 @pytest.fixture(autouse=True)
 def isolated_vector_store(monkeypatch):
-    """Overrides global vector store with isolated instance for each test."""
+    """Overrides global vector store and hybrid retriever with isolated instances."""
     test_store = InMemoryVectorStore()
+    test_retriever = HybridRetriever(vector_store=test_store)
     monkeypatch.setattr(rag_module, "_global_vector_store", test_store)
+    monkeypatch.setattr(hybrid_module, "_global_hybrid_retriever", test_retriever)
     return test_store
 
 
@@ -101,3 +104,33 @@ def test_chat_with_use_rag_grounding(client):
     assert chat_res.status_code == 200
     data = chat_res.json()
     assert "choices" in data
+
+
+def test_hybrid_rag_query(client):
+    client.post(
+        "/api/v1/rag/documents",
+        json={
+            "title": "Machine Learning Hardware",
+            "content": "Intel Core i5-12450H CPU operates efficiently with AVX2 vector SIMD instructions.",
+        },
+    )
+
+    # Test mode="hybrid" with RRF
+    res = client.post(
+        "/api/v1/rag/query",
+        json={
+            "query": "i5-12450H AVX2 SIMD instructions",
+            "mode": "hybrid",
+            "use_rrf": True,
+            "use_reranking": True,
+            "use_deduplication": True,
+            "top_k": 2,
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["mode"] == "hybrid"
+    assert len(data["results"]) >= 1
+    assert data["results"][0]["chunk"]["doc_title"] == "Machine Learning Hardware"
+    assert data["results"][0]["rank"] == 1
+
