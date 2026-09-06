@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sliders, Zap, RotateCcw, AlertCircle, Copy, Check } from 'lucide-react';
+import { Send, Bot, User, Sliders, Zap, RotateCcw, AlertCircle, Copy, Check, Square, RefreshCw } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import ModelSelector from './ModelSelector';
 import HyperparametersModal from './HyperparametersModal';
+import StreamingMarkdown from './StreamingMarkdown';
 import {
   streamChat,
   ChatMessage,
@@ -31,7 +32,7 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
       id: 'welcome',
       role: 'assistant',
       content:
-        '👋 Welcome to **Libra**!\n\nThis is your personal AI Assistant and educational Large Language Model laboratory, built from first principles.\n\nNow equipped with:\n- **Local & Cloud Model Selection**: Switch between your custom PyTorch model (`libra-llama-tied`), Ollama, and cloud endpoints.\n- **Real-Time Token Streaming**: Server-Sent Events (SSE) word-by-word streaming on CPU.\n- **Telemetry Feedback**: High-precision TTFT, latency, token velocity (tok/s), and real-time cost tracking.\n- **Multi-Turn Persistent Memory**: Powered by SQLite with sliding-window context management.',
+        '👋 Welcome to **Libra**!\n\nThis is your personal AI Assistant and educational Large Language Model laboratory, built from first principles.\n\n### Core System Capabilities:\n- **First-Principles Engine**: Modern decoder-only transformer with RoPE, RMSNorm, SwiGLU, and weight tying.\n- **Multi-Turn Persistent Memory**: Powered by SQLite WAL with dynamic sliding-window context management.\n- **Advanced Hybrid RAG**: Okapi BM25 sparse search + Dense vector embeddings fused via Reciprocal Rank Fusion (RRF $k=60$), multi-factor re-ranking, and chunk deduplication.\n- **Real-Time Streaming UX**: Live token-by-token Markdown parsing, code syntax highlighting, one-click code copy, and abortable generation.\n\n```python\n# Example: Grounded RAG Query in Libra\nresponse = await libra.chat(\n    query="Explain Rotary Position Embeddings",\n    mode="hybrid",\n    use_rrf=True\n)\nprint(response.content)\n```\n\nAsk any question or test your knowledge base to begin!',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -44,9 +45,11 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
   const [useRag, setUseRag] = useState(false);
   const [isParamsOpen, setIsParamsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeAssistantId, setActiveAssistantId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Load conversation messages when conversationId changes
   useEffect(() => {
@@ -96,6 +99,58 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const executeStream = async (history: ChatMessage[], assistantId: string) => {
+    setLoading(true);
+    setActiveAssistantId(assistantId);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    await streamChat(history, selectedModel, {
+      conversationId,
+      useRag,
+      temperature,
+      maxTokens,
+      signal: controller.signal,
+      onToken: (token) => {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantId ? { ...msg, content: msg.content + token } : msg
+          )
+        );
+      },
+      onComplete: (telemetry) => {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantId ? { ...msg, telemetry } : msg
+          )
+        );
+        setLoading(false);
+        setActiveAssistantId(null);
+        abortControllerRef.current = null;
+        if (onConversationUpdated) onConversationUpdated();
+      },
+      onError: (err) => {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantId
+              ? {
+                  ...msg,
+                  content:
+                    msg.content ||
+                    `⚠️ Inference Error: ${err.message}\nEnsure the Libra backend is running on :8000 or select a local mock model.`,
+                  error: true,
+                }
+              : msg
+          )
+        );
+        setLoading(false);
+        setActiveAssistantId(null);
+        abortControllerRef.current = null;
+      },
+    });
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
@@ -116,53 +171,58 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    setMessages((prev) => [...prev, userMsg, initialAssistantMsg]);
+    const nextMessages = [...messages, userMsg, initialAssistantMsg];
+    setMessages(nextMessages);
     setInput('');
-    setLoading(true);
 
     const historyForApi: ChatMessage[] = [...messages, userMsg].map((m) => ({
       role: m.role,
       content: m.content,
     }));
 
-    await streamChat(historyForApi, selectedModel, {
-      conversationId,
-      useRag,
-      temperature,
-      maxTokens,
-      onToken: (token) => {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantId ? { ...msg, content: msg.content + token } : msg
-          )
-        );
-      },
-      onComplete: (telemetry) => {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantId ? { ...msg, telemetry } : msg
-          )
-        );
-        setLoading(false);
-        if (onConversationUpdated) onConversationUpdated();
-      },
-      onError: (err) => {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantId
-              ? {
-                  ...msg,
-                  content:
-                    msg.content ||
-                    `⚠️ Inference Error: ${err.message}\nEnsure the Libra backend is running on :8000 or select a local mock model.`,
-                  error: true,
-                }
-              : msg
-          )
-        );
-        setLoading(false);
-      },
-    });
+    await executeStream(historyForApi, assistantId);
+  };
+
+  const handleStopGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setLoading(false);
+      setActiveAssistantId(null);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (loading || messages.length < 2) return;
+
+    // Find the last user message and remove subsequent assistant messages
+    let lastUserIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        lastUserIdx = i;
+        break;
+      }
+    }
+
+    if (lastUserIdx === -1) return;
+
+    const historyToKeep = messages.slice(0, lastUserIdx + 1);
+    const assistantId = Date.now().toString();
+    const newAssistantMsg: ExtendedMessage = {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages([...historyToKeep, newAssistantMsg]);
+
+    const historyForApi: ChatMessage[] = historyToKeep.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    await executeStream(historyForApi, assistantId);
   };
 
   const handleClearHistory = async () => {
@@ -223,7 +283,6 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
           </button>
         </div>
 
-
         <div>
           <StatusBadge />
         </div>
@@ -232,82 +291,111 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
       {/* Messages Scrollable Viewport */}
       <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 space-y-6">
         <div className="max-w-3xl mx-auto space-y-6">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex gap-3.5 group ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              {msg.role === 'assistant' && (
-                <div className="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 text-indigo-400 mt-1 shadow-sm">
-                  <Bot className="w-4 h-4" />
-                </div>
-              )}
+          {messages.map((msg, index) => {
+            const isLatestAssistant =
+              msg.role === 'assistant' &&
+              index === messages.length - 1 &&
+              !loading &&
+              msg.id !== 'welcome';
 
+            return (
               <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm transition-all ${
-                  msg.role === 'user'
-                    ? 'bg-indigo-600 text-white rounded-tr-none shadow-indigo-600/10'
-                    : msg.error
-                    ? 'bg-rose-950/40 border border-rose-800/60 text-rose-200 rounded-tl-none'
-                    : 'bg-slate-900/90 border border-slate-800 text-slate-200 rounded-tl-none leading-relaxed shadow-black/20'
-                }`}
+                key={msg.id}
+                className={`flex gap-3.5 group ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className="whitespace-pre-wrap">{msg.content || (loading && msg.role === 'assistant' ? '...' : '')}</div>
-
-                {/* Telemetry Badge on Assistant messages */}
-                {msg.telemetry && (
-                  <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-3 text-[10px] text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3 text-amber-400" />
-                      TTFT: <strong className="text-slate-200 font-mono">{msg.telemetry.ttftMs?.toFixed(0)}ms</strong>
-                    </span>
-                    <span>•</span>
-                    <span>
-                      Latency: <strong className="text-slate-200 font-mono">{msg.telemetry.totalLatencyMs?.toFixed(0)}ms</strong>
-                    </span>
-                    <span>•</span>
-                    <span className="text-indigo-400 font-medium font-mono">
-                      {msg.telemetry.tokensPerSecond?.toFixed(1)} tok/s
-                    </span>
-                    <span>•</span>
-                    <span className="text-emerald-400 font-mono font-medium">
-                      {msg.telemetry.isFree ? '$0.00 (Local)' : `$${msg.telemetry.totalCostUsd?.toFixed(6)}`}
-                    </span>
+                {msg.role === 'assistant' && (
+                  <div className="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 text-indigo-400 mt-1 shadow-sm">
+                    <Bot className="w-4 h-4" />
                   </div>
                 )}
 
-                <div className="flex items-center justify-between mt-1.5">
-                  <div
-                    className={`text-[10px] ${
-                      msg.role === 'user' ? 'text-indigo-200' : 'text-slate-500'
-                    }`}
-                  >
-                    {msg.timestamp}
-                  </div>
-
-                  {msg.content && (
-                    <button
-                      onClick={() => handleCopy(msg.id, msg.content)}
-                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-200 p-0.5 rounded transition-opacity"
-                      title="Copy message"
-                    >
-                      {copiedId === msg.id ? (
-                        <Check className="w-3 h-3 text-emerald-400" />
-                      ) : (
-                        <Copy className="w-3 h-3" />
-                      )}
-                    </button>
+                <div
+                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm transition-all ${
+                    msg.role === 'user'
+                      ? 'bg-indigo-600 text-white rounded-tr-none shadow-indigo-600/10'
+                      : msg.error
+                      ? 'bg-rose-950/40 border border-rose-800/60 text-rose-200 rounded-tl-none'
+                      : 'bg-slate-900/90 border border-slate-800 text-slate-200 rounded-tl-none leading-relaxed shadow-black/20'
+                  }`}
+                >
+                  {/* Message Content: StreamingMarkdown for Assistant, plain pre-wrap for User */}
+                  {msg.role === 'user' ? (
+                    <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
+                  ) : (
+                    <StreamingMarkdown
+                      content={msg.content}
+                      isStreaming={loading && msg.id === activeAssistantId}
+                    />
                   )}
-                </div>
-              </div>
 
-              {msg.role === 'user' && (
-                <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0 text-slate-300 mt-1 shadow-sm">
-                  <User className="w-4 h-4" />
+                  {/* Telemetry Badge on Assistant messages */}
+                  {msg.telemetry && (
+                    <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex flex-wrap items-center gap-3 text-[10px] text-slate-400 select-none">
+                      <span className="flex items-center gap-1">
+                        <Zap className="w-3 h-3 text-amber-400" />
+                        TTFT: <strong className="text-slate-200 font-mono">{msg.telemetry.ttftMs?.toFixed(0)}ms</strong>
+                      </span>
+                      <span>•</span>
+                      <span>
+                        Latency: <strong className="text-slate-200 font-mono">{msg.telemetry.totalLatencyMs?.toFixed(0)}ms</strong>
+                      </span>
+                      <span>•</span>
+                      <span className="text-indigo-400 font-medium font-mono">
+                        {msg.telemetry.tokensPerSecond?.toFixed(1)} tok/s
+                      </span>
+                      <span>•</span>
+                      <span className="text-emerald-400 font-mono font-medium">
+                        {msg.telemetry.isFree ? '$0.00 (Local)' : `$${msg.telemetry.totalCostUsd?.toFixed(6)}`}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-850/60 text-[10px]">
+                    <div
+                      className={`${
+                        msg.role === 'user' ? 'text-indigo-200' : 'text-slate-500'
+                      }`}
+                    >
+                      {msg.timestamp}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      {isLatestAssistant && (
+                        <button
+                          onClick={handleRegenerate}
+                          className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-slate-400 hover:text-indigo-300 px-1.5 py-0.5 rounded hover:bg-slate-800/60 transition-all"
+                          title="Regenerate response"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Regenerate</span>
+                        </button>
+                      )}
+
+                      {msg.content && (
+                        <button
+                          onClick={() => handleCopy(msg.id, msg.content)}
+                          className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-200 p-1 rounded hover:bg-slate-800/60 transition-all"
+                          title="Copy message"
+                        >
+                          {copiedId === msg.id ? (
+                            <Check className="w-3 h-3 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {msg.role === 'user' && (
+                  <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0 text-slate-300 mt-1 shadow-sm">
+                    <User className="w-4 h-4" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           <div ref={messagesEndRef} />
         </div>
@@ -320,20 +408,30 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={`Message ${selectedModel}...`}
-            className="w-full bg-slate-900/90 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 rounded-xl px-4 py-3 pr-12 text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
+            disabled={loading}
+            placeholder={loading ? 'Generating response...' : `Message ${selectedModel}...`}
+            className="w-full bg-slate-900/90 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 disabled:opacity-60 rounded-xl px-4 py-3 pr-12 text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
           />
-          <button
-            type="submit"
-            disabled={!input.trim() || loading}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:hover:bg-indigo-600 text-white flex items-center justify-center transition-all shadow-sm"
-          >
-            {loading ? (
-              <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-            ) : (
+
+          {loading ? (
+            <button
+              type="button"
+              onClick={handleStopGeneration}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center transition-all shadow-sm"
+              title="Stop generating (Esc)"
+            >
+              <Square className="w-3.5 h-3.5 fill-current" />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={!input.trim()}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:hover:bg-indigo-600 text-white flex items-center justify-center transition-all shadow-sm"
+              title="Send message"
+            >
               <Send className="w-4 h-4" />
-            )}
-          </button>
+            </button>
+          )}
         </form>
 
         <div className="max-w-3xl mx-auto mt-2 flex items-center justify-between text-[11px] text-slate-400 px-1">

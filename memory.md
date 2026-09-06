@@ -34,22 +34,22 @@
 | **Phase 11** | Real Libra Chat UI | ✅ COMPLETE | Next.js frontend, live SSE streaming, dynamic model picker, sampling modal, Arena UI (`bb2be8b`) |
 | **Phase 12** | Multi-Turn Conversation Memory | ✅ COMPLETE | SQLite WAL storage, message cascade, ContextWindowManager sliding window, session CRUD (`b9ee315`) |
 | **Phase 13** | RAG: Vector Retrieval & Chunking | ✅ COMPLETE | First-principles vector embeddings, cosine similarity, recursive chunker, in-memory store, Knowledge Base UI (`27fc1dc`) |
-| **Phase 14** | Advanced RAG: Hybrid Search & Re-ranking | ✅ COMPLETE | Okapi BM25 sparse index, Reciprocal Rank Fusion (RRF), multi-factor re-ranking, chunk deduplication, Hybrid UI |
-| **Phase 15** | Real-Time SSE Streaming & Markdown Rendering | ⏳ NEXT | Markdown streaming parsers, code block syntax highlighting, copy-to-clipboard, token metrics UI |
+| **Phase 14** | Advanced RAG: Hybrid Search & Re-ranking | ✅ COMPLETE | Okapi BM25 sparse index, Reciprocal Rank Fusion (RRF), multi-factor re-ranking, chunk deduplication, Hybrid UI (`f3b1128`) |
+| **Phase 15** | Real-Time SSE Streaming & Markdown Rendering | ✅ COMPLETE | StreamingMarkdown parser, syntax-highlighted CodeBlock, AbortController cancellation, regenerate response, telemetry |
+| **Phase 16** | Tool Use & Sandbox Execution | ⏳ NEXT | Function calling, JSON schema tool definitions, safe execution sandbox, multi-step agent tools |
 
 ---
 
-## 3. Phase 14 Ecosystem & Advanced Hybrid RAG Status
+## 3. Phase 15 Ecosystem & Streaming UX Status
 
-### A. Phase 14 Outcome: Hybrid Search (BM25 + Dense), RRF, Re-Ranking & Deduplication
-- **Okapi BM25 Index**: `packages/rag/bm25.py` (`BM25Index`) implements Robertson-Spärck Jones IDF and saturation/length-normalized scoring ($k_1=1.5, b=0.75$) with lightweight suffix stemming.
-- **Search Fusion**: `packages/rag/fusion.py` provides Reciprocal Rank Fusion (`reciprocal_rank_fusion`, $k=60$) to bridge dense cosine similarity and sparse BM25 scores without distribution mismatch, along with normalized weighted linear interpolation.
-- **Multi-Factor Re-Ranking**: `packages/rag/reranker.py` (`HeuristicReRanker`) calculates exact phrase bonuses, query keyword coverage ratios, and term proximity spans on candidate chunks.
-- **Chunk Deduplication & MMR**: `packages/rag/deduplication.py` (`ChunkDeduplicator`) applies Jaccard threshold filtering ($J \ge 0.70$) and Maximal Marginal Relevance (MMR) diversification to eliminate redundant overlapping windows.
-- **Unified Hybrid Retriever**: `packages/rag/hybrid.py` (`HybridRetriever`) orchestrates two-stage retrieval across dense `InMemoryVectorStore` and sparse `BM25Index`.
-- **Backend & Chat Integration**: `apps/backend/api/v1/endpoints/rag.py` (`/api/v1/rag/query`) supports `mode="hybrid"|"dense"|"bm25"`, RRF, reranking, and deduplication; `apps/backend/api/v1/endpoints/chat.py` activates hybrid search for factual chat grounding.
-- **Frontend UI**: `apps/frontend/src/components/KnowledgeBaseView.tsx` features interactive mode toggles (Hybrid, Dense, BM25), reranking and deduplication checkboxes, and score breakdown pills.
-- **Educational Guide & Demo**: `docs/educational/PHASE_14_HYBRID_SEARCH_AND_RERANKING.md` and `scripts/run_phase14_hybrid_rag_demo.py`.
+### A. Phase 15 Outcome: Streaming Markdown, Syntax Highlighting & Generation Telemetry
+- **Streaming Markdown Parser**: `apps/frontend/src/components/StreamingMarkdown.tsx` implements a zero-dependency streaming state machine handling open/unclosed code fences in-flight without layout shifting or hydration errors.
+- **Code Block Component**: `apps/frontend/src/components/CodeBlock.tsx` features language detection, line numbers, one-click copy with feedback, and regex-based multi-token syntax highlighting (keywords, strings, numbers, comments, builtins).
+- **Collapsible Reasoning**: `<think>...</think>` tags are extracted and rendered in an expandable accordion block with animated thinking indicators for reasoning models (DeepSeek-R1, Qwen 2.5).
+- **Stream Abort & Cancellation**: `streamChat` accepts `signal: AbortSignal`. The UI includes a Stop Generation button (`Square` icon) in the input bar and handles `AbortError` gracefully, finalizing telemetry up to the cancellation point.
+- **Regenerate Response**: Last user turn can be regenerated with a single click (`RefreshCw` icon).
+- **Telemetry Display**: Displays TTFT (ms), latency (ms), token velocity (tok/s), token counts, and cost calculation.
+- **Educational Guide & Demo**: `docs/educational/PHASE_15_STREAMING_UX_AND_MARKDOWN.md` and `scripts/run_phase15_streaming_demo.py`.
 
 ### B. Vector Database Architectural Decision: pgvector vs. Qdrant
 - **Evaluation & Choice**:
@@ -58,7 +58,7 @@
     1. **Embedded Mode**: `qdrant-client` supports embedded local file-based storage (`path="./data/qdrant"`) and in-memory execution with zero Docker dependencies and zero external background daemons.
     2. **Rust & SIMD Optimization**: Ultra-fast CPU execution with AVX2/AVX-512 vector acceleration on Intel Core i5-12450H.
     3. **Native Hybrid Search**: Out-of-the-box support for sparse vectors and dense-sparse hybrid fusion, perfectly matching Phase 14 requirements.
-- **Current Phase 14 Implementation**: For educational transparency (Directive 1) and zero external dependencies, Phase 14 implements `InMemoryVectorStore` + `BM25Index` using vectorized NumPy dot products and inverted indices, achieving sub-millisecond CPU retrieval. An abstract base interface allows seamless transition to embedded Qdrant when scaling persistent collections.
+- **Current Implementation**: `InMemoryVectorStore` + `BM25Index` using vectorized NumPy dot products and inverted indices, achieving sub-millisecond CPU retrieval. An abstract base interface allows seamless transition to embedded Qdrant when scaling persistent collections.
 - **Deviations from Plan**: None.
 
 ### C. Ollama & Local Inference Status
@@ -74,12 +74,13 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,198.95 MB** (~1.20 GB)
+- **Total Workspace Footprint**: **1,201.19 MB** (~1.20 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,161.05 MB** (92.19% free)
+- **Remaining Storage Quota**: **14,158.81 MB** (92.18% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **123 passed, 0 failed** (in 31.86s)
+- **Pytest Status**: **126 passed, 0 failed** (in 18.47s)
+
 
 
 
