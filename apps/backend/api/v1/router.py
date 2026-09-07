@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from apps.backend.api.v1.endpoints import (
     agents,
+    alignment,
     arena,
     chat,
     coder,
@@ -32,4 +33,5 @@ api_v1_router.include_router(agents.router, prefix="/agents", tags=["Agents"])
 api_v1_router.include_router(coder.router, prefix="/coder", tags=["Coder"])
 api_v1_router.include_router(teams.router, prefix="/teams", tags=["Teams"])
 api_v1_router.include_router(routing.router, tags=["Dynamic Routing"])
+api_v1_router.include_router(alignment.router, tags=["Alignment & RLHF"])
 

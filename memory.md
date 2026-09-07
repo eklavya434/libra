@@ -42,11 +42,12 @@
 | **Phase 19** | Code Generation & Auto-Debugging | ✅ COMPLETE | PALAgent, CodeAgent, AutoDebugger self-correction loop, POST /api/v1/coder/pal, 20 new tests (`main`) |
 | **Phase 20** | Multi-Agent Collaboration | ✅ COMPLETE | Architect, Coder, Reviewer, Tester collaborative team, SharedBlackboard, POST /api/v1/teams/collaborate, 8 new tests (`main`) |
 | **Phase 21** | Dynamic Routing & Speculative Decoding | ✅ COMPLETE | Intent/complexity classification, 4 execution tiers, Leviathan draft-verify speculative engine, POST /api/v1/routing/*, 21 new tests (`main`) |
-| **Phase 22** | RLHF & Direct Preference Optimization (DPO) | ⏳ NEXT | First-principles reward modeling, preference pair loss, reference-model regularization |
+| **Phase 22** | RLHF & Direct Preference Optimization (DPO) | ✅ COMPLETE | Bradley-Terry reward model, DPO trainer with reference model regularization, POST /api/v1/alignment/*, 12 new tests (`main`) |
+| **Phase 23** | KV Cache Optimization & Grouped-Query Attention | ⏳ NEXT | Autoregressive KV cache rolling buffer, MQA / GQA multi-head reduction |
 
 ---
 
-## 3. Phase 16 to 21 Ecosystem: Tools, Structured Outputs, Agents, Code, Teams & Dynamic Routing
+## 3. Phase 16 to 22 Ecosystem: Tools, Structured Outputs, Agents, Code, Teams, Routing & Alignment
 
 ### A. Phase 16: Tool Use & Secure Sandboxed Execution
 - **Registered Tools Catalog (`get_tool_registry()` in `packages/tools/registry.py`)**:
@@ -123,7 +124,24 @@
   - `POST /api/v1/routing/generate`: Dynamic routing generation with automated fallback execution.
   - `POST /api/v1/routing/speculative`: Speculative decoding generation with speedup metrics.
 
-### G. Multimodal Provider Status (Vision vs Generation)
+### G. Phase 22: Reinforcement Learning from First Principles (RLHF & DPO)
+- **Preference Dataset & Token Collator (`packages/training/preference_dataset.py`)**:
+  - Triplet loader `(prompt, chosen, rejected)` with span masking for completion-only loss evaluation.
+  - Label masking fills prompt token positions with `-100`, preventing loss pollution from prompt tokens.
+- **First-Principles Reward Model (`TransformerRewardModel` in `packages/models/reward_model.py`)**:
+  - Transformer backbone with scalar regression head ($d_{\text{model}} \to 1$).
+  - Bradley-Terry pairwise preference ranking loss: $\mathcal{L}_{\text{RM}} = -\log \sigma(r(x, y_w) - r(x, y_l) - \text{margin})$.
+  - Telemetry: chosen reward mean, rejected reward mean, reward margin ($r_w - r_l$), and ranking accuracy.
+- **Direct Preference Optimization Trainer (`DPOTrainer` in `packages/training/dpo_trainer.py`)**:
+  - Closed-form RLHF without PPO; trains policy $\pi_\theta$ against frozen reference $\pi_{\text{ref}}$.
+  - Implicit reward calculation: $\hat{r}(x, y) = \beta \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)}$.
+  - Fast convergence: drives chosen logp higher, suppresses rejected logp, and achieves 100% preference accuracy in $< 300$ ms on CPU.
+- **REST Endpoints**:
+  - `POST /api/v1/alignment/reward`: Score prompt-completion pair with reward model.
+  - `POST /api/v1/alignment/reward/rank`: Rank candidate completions for a prompt.
+  - `POST /api/v1/alignment/dpo/step`: Run single DPO optimization step on preference batch.
+
+### H. Multimodal Provider Status (Vision vs Generation)
 - **Image Understanding (Vision)**: **ACTIVE** via unified provider abstraction (`supports_vision: True` in `packages/models/registry.py` and provider adapters `openai.py`, `gemini.py`, `anthropic.py`, `ollama.py`). Message schemas support multimodal base64 / URL image inputs for models such as `gpt-4o`, `gemini-1.5-pro`, `claude-3-5-sonnet`, and local `llava` via Ollama.
 - **Image Generation (Diffusion)**: **STUBBED / DEFERRED**. Per Prime Directive #2 (Zero-Cost $0/₹0) and Prime Directive #3 & #4 (15-min CPU budget, 15 GB quota), cloud image generation APIs (DALL-E, Imagen) and multi-gigabyte local Stable Diffusion weights are not loaded. Local text-to-image is architected as an optional modular stub (`MockImageGenerator`).
 
@@ -134,12 +152,12 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,202.40 MB** (~1.20 GB)
+- **Total Workspace Footprint**: **1,202.45 MB** (~1.20 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,157.60 MB** (92.17% free)
+- **Remaining Storage Quota**: **14,157.55 MB** (92.17% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **254 passed, 0 failed** (in 30.57s)
+- **Pytest Status**: **266 passed, 0 failed** (in 43.55s)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 

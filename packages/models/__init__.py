@@ -12,6 +12,7 @@ from packages.models.registry import (
     ModelMetadata,
     ModelRegistry,
 )
+from packages.models.reward_model import RewardTelemetry, TransformerRewardModel
 from packages.models.speculative import (
     SpeculativeDecoder,
     SpeculativeResult,
@@ -28,6 +29,8 @@ __all__ = [
     "SpeculativeDecoder",
     "SpeculativeResult",
     "standard_autoregressive_generate",
+    "TransformerRewardModel",
+    "RewardTelemetry",
     "ModelMetadata",
     "HardwareTier",
     "LicenseType",
