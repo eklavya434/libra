@@ -6,6 +6,13 @@ from packages.models.config import TinyTransformerConfig
 from packages.models.generation import generate, generate_with_cache
 from packages.models.modern_config import ModernTransformerConfig
 from packages.models.modern_transformer import ModernTransformerLM
+from packages.models.quantization import (
+    QuantizedLinearINT4,
+    QuantizedLinearINT8,
+    audit_quantization_fidelity,
+    compute_model_memory,
+    quantize_model,
+)
 from packages.models.registry import (
     HardwareClassifier,
     HardwareTier,
@@ -40,4 +47,9 @@ __all__ = [
     "HardwareClassifier",
     "ModelRegistry",
     "get_default_registry",
+    "quantize_model",
+    "compute_model_memory",
+    "audit_quantization_fidelity",
+    "QuantizedLinearINT8",
+    "QuantizedLinearINT4",
 ]

@@ -44,7 +44,8 @@
 | **Phase 21** | Dynamic Routing & Speculative Decoding | ✅ COMPLETE | Intent/complexity classification, 4 execution tiers, Leviathan draft-verify speculative engine, POST /api/v1/routing/*, 21 new tests (`main`) |
 | **Phase 22** | RLHF & Direct Preference Optimization (DPO) | ✅ COMPLETE | Bradley-Terry reward model, DPO trainer with reference model regularization, POST /api/v1/alignment/*, 12 new tests (`main`) |
 | **Phase 23** | KV Cache Optimization & Grouped-Query Attention | ✅ COMPLETE | Dynamic KVCache, GQA/MQA (torch.repeat_interleave), RoPE start_pos offset, generate_with_cache, POST /api/v1/attention/*, 11 new tests (`main`) |
-| **Phase 24** | Quantization (INT8 / INT4 & Post-Training Quantization) | ⏳ NEXT | First-principles affine symmetric/asymmetric quantization, INT8/INT4 weight-only linear layers |
+| **Phase 24** | Quantization (INT8 / INT4 & Post-Training Quantization) | ✅ COMPLETE | Symmetric/asymmetric affine quantization, packed INT4 nibbles, QuantizedLinearINT8/INT4, PTQ engine, POST /api/v1/quantization/*, 9 new tests (`main`) |
+| **Phase 25** | Parameter-Efficient Fine-Tuning (PEFT & LoRA) | ⏳ NEXT | Low-rank adapter decomposition (W0 + BA), trainable LoRA projections, adapter merging |
 
 ---
 
@@ -162,9 +163,21 @@
   - Causal masking bypassed dynamically when $T=1$ during cached generation.
 - **Exact Token-for-Token Equivalence**:
   - `generate_with_cache` produces 100% identical token sequences to un-cached `generate()` under greedy decoding ($T=0$).
+### J. Phase 24: Quantization (INT8 / INT4 & Post-Training Quantization)
+- **Quantization Mathematical Core (`packages/models/quantization/quant_core.py`)**:
+  - First-principles symmetric quantization for signed weights ($Z = 0$, $S = \max(|X|)/q_{\text{max}}$).
+  - Asymmetric affine quantization for activations and skewed data ($S = (\beta - \alpha)/(2^b - 1)$, calculated zero-point $Z$).
+  - Bit-level INT4 packing and unpacking: packs two signed 4-bit nibbles $[-8, 7]$ into a single `torch.uint8` byte using bit-shifting (`(high << 4) | low`), halving storage over unpacked INT4.
+  - Metrics: MSE, SQNR in dB, and cosine similarity.
+- **Quantized Linear Layers (`packages/models/quantization/quant_linear.py`)**:
+  - `QuantizedLinearINT8`: 4x weight memory reduction with per-channel scaling.
+  - `QuantizedLinearINT4`: 8x weight memory reduction with bit-packed weights and on-the-fly dequantization.
+- **Post-Training Quantization Engine (`packages/models/quantization/ptq.py`)**:
+  - Recursive layer replacement (`quantize_model`) for transformer backbones (`ModernTransformerLM`).
+  - Memory audits (`compute_model_memory`) and fidelity audits (`audit_quantization_fidelity`).
 - **REST Endpoints**:
-  - `POST /api/v1/attention/benchmark`: Benchmark latency, speedup factor, and memory savings across MHA, GQA, and MQA.
-  - `POST /api/v1/attention/generate`: Autoregressively generates tokens using KV cache.
+  - `POST /api/v1/quantization/benchmark`: Size, memory reduction, latency, and fidelity metrics across FP32, INT8, and INT4.
+  - `POST /api/v1/quantization/convert`: Model quantization audit endpoint.
 
 ---
 
@@ -173,12 +186,12 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,202.65 MB** (~1.20 GB)
+- **Total Workspace Footprint**: **1,202.85 MB** (~1.20 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,157.35 MB** (92.17% free)
+- **Remaining Storage Quota**: **14,157.15 MB** (92.17% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **277 passed, 0 failed** (in 22.21s)
+- **Pytest Status**: **286 passed, 0 failed** (in 22.74s)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 
