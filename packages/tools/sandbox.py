@@ -36,6 +36,7 @@ ALLOWED_MODULES = {
     "statistics",
     "decimal",
     "fractions",
+    "time",
 }
 
 FORBIDDEN_CALLS = {
@@ -207,10 +208,12 @@ class SafePythonSandbox:
                     "result": None,
                     "success": False,
                     "error": err_msg,
+                    "traceback": None,
                 }
 
             try:
                 result_obj = json.loads(stdout_data.strip())
+                result_obj.setdefault("traceback", None)
                 return result_obj
             except json.JSONDecodeError:
                 return {
@@ -218,6 +221,7 @@ class SafePythonSandbox:
                     "result": None,
                     "success": False,
                     "error": stderr_data.strip() or "Failed to decode child process output",
+                    "traceback": None,
                 }
 
     def _apply_kernel_limits(self, proc: subprocess.Popen, mem_limit_mb: float) -> Any:

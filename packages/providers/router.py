@@ -119,6 +119,29 @@ class ProviderRouter:
     def list_registered_providers(self) -> list[str]:
         return list(self._providers.keys())
 
+    async def chat(
+        self,
+        messages: list[dict[str, Any]],
+        model_id: str = "mock-model",
+        provider_name: Optional[str] = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Routes a chat completion request to the resolved provider."""
+        provider = await self.resolve_provider_for_model(model_id, provider_name)
+        return await provider.chat(messages, model=model_id, **kwargs)
+
+    async def stream(
+        self,
+        messages: list[dict[str, Any]],
+        model_id: str = "mock-model",
+        provider_name: Optional[str] = None,
+        **kwargs: Any,
+    ):
+        """Routes a streaming chat request to the resolved provider."""
+        provider = await self.resolve_provider_for_model(model_id, provider_name)
+        async for chunk in provider.stream(messages, model=model_id, **kwargs):
+            yield chunk
+
 
 _default_router: Optional[ProviderRouter] = None
 

@@ -39,11 +39,12 @@
 | **Phase 16** | Tool Use & Sandbox Execution | ✅ COMPLETE | Process-isolated sandbox, AST allowlist, Windows Job Objects memory ceiling, CalculatorTool, WebSearchTool, KnowledgeBaseTool, 5 adversarial tests passing (`main`) |
 | **Phase 17** | Structured Outputs & Grammar Decoders | ✅ COMPLETE | Incremental JSON Pushdown Automaton, SchemaCompiler, ConstrainedLogitsProcessor, self-healing repair loop, POST /api/v1/structured/generate (`main`) |
 | **Phase 18** | Multi-Step Agentic Loops | ✅ COMPLETE | ReAct agent loop, Plan-and-Solve orchestrator, real-time SSE step streaming, circuit breakers, budget guards (`main`) |
-| **Phase 19** | Code Generation & Auto-Debugging | ⏳ NEXT | Program-Aided Language Models (PAL), automated code execution, test-driven self-correction |
+| **Phase 19** | Code Generation & Auto-Debugging | ✅ COMPLETE | PALAgent, CodeAgent, AutoDebugger self-correction loop, POST /api/v1/coder/pal, 20 new tests (`main`) |
+| **Phase 20** | Multi-Agent Collaboration | ⏳ NEXT | Agent-to-agent communication, coordinator/worker patterns, collaborative problem solving |
 
 ---
 
-## 3. Phase 16, 17 & 18 Ecosystem: Tools, Structured Outputs & Agents
+## 3. Phase 16, 17, 18 & 19 Ecosystem: Tools, Structured Outputs, Agents & Code Execution
 
 ### A. Phase 16: Tool Use & Secure Sandboxed Execution
 - **Base Abstraction**: `BaseTool` and `ToolResult` (`packages/tools/base.py`) with Pydantic validation, schema generation (`to_openai_schema()`), and timing isolation.
@@ -55,7 +56,7 @@
   - Filesystem chroot isolation via scoped `safe_open()`.
   - Kernel subprocess blocking (`ActiveProcessLimit = 1`).
   - Network blackholing (`HTTP_PROXY=127.0.0.1:0`).
-  - AST security visitor with strict module allowlist.
+  - AST security visitor with strict module allowlist (`math`, `datetime`, `time`, `statistics`, `random`, `json`, etc.).
 
 ### B. Phase 17: Structured Outputs & Grammar-Constrained Decoders
 - **Incremental JSON State Machine (PDA)**: `IncrementalJSONStateMachine` (`packages/core/grammar/json_state_machine.py`) tracks nested objects, arrays, strings, escapes, numbers, and literals character-by-character.
@@ -70,6 +71,19 @@
 - **Real-Time Step Streaming**: `POST /api/v1/agents/react/stream` SSE endpoint emitting real-time `thought`, `action`, `observation`, and `final_answer` events.
 - **REST Endpoints**: `POST /api/v1/agents/react`, `POST /api/v1/agents/react/stream`, `POST /api/v1/agents/plan-and-solve` (`apps/backend/api/v1/endpoints/agents.py`).
 
+### D. Phase 19: Code Generation, Auto-Debugging & Program-Aided Language Models (PAL)
+- **Program-Aided Language Models (PAL)**: `PALAgent` (`packages/agents/pal.py`) offloads arithmetic, combinatorics, date/time logic, and symbolic computation to Python scripts executed in `SafePythonSandbox`.
+- **Code Extraction & Normalization**: `extract_code()` parses markdown blocks and raw Python text; `normalize_pal_code()` guarantees `solution()` invocation for sandboxed execution.
+- **Test-Driven Auto-Debugging (Self-Correction)**:
+  - `AutoDebugger` and `CodeAgent` (`packages/agents/coder.py`) execute synthesized code against unit test assertions in `SafePythonSandbox`.
+  - Captures runtime crashes (`SyntaxError`, `IndexError`, `AssertionError`, `ZeroDivisionError`) and formatted tracebacks with line numbers.
+  - Multi-turn reflection repair prompts LLM with line-numbered source, stack frames, and failure context to generate verified repairs.
+  - `DebugIteration` and `CodeTrajectory` record complete debugging history and metrics.
+- **REST Endpoints**:
+  - `POST /api/v1/coder/pal`: Program-Aided Language Model solving.
+  - `POST /api/v1/coder/generate`: Code generation with test validation.
+  - `POST /api/v1/coder/debug`: Direct auto-debugging for user-provided broken code.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -77,12 +91,12 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,157.31 MB** (~1.16 GB)
+- **Total Workspace Footprint**: **1,202.14 MB** (~1.20 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,202.69 MB** (92.47% free)
+- **Remaining Storage Quota**: **14,157.86 MB** (92.17% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **205 passed, 0 failed** (in 29.11s)
+- **Pytest Status**: **225 passed, 0 failed** (in 40.04s)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 

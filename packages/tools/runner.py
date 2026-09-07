@@ -22,6 +22,8 @@ import re
 import statistics
 import string
 import sys
+import time
+import traceback
 
 
 def main() -> None:
@@ -73,6 +75,7 @@ def main() -> None:
         "statistics": statistics,
         "decimal": decimal,
         "fractions": fractions,
+        "time": time,
     }
 
     def safe_import(name: str, *args, **kwargs):
@@ -167,6 +170,7 @@ def main() -> None:
                     "result": None,
                     "success": False,
                     "error": "MemoryError: Execution exceeded allocated memory limit",
+                    "traceback": traceback.format_exc(),
                 }
             )
         )
@@ -181,6 +185,7 @@ def main() -> None:
                     "result": None,
                     "success": False,
                     "error": f"{type(e).__name__}: {str(e)}",
+                    "traceback": traceback.format_exc(),
                 }
             )
         )
