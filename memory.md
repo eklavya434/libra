@@ -48,17 +48,20 @@
 ## 3. Phase 16, 17, 18, 19 & 20 Ecosystem: Tools, Structured Outputs, Agents, Code & Multi-Agent
 
 ### A. Phase 16: Tool Use & Secure Sandboxed Execution
-- **Base Abstraction**: `BaseTool` and `ToolResult` (`packages/tools/base.py`) with Pydantic validation, schema generation (`to_openai_schema()`), and timing isolation.
-- **Tool Registry**: `ToolRegistry` (`packages/tools/registry.py`) with singleton `get_tool_registry()`, pre-registering `CalculatorTool`, `PythonInterpreterTool`, `WebSearchTool`, and `KnowledgeBaseTool`.
-- **Multi-Layer Sandboxing**:
-  - Out-of-process execution via `subprocess.Popen([sys._base_executable, runner_path])` with `-I -s` isolation.
-  - Windows Job Object kernel memory limits (`ProcessMemoryLimit` / `JobMemoryLimit`).
-  - Preemptive hard timeout process termination (`proc.kill()`).
-  - Filesystem chroot isolation via scoped `safe_open()`.
-  - Kernel subprocess blocking (`ActiveProcessLimit = 1`).
-  - Network blackholing (`HTTP_PROXY=127.0.0.1:0`).
+- **Registered Tools Catalog (`get_tool_registry()` in `packages/tools/registry.py`)**:
+  1. `CalculatorTool` (`calculator`): AST-parsed mathematical calculation; arithmetic, trigonometric, and logarithmic expressions with zero `eval()`.
+  2. `PythonInterpreterTool` (`python_interpreter`): Out-of-process sandboxed code execution via `SafePythonSandbox`.
+  3. `WebSearchTool` (`web_search`): DuckDuckGo / Mock search adapter with query normalization, result parsing, and snippets.
+  4. `KnowledgeBaseTool` (`knowledge_base`): BM25 + dense embedding hybrid retrieval over ingested documents via Reciprocal Rank Fusion (RRF).
+- **Multi-Layer Sandboxing & Adversarial Safeguards**:
+  - Out-of-process OS execution via `subprocess.Popen([sys._base_executable, runner_path])` with isolated `-I -s` flags.
+  - Hard timeout preemptive kill (`proc.kill()` in <1s for infinite loops) -> verified by `test_adversarial_infinite_loop`.
+  - Windows Job Object kernel memory ceiling (64–128 MB raising `MemoryError` for allocation bombs) -> verified by `test_adversarial_memory_bomb`.
+  - Filesystem chroot isolation (`safe_open` rejecting traversal `../../` and absolute paths outside tempdir) -> verified by `test_adversarial_filesystem_escape_relative` & `test_adversarial_filesystem_escape_absolute`.
+  - Network blackholing (`HTTP_PROXY=127.0.0.1:0`) and socket prohibitions -> verified by `test_adversarial_network_access`.
+  - Kernel subprocess blocking (`ActiveProcessLimit = 1`) -> verified by `test_adversarial_subprocess_spawn`.
   - AST security visitor with strict module allowlist (`math`, `datetime`, `time`, `statistics`, `random`, `json`, etc.).
-  - Built-in exception types (`ValueError`, `TypeError`, `IndexError`, `ZeroDivisionError`, `AssertionError`) available in `safe_builtins`.
+  - Built-in exception types (`ValueError`, `TypeError`, `IndexError`, `ZeroDivisionError`, `AssertionError`, `RuntimeError`, `KeyError`, `AttributeError`) safe in `safe_builtins`.
 
 ### B. Phase 17: Structured Outputs & Grammar-Constrained Decoders
 - **Incremental JSON State Machine (PDA)**: `IncrementalJSONStateMachine` (`packages/core/grammar/json_state_machine.py`) tracks nested objects, arrays, strings, escapes, numbers, and literals character-by-character.
@@ -67,11 +70,18 @@
 - **Structured Output Generator & Self-Healing Loop**: `StructuredOutputGenerator` (`packages/providers/structured.py`) orchestrates generation with multi-turn reflection repair.
 - **REST Endpoints**: `POST /api/v1/structured/generate` and `POST /api/v1/structured/validate`.
 
-### C. Phase 18: Autonomous Multi-Step Agent Loops
-- **ReAct Agent**: `ReActAgent` (`packages/agents/react.py`) implements interleaved `Thought` -> `Action` -> `Observation` loops with scratchpad history, tool dispatching, circuit breakers (`max_tool_failures=3`), and budget limits (`max_steps=10`, `timeout_sec=60.0`).
+### C. Phase 18: Autonomous Multi-Step Agent Loops & Budget Limits
+- **ReAct Agent**: `ReActAgent` (`packages/agents/react.py`) implements interleaved `Thought` -> `Action` -> `Observation` loops with scratchpad history, tool dispatching, circuit breakers, and budget guards.
 - **Plan-and-Solve Agent**: `PlanAndSolveAgent` (`packages/agents/plan_and_solve.py`) decomposes complex inquiries into explicit milestones via `StructuredOutputGenerator`, executes tools per milestone, and synthesizes findings.
+- **Iteration, Timeout & Token Budget Limits**:
+  - `ReActAgent`: `max_steps = 10` (clamped 1–30), `timeout_sec = 60.0` (clamped 5–300s), circuit breaker at `max_tool_failures = 3` consecutive failures.
+  - `PlanAndSolveAgent`: `max_steps = 10` milestone steps, per-step validation timeouts.
+  - `PALAgent`: `max_steps = 5`, `timeout_sec = 30.0`.
+  - `CodeAgent` / `AutoDebugger`: `max_debug_iterations = 3` (clamped 1–10), `timeout_sec = 60.0`.
+  - `CollaborativeTeam`: `max_rounds = 3` (clamped 1–10), `timeout_sec = 120.0`, `max_steps = max_rounds * 4` (12 steps).
+  - `ContextWindowManager`: Sliding-window token budget pruning oldest conversation history while pinning system prompts.
 - **Real-Time Step Streaming**: `POST /api/v1/agents/react/stream` SSE endpoint emitting real-time `thought`, `action`, `observation`, and `final_answer` events.
-- **REST Endpoints**: `POST /api/v1/agents/react`, `POST /api/v1/agents/react/stream`, `POST /api/v1/agents/plan-and-solve` (`apps/backend/api/v1/endpoints/agents.py`).
+- **REST Endpoints**: `POST /api/v1/agents/react`, `POST /api/v1/agents/react/stream`, `POST /api/v1/agents/plan-and-solve`.
 
 ### D. Phase 19: Code Generation, Auto-Debugging & Program-Aided Language Models (PAL)
 - **Program-Aided Language Models (PAL)**: `PALAgent` (`packages/agents/pal.py`) offloads arithmetic, combinatorics, date/time logic, and symbolic computation to Python scripts executed in `SafePythonSandbox`.
@@ -93,6 +103,10 @@
 - **REST Endpoints**:
   - `POST /api/v1/teams/collaborate`: Synchronous multi-agent collaboration returning `TeamTrajectory`.
   - `POST /api/v1/teams/collaborate/stream`: Real-time SSE streaming of agent-to-agent dialogue and round progress.
+
+### F. Multimodal Provider Status (Vision vs Generation)
+- **Image Understanding (Vision)**: **ACTIVE** via unified provider abstraction (`supports_vision: True` in `packages/models/registry.py` and provider adapters `openai.py`, `gemini.py`, `anthropic.py`, `ollama.py`). Message schemas support multimodal base64 / URL image inputs for models such as `gpt-4o`, `gemini-1.5-pro`, `claude-3-5-sonnet`, and local `llava` via Ollama.
+- **Image Generation (Diffusion)**: **STUBBED / DEFERRED**. Per Prime Directive #2 (Zero-Cost $0/₹0) and Prime Directive #3 & #4 (15-min CPU budget, 15 GB quota), cloud image generation APIs (DALL-E, Imagen) and multi-gigabyte local Stable Diffusion weights are not loaded. Local text-to-image is architected as an optional modular stub (`MockImageGenerator`).
 
 ---
 
