@@ -41,11 +41,12 @@
 | **Phase 18** | Multi-Step Agentic Loops | ✅ COMPLETE | ReAct agent loop, Plan-and-Solve orchestrator, real-time SSE step streaming, circuit breakers, budget guards (`main`) |
 | **Phase 19** | Code Generation & Auto-Debugging | ✅ COMPLETE | PALAgent, CodeAgent, AutoDebugger self-correction loop, POST /api/v1/coder/pal, 20 new tests (`main`) |
 | **Phase 20** | Multi-Agent Collaboration | ✅ COMPLETE | Architect, Coder, Reviewer, Tester collaborative team, SharedBlackboard, POST /api/v1/teams/collaborate, 8 new tests (`main`) |
-| **Phase 21** | Dynamic Routing & Speculative Decoding | ⏳ NEXT | Intent/complexity classification, tier routing, draft-verify speculative decoding |
+| **Phase 21** | Dynamic Routing & Speculative Decoding | ✅ COMPLETE | Intent/complexity classification, 4 execution tiers, Leviathan draft-verify speculative engine, POST /api/v1/routing/*, 21 new tests (`main`) |
+| **Phase 22** | RLHF & Direct Preference Optimization (DPO) | ⏳ NEXT | First-principles reward modeling, preference pair loss, reference-model regularization |
 
 ---
 
-## 3. Phase 16, 17, 18, 19 & 20 Ecosystem: Tools, Structured Outputs, Agents, Code & Multi-Agent
+## 3. Phase 16 to 21 Ecosystem: Tools, Structured Outputs, Agents, Code, Teams & Dynamic Routing
 
 ### A. Phase 16: Tool Use & Secure Sandboxed Execution
 - **Registered Tools Catalog (`get_tool_registry()` in `packages/tools/registry.py`)**:
@@ -104,7 +105,25 @@
   - `POST /api/v1/teams/collaborate`: Synchronous multi-agent collaboration returning `TeamTrajectory`.
   - `POST /api/v1/teams/collaborate/stream`: Real-time SSE streaming of agent-to-agent dialogue and round progress.
 
-### F. Multimodal Provider Status (Vision vs Generation)
+### F. Phase 21: Dynamic Model Routing & Speculative Decoding
+- **Query Complexity & Intent Classifier (`QueryClassifier` in `packages/routing/classifier.py`)**:
+  - Multi-factor complexity scoring ($0.0 \to 1.0$) across length, code density, reasoning markers, and constraints.
+  - Intent classification (`GREETING`, `FACTUAL_QA`, `CODE_GENERATION`, `REASONING_MATH`, `CREATIVE_WRITING`, `DATA_EXTRACTION`, `MULTI_STEP_PLANNING`).
+  - Tier recommendation: `FAST_LOCAL` (<50ms, $0), `BALANCED` (200-800ms), `FRONTIER_REASONING` (1.0-3.5s), `MULTI_AGENT` (3.0-10.0s).
+- **Dynamic Tier Router (`DynamicRouter` in `packages/routing/dynamic_router.py`)**:
+  - User policy routing (`auto`, `fast`, `balanced`, `quality`, `multi_agent`).
+  - Fallback cascade chaining ensuring resilience against provider outages.
+- **First-Principles Speculative Decoding Engine (`SpeculativeDecoder` in `packages/models/speculative.py`)**:
+  - Leviathan et al. (2023) draft-and-verify algorithm.
+  - Exact mathematical equivalence theorem guaranteed under greedy decoding.
+  - Real-time telemetry: proposed draft tokens, accepted draft tokens, acceptance rate ($\alpha$), target forward passes saved, and speedup ratio ($S$).
+- **REST Endpoints**:
+  - `POST /api/v1/routing/classify`: Query intent and multi-factor complexity.
+  - `POST /api/v1/routing/decision`: Dynamic routing plan, selected tier, and fallback chain.
+  - `POST /api/v1/routing/generate`: Dynamic routing generation with automated fallback execution.
+  - `POST /api/v1/routing/speculative`: Speculative decoding generation with speedup metrics.
+
+### G. Multimodal Provider Status (Vision vs Generation)
 - **Image Understanding (Vision)**: **ACTIVE** via unified provider abstraction (`supports_vision: True` in `packages/models/registry.py` and provider adapters `openai.py`, `gemini.py`, `anthropic.py`, `ollama.py`). Message schemas support multimodal base64 / URL image inputs for models such as `gpt-4o`, `gemini-1.5-pro`, `claude-3-5-sonnet`, and local `llava` via Ollama.
 - **Image Generation (Diffusion)**: **STUBBED / DEFERRED**. Per Prime Directive #2 (Zero-Cost $0/₹0) and Prime Directive #3 & #4 (15-min CPU budget, 15 GB quota), cloud image generation APIs (DALL-E, Imagen) and multi-gigabyte local Stable Diffusion weights are not loaded. Local text-to-image is architected as an optional modular stub (`MockImageGenerator`).
 
@@ -115,12 +134,12 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,202.31 MB** (~1.20 GB)
+- **Total Workspace Footprint**: **1,202.40 MB** (~1.20 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,157.69 MB** (92.17% free)
+- **Remaining Storage Quota**: **14,157.60 MB** (92.17% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **233 passed, 0 failed** (in 30.46s)
+- **Pytest Status**: **254 passed, 0 failed** (in 30.57s)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 

@@ -1,4 +1,4 @@
-﻿"""Libra Models Package."""
+"""Libra Models Package."""
 
 from packages.models.catalog import get_default_registry
 from packages.models.config import TinyTransformerConfig
@@ -12,6 +12,11 @@ from packages.models.registry import (
     ModelMetadata,
     ModelRegistry,
 )
+from packages.models.speculative import (
+    SpeculativeDecoder,
+    SpeculativeResult,
+    standard_autoregressive_generate,
+)
 from packages.models.transformer import TinyTransformerLM
 
 __all__ = [
@@ -20,6 +25,9 @@ __all__ = [
     "ModernTransformerConfig",
     "ModernTransformerLM",
     "generate",
+    "SpeculativeDecoder",
+    "SpeculativeResult",
+    "standard_autoregressive_generate",
     "ModelMetadata",
     "HardwareTier",
     "LicenseType",

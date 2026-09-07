@@ -13,6 +13,7 @@ from apps.backend.api.v1.endpoints import (
     health,
     models,
     rag,
+    routing,
     structured,
     teams,
     tools,
@@ -30,4 +31,5 @@ api_v1_router.include_router(structured.router, prefix="/structured", tags=["Str
 api_v1_router.include_router(agents.router, prefix="/agents", tags=["Agents"])
 api_v1_router.include_router(coder.router, prefix="/coder", tags=["Coder"])
 api_v1_router.include_router(teams.router, prefix="/teams", tags=["Teams"])
+api_v1_router.include_router(routing.router, tags=["Dynamic Routing"])
 
