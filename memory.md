@@ -43,7 +43,8 @@
 | **Phase 20** | Multi-Agent Collaboration | ✅ COMPLETE | Architect, Coder, Reviewer, Tester collaborative team, SharedBlackboard, POST /api/v1/teams/collaborate, 8 new tests (`main`) |
 | **Phase 21** | Dynamic Routing & Speculative Decoding | ✅ COMPLETE | Intent/complexity classification, 4 execution tiers, Leviathan draft-verify speculative engine, POST /api/v1/routing/*, 21 new tests (`main`) |
 | **Phase 22** | RLHF & Direct Preference Optimization (DPO) | ✅ COMPLETE | Bradley-Terry reward model, DPO trainer with reference model regularization, POST /api/v1/alignment/*, 12 new tests (`main`) |
-| **Phase 23** | KV Cache Optimization & Grouped-Query Attention | ⏳ NEXT | Autoregressive KV cache rolling buffer, MQA / GQA multi-head reduction |
+| **Phase 23** | KV Cache Optimization & Grouped-Query Attention | ✅ COMPLETE | Dynamic KVCache, GQA/MQA (torch.repeat_interleave), RoPE start_pos offset, generate_with_cache, POST /api/v1/attention/*, 11 new tests (`main`) |
+| **Phase 24** | Quantization (INT8 / INT4 & Post-Training Quantization) | ⏳ NEXT | First-principles affine symmetric/asymmetric quantization, INT8/INT4 weight-only linear layers |
 
 ---
 
@@ -145,6 +146,26 @@
 - **Image Understanding (Vision)**: **ACTIVE** via unified provider abstraction (`supports_vision: True` in `packages/models/registry.py` and provider adapters `openai.py`, `gemini.py`, `anthropic.py`, `ollama.py`). Message schemas support multimodal base64 / URL image inputs for models such as `gpt-4o`, `gemini-1.5-pro`, `claude-3-5-sonnet`, and local `llava` via Ollama.
 - **Image Generation (Diffusion)**: **STUBBED / DEFERRED**. Per Prime Directive #2 (Zero-Cost $0/₹0) and Prime Directive #3 & #4 (15-min CPU budget, 15 GB quota), cloud image generation APIs (DALL-E, Imagen) and multi-gigabyte local Stable Diffusion weights are not loaded. Local text-to-image is architected as an optional modular stub (`MockImageGenerator`).
 
+### I. Phase 23: KV Cache Optimization & Grouped-Query Attention (MQA / GQA)
+- **Dynamic Key-Value Cache (`KVCache` in `packages/models/components/kv_cache.py`)**:
+  - Per-layer key/value rolling memory buffer managing prefill ($T$) and decode ($T=1$) steps.
+  - Converts autoregressive sequence decode time complexity from $O(T^2)$ down to $O(T)$ cumulative ($O(1)$ per token).
+  - Built-in `memory_bytes()` tracking and `reset()` memory flushing.
+- **Grouped-Query Attention (GQA) & Multi-Query Attention (MQA)**:
+  - Added `n_kv_heads` to `ModernTransformerConfig` with strict divisibility validation ($n_{\text{heads}} \pmod{n_{\text{kv\_heads}}} == 0$).
+  - When $n_{\text{kv\_heads}} = n_{\text{heads}}$: Multi-Head Attention (MHA).
+  - When $1 < n_{\text{kv\_heads}} < n_{\text{heads}}$: Grouped-Query Attention (GQA).
+  - When $n_{\text{kv\_heads}} = 1$: Multi-Query Attention (MQA).
+  - Efficient head broadcasting using `torch.repeat_interleave` across query head groups.
+- **Offset RoPE & Causal Masking**:
+  - `RotaryEmbedding` upgraded with `start_pos` parameter to slice sinusoidal matrices accurately during single-token decode passes.
+  - Causal masking bypassed dynamically when $T=1$ during cached generation.
+- **Exact Token-for-Token Equivalence**:
+  - `generate_with_cache` produces 100% identical token sequences to un-cached `generate()` under greedy decoding ($T=0$).
+- **REST Endpoints**:
+  - `POST /api/v1/attention/benchmark`: Benchmark latency, speedup factor, and memory savings across MHA, GQA, and MQA.
+  - `POST /api/v1/attention/generate`: Autoregressively generates tokens using KV cache.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -152,13 +173,14 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,202.45 MB** (~1.20 GB)
+- **Total Workspace Footprint**: **1,202.65 MB** (~1.20 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,157.55 MB** (92.17% free)
+- **Remaining Storage Quota**: **14,157.35 MB** (92.17% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **266 passed, 0 failed** (in 43.55s)
+- **Pytest Status**: **277 passed, 0 failed** (in 22.21s)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
+
 
 
 

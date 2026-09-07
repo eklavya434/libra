@@ -8,6 +8,7 @@ from apps.backend.api.v1.endpoints import (
     agents,
     alignment,
     arena,
+    attention,
     chat,
     coder,
     conversations,
@@ -34,4 +35,6 @@ api_v1_router.include_router(coder.router, prefix="/coder", tags=["Coder"])
 api_v1_router.include_router(teams.router, prefix="/teams", tags=["Teams"])
 api_v1_router.include_router(routing.router, tags=["Dynamic Routing"])
 api_v1_router.include_router(alignment.router, tags=["Alignment & RLHF"])
+api_v1_router.include_router(attention.router, tags=["Attention & KV Cache"])
+
 

@@ -70,8 +70,8 @@ class RotaryEmbedding(nn.Module):
         self.register_buffer("sin_cached", sin.unsqueeze(0).unsqueeze(0))
 
     def forward(
-        self, xq: torch.Tensor, xk: torch.Tensor, seq_len: int
+        self, xq: torch.Tensor, xk: torch.Tensor, seq_len: int, start_pos: int = 0
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        cos = self.cos_cached[:, :, :seq_len, :]
-        sin = self.sin_cached[:, :, :seq_len, :]
+        cos = self.cos_cached[:, :, start_pos : start_pos + seq_len, :]
+        sin = self.sin_cached[:, :, start_pos : start_pos + seq_len, :]
         return apply_rotary_emb(xq, xk, cos, sin)

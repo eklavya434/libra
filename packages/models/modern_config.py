@@ -15,6 +15,7 @@ class ModernTransformerConfig:
     max_context_length: int = 256
     d_model: int = 128
     n_heads: int = 4
+    n_kv_heads: int | None = None  # Number of Key/Value heads for GQA/MQA (defaults to n_heads)
     n_layers: int = 2
     hidden_dim: int | None = None  # SwiGLU inner dimension (defaults to 8/3 * d_model)
     rope_theta_base: float = 10000.0
@@ -28,10 +29,28 @@ class ModernTransformerConfig:
             raise ValueError(
                 f"d_model ({self.d_model}) must be divisible by n_heads ({self.n_heads})"
             )
+        if self.n_kv_heads is None:
+            self.n_kv_heads = self.n_heads
+        if self.n_heads % self.n_kv_heads != 0:
+            raise ValueError(
+                f"n_heads ({self.n_heads}) must be divisible by n_kv_heads ({self.n_kv_heads})"
+            )
 
     @property
     def head_dim(self) -> int:
         return self.d_model // self.n_heads
+
+    @property
+    def num_queries_per_kv(self) -> int:
+        """Ratio of query heads to each key/value head (GQA expansion factor)."""
+        assert self.n_kv_heads is not None
+        return self.n_heads // self.n_kv_heads
+
+    @property
+    def kv_dim(self) -> int:
+        """Total dimension of key or value states."""
+        assert self.n_kv_heads is not None
+        return self.n_kv_heads * self.head_dim
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

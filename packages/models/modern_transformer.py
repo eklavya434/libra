@@ -13,6 +13,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from packages.models.components.kv_cache import KVCache
 from packages.models.components.rmsnorm import RMSNorm
 from packages.models.components.rope import RotaryEmbedding
 from packages.models.components.swiglu import SwiGLU
@@ -20,17 +21,19 @@ from packages.models.modern_config import ModernTransformerConfig
 
 
 class ModernCausalAttention(nn.Module):
-    """Causal Multi-Head Attention equipped with Rotary Position Embeddings (RoPE)."""
+    """Causal Multi-Head / Grouped-Query Attention equipped with Rotary Position Embeddings (RoPE)."""
 
     def __init__(self, config: ModernTransformerConfig) -> None:
         super().__init__()
         self.d_model = config.d_model
         self.n_heads = config.n_heads
+        self.n_kv_heads = config.n_kv_heads if config.n_kv_heads is not None else config.n_heads
         self.head_dim = config.head_dim
+        self.num_queries_per_kv = self.n_heads // self.n_kv_heads
 
-        self.q_proj = nn.Linear(self.d_model, self.d_model, bias=False)
-        self.k_proj = nn.Linear(self.d_model, self.d_model, bias=False)
-        self.v_proj = nn.Linear(self.d_model, self.d_model, bias=False)
+        self.q_proj = nn.Linear(self.d_model, self.n_heads * self.head_dim, bias=False)
+        self.k_proj = nn.Linear(self.d_model, self.n_kv_heads * self.head_dim, bias=False)
+        self.v_proj = nn.Linear(self.d_model, self.n_kv_heads * self.head_dim, bias=False)
         self.out_proj = nn.Linear(self.d_model, self.d_model, bias=False)
 
         # Rotary Positional Embedding module
@@ -48,24 +51,46 @@ class ModernCausalAttention(nn.Module):
             "causal_mask", mask.view(1, 1, config.max_context_length, config.max_context_length)
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        kv_cache: KVCache | None = None,
+        layer_idx: int = 0,
+        start_pos: int = 0,
+    ) -> torch.Tensor:
         B, T, C = x.shape
 
         # 1. Project into Queries, Keys, Values
         q = self.q_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
-        k = self.k_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
-        v = self.v_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
+        k = self.k_proj(x).view(B, T, self.n_kv_heads, self.head_dim).transpose(1, 2)
+        v = self.v_proj(x).view(B, T, self.n_kv_heads, self.head_dim).transpose(1, 2)
 
-        # 2. Apply RoPE 2D rotations to Query and Key
-        q, k = self.rope(q, k, seq_len=T)
+        # 2. Apply RoPE with position offset
+        q, k = self.rope(q, k, seq_len=T, start_pos=start_pos)
 
-        # 3. Scaled dot-product attention
+        # 3. Dynamic KV Cache update
+        if kv_cache is not None:
+            k, v = kv_cache.update(k, v, layer_idx=layer_idx)
+            total_seq_len = k.size(2)
+        else:
+            total_seq_len = T
+
+        # 4. Grouped-Query Attention (GQA) Expansion
+        if self.num_queries_per_kv > 1:
+            k = torch.repeat_interleave(k, repeats=self.num_queries_per_kv, dim=1)
+            v = torch.repeat_interleave(v, repeats=self.num_queries_per_kv, dim=1)
+
+        # 5. Scaled dot-product attention
         scores = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(self.head_dim))
-        scores = scores.masked_fill(self.causal_mask[:, :, :T, :T] == 0, float("-inf"))
+
+        if T > 1:
+            mask = self.causal_mask[:, :, start_pos : start_pos + T, :total_seq_len]
+            scores = scores.masked_fill(mask == 0, float("-inf"))
+
         attn_weights = F.softmax(scores, dim=-1)
         attn_weights = self.attn_dropout(attn_weights)
 
-        # 4. Context aggregation & output projection
+        # 6. Context aggregation & output projection
         out = attn_weights @ v
         out = out.transpose(1, 2).contiguous().view(B, T, C)
         return self.resid_dropout(self.out_proj(out))
@@ -81,14 +106,22 @@ class ModernTransformerBlock(nn.Module):
         self.norm2 = RMSNorm(config.d_model, eps=config.norm_eps)
         self.mlp = SwiGLU(config.d_model, hidden_dim=config.hidden_dim, dropout=config.dropout)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x + self.attn(self.norm1(x))
+    def forward(
+        self,
+        x: torch.Tensor,
+        kv_cache: KVCache | None = None,
+        layer_idx: int = 0,
+        start_pos: int = 0,
+    ) -> torch.Tensor:
+        x = x + self.attn(
+            self.norm1(x), kv_cache=kv_cache, layer_idx=layer_idx, start_pos=start_pos
+        )
         x = x + self.mlp(self.norm2(x))
         return x
 
 
 class ModernTransformerLM(nn.Module):
-    """Modern Llama-style Autoregressive Language Model."""
+    """Modern Llama-style Autoregressive Language Model with GQA and KV Cache support."""
 
     def __init__(self, config: ModernTransformerConfig) -> None:
         super().__init__()
@@ -124,18 +157,26 @@ class ModernTransformerLM(nn.Module):
         self,
         idx: torch.Tensor,
         targets: torch.Tensor | None = None,
+        kv_cache: KVCache | None = None,
+        start_pos: int = 0,
     ) -> tuple[torch.Tensor, torch.Tensor | None]:
         _B, T = idx.shape
-        if T > self.config.max_context_length:
+        total_len = start_pos + T
+        if total_len > self.config.max_context_length:
             raise ValueError(
-                f"Sequence length ({T}) exceeds maximum context length ({self.config.max_context_length})"
+                f"Sequence length ({total_len}) exceeds maximum context length ({self.config.max_context_length})"
             )
 
         # No absolute positional embedding lookup! RoPE handles position inside attention.
         x = self.drop(self.tok_emb(idx))
 
-        for block in self.blocks:
-            x = block(x)
+        for layer_idx, block in enumerate(self.blocks):
+            x = block(
+                x,
+                kv_cache=kv_cache,
+                layer_idx=layer_idx,
+                start_pos=start_pos,
+            )
 
         x = self.norm_f(x)
         logits = self.output_head(x)
