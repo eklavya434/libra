@@ -113,6 +113,16 @@ def main() -> None:
         "hasattr": hasattr,
         "open": safe_open,
         "__import__": safe_import,
+        "Exception": Exception,
+        "ValueError": ValueError,
+        "TypeError": TypeError,
+        "IndexError": IndexError,
+        "KeyError": KeyError,
+        "ZeroDivisionError": ZeroDivisionError,
+        "AssertionError": AssertionError,
+        "AttributeError": AttributeError,
+        "RuntimeError": RuntimeError,
+        "StopIteration": StopIteration,
     }
 
     safe_globals = {

@@ -14,6 +14,7 @@ from apps.backend.api.v1.endpoints import (
     models,
     rag,
     structured,
+    teams,
     tools,
 )
 
@@ -28,4 +29,5 @@ api_v1_router.include_router(tools.router, prefix="/tools", tags=["Tools"])
 api_v1_router.include_router(structured.router, prefix="/structured", tags=["Structured"])
 api_v1_router.include_router(agents.router, prefix="/agents", tags=["Agents"])
 api_v1_router.include_router(coder.router, prefix="/coder", tags=["Coder"])
+api_v1_router.include_router(teams.router, prefix="/teams", tags=["Teams"])
 

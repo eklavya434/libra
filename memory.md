@@ -40,11 +40,12 @@
 | **Phase 17** | Structured Outputs & Grammar Decoders | ✅ COMPLETE | Incremental JSON Pushdown Automaton, SchemaCompiler, ConstrainedLogitsProcessor, self-healing repair loop, POST /api/v1/structured/generate (`main`) |
 | **Phase 18** | Multi-Step Agentic Loops | ✅ COMPLETE | ReAct agent loop, Plan-and-Solve orchestrator, real-time SSE step streaming, circuit breakers, budget guards (`main`) |
 | **Phase 19** | Code Generation & Auto-Debugging | ✅ COMPLETE | PALAgent, CodeAgent, AutoDebugger self-correction loop, POST /api/v1/coder/pal, 20 new tests (`main`) |
-| **Phase 20** | Multi-Agent Collaboration | ⏳ NEXT | Agent-to-agent communication, coordinator/worker patterns, collaborative problem solving |
+| **Phase 20** | Multi-Agent Collaboration | ✅ COMPLETE | Architect, Coder, Reviewer, Tester collaborative team, SharedBlackboard, POST /api/v1/teams/collaborate, 8 new tests (`main`) |
+| **Phase 21** | Dynamic Routing & Speculative Decoding | ⏳ NEXT | Intent/complexity classification, tier routing, draft-verify speculative decoding |
 
 ---
 
-## 3. Phase 16, 17, 18 & 19 Ecosystem: Tools, Structured Outputs, Agents & Code Execution
+## 3. Phase 16, 17, 18, 19 & 20 Ecosystem: Tools, Structured Outputs, Agents, Code & Multi-Agent
 
 ### A. Phase 16: Tool Use & Secure Sandboxed Execution
 - **Base Abstraction**: `BaseTool` and `ToolResult` (`packages/tools/base.py`) with Pydantic validation, schema generation (`to_openai_schema()`), and timing isolation.
@@ -57,6 +58,7 @@
   - Kernel subprocess blocking (`ActiveProcessLimit = 1`).
   - Network blackholing (`HTTP_PROXY=127.0.0.1:0`).
   - AST security visitor with strict module allowlist (`math`, `datetime`, `time`, `statistics`, `random`, `json`, etc.).
+  - Built-in exception types (`ValueError`, `TypeError`, `IndexError`, `ZeroDivisionError`, `AssertionError`) available in `safe_builtins`.
 
 ### B. Phase 17: Structured Outputs & Grammar-Constrained Decoders
 - **Incremental JSON State Machine (PDA)**: `IncrementalJSONStateMachine` (`packages/core/grammar/json_state_machine.py`) tracks nested objects, arrays, strings, escapes, numbers, and literals character-by-character.
@@ -84,6 +86,14 @@
   - `POST /api/v1/coder/generate`: Code generation with test validation.
   - `POST /api/v1/coder/debug`: Direct auto-debugging for user-provided broken code.
 
+### E. Phase 20: Multi-Agent Collaboration & Orchestration
+- **Specialized Agent Roles**: `ArchitectAgent` (functional specification), `CoderAgent` (implementation & revision), `ReviewerAgent` (adversarial audit & verdict), `TesterAgent` (unit test assertions & sandbox execution), `Coordinator` (consensus manager).
+- **Inter-Agent Message Bus & Shared Blackboard**: `AgentMessage` and `SharedBlackboard` (`packages/agents/message_bus.py`) tracking task state, proposals, reviews, assertions, and dialogue logs.
+- **Collaborative Consensus Loop**: `CollaborativeTeam` (`packages/agents/multi_agent.py`) orchestrates multi-stage iterations. Requires both Reviewer approval (`VERDICT: APPROVED`) and Sandbox test execution passing (`PASSED`) to achieve consensus.
+- **REST Endpoints**:
+  - `POST /api/v1/teams/collaborate`: Synchronous multi-agent collaboration returning `TeamTrajectory`.
+  - `POST /api/v1/teams/collaborate/stream`: Real-time SSE streaming of agent-to-agent dialogue and round progress.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -91,12 +101,12 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,202.14 MB** (~1.20 GB)
+- **Total Workspace Footprint**: **1,202.31 MB** (~1.20 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,157.86 MB** (92.17% free)
+- **Remaining Storage Quota**: **14,157.69 MB** (92.17% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **225 passed, 0 failed** (in 40.04s)
+- **Pytest Status**: **233 passed, 0 failed** (in 30.46s)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 

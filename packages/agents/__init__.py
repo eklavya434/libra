@@ -10,6 +10,8 @@ Exports:
 - CodeAgent: Code generation & self-evaluating agent
 - AutoDebugger: Test-driven reflective error diagnosis and repair
 - CodeTrajectory, DebugIteration: Code debugging traces
+- AgentRole, MessageType, AgentMessage, SharedBlackboard: Multi-agent communication
+- SpecializedAgent, CollaborativeTeam, TeamRound, TeamTrajectory: Multi-agent collaboration
 """
 
 from packages.agents.base import (
@@ -25,6 +27,18 @@ from packages.agents.coder import (
     DebugIteration,
     combine_code_and_assertions,
     format_code_with_lines,
+)
+from packages.agents.message_bus import (
+    AgentMessage,
+    AgentRole,
+    MessageType,
+    SharedBlackboard,
+)
+from packages.agents.multi_agent import (
+    CollaborativeTeam,
+    SpecializedAgent,
+    TeamRound,
+    TeamTrajectory,
 )
 from packages.agents.pal import PALAgent, extract_code, normalize_pal_code
 from packages.agents.plan_and_solve import ExecutionPlan, PlanAndSolveAgent
@@ -47,4 +61,12 @@ __all__ = [
     "DebugIteration",
     "format_code_with_lines",
     "combine_code_and_assertions",
+    "AgentRole",
+    "MessageType",
+    "AgentMessage",
+    "SharedBlackboard",
+    "SpecializedAgent",
+    "CollaborativeTeam",
+    "TeamRound",
+    "TeamTrajectory",
 ]
