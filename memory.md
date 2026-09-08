@@ -46,7 +46,11 @@
 | **Phase 23** | KV Cache Optimization & Grouped-Query Attention | ✅ COMPLETE | Dynamic KVCache, GQA/MQA (torch.repeat_interleave), RoPE start_pos offset, generate_with_cache, POST /api/v1/attention/*, 11 new tests (`main`) |
 | **Phase 24** | Quantization (INT8 / INT4 & Post-Training Quantization) | ✅ COMPLETE | Symmetric/asymmetric affine quantization, packed INT4 nibbles, QuantizedLinearINT8/INT4, PTQ engine, POST /api/v1/quantization/*, 9 new tests (`main`) |
 | **Phase 25** | Parameter-Efficient Fine-Tuning (PEFT & LoRA) | ✅ COMPLETE | LoRALinear, W0 + (alpha/r)*B*A decomposition, zero-init identity, adapter save/load/merge, POST /api/v1/peft/*, 9 new tests (`main`) |
-| **Phase 26** | Streaming Token Telemetry & Token-Level Metrics | ⏳ NEXT | Token-level confidence & surprisal tracking, SSE token latency, top-k candidate distribution |
+| **Phase 26** | Streaming Token Telemetry & Token-Level Metrics | ✅ COMPLETE | Surprisal, Shannon entropy, top-k alternative probabilities, SSE telemetry (`main`) |
+| **Phase 27** | Constrained Decoding & Grammar Masking | ✅ COMPLETE | Thompson NFA regex compiler, Earley CFG parser, 0.00% syntax error guarantee (`main`) |
+| **Phase 28** | Continuous Benchmarking & Automated Arena | ✅ COMPLETE | Bradley-Terry Elo rating engine, dual-pass referee, round-robin tournament (`4b99660`) |
+| **Phase 29** | Deliberative Reasoning Engine & Test-Time Compute | ✅ COMPLETE | CoT trace parser (<think>), Self-Consistency majority voting, Best-of-N verifier (`7b7ccae`) |
+| **Phase 30** | Long-Context Architecture & Rotary Position Scaling | ⏳ NEXT | YaRN & Dynamic NTK-Aware RoPE, context extension from 2K to 32K+, needle-in-a-haystack eval |
 
 ---
 
@@ -243,17 +247,52 @@
 
 ---
 
+### N. Phase 28: Continuous Benchmarking & Automated Model Arena
+- **Bradley-Terry Elo Rating Engine (`packages/evaluation/arena_elo.py`)**:
+  - Pairwise outcome updates with logistic expected score $E_A = \frac{1}{1 + 10^{(R_B - R_A)/400}}$.
+  - Continuous skill tracking, confidence intervals, win-rate calculations, and leaderboard generation.
+- **Position-Bias Mitigated LLM-as-a-Referee (`packages/evaluation/arena_referee.py`)**:
+  - Dual-pass evaluation (evaluating candidates as both (A, B) and (B, A)) to detect and cancel out first-token and positional primacy bias.
+- **Round-Robin Tournament Runner (`packages/evaluation/arena_tournament.py`)**:
+  - Automated tournament running multi-turn match-ups across model pairs on benchmark test suites with JSON serialization.
+- **REST Endpoints & Frontend**:
+  - `GET /api/v1/arena/leaderboard`, `POST /api/v1/arena/match`, `POST /api/v1/arena/tournament`.
+  - Frontend Elo Leaderboard tab with tier badges, match records, and win-rate statistics.
+
+### O. Phase 29: Deliberative Reasoning Engine & Test-Time Compute
+- **Reasoning Trace Parser & State Machine (`packages/models/reasoning/trace_parser.py`)**:
+  - Real-time streaming delta parser separating `<think>...</think>` cognitive scratchpads from user answers.
+  - Step extractor (`extract_reasoning_steps`) parsing numbered steps, bullet points, and paragraph transitions.
+  - Static trace parser (`parse_reasoning_trace`) measuring deliberation duration and token density.
+- **Self-Consistency Majority Voting (`packages/models/reasoning/self_consistency.py`)**:
+  - Stochastic multi-trajectory rollout orchestrator (`SelfConsistencyEngine`).
+  - Canonical answer normalization (`normalize_answer`) resolving numeric, algebraic, and boolean expressions.
+  - Plurality majority voting with agreement confidence calculation.
+- **Best-of-N Test-Time Compute Verifier (`packages/models/reasoning/search_verifier.py`)**:
+  - Multi-candidate generation at higher sampling temperatures ($T=0.7$).
+  - Multi-criteria referee scoring assessing correctness, soundness, completeness, and clarity.
+  - Selects highest-scoring trajectory with fallback tie-breaking.
+- **REST Endpoints & Frontend UX**:
+  - `POST /api/v1/reasoning/generate`: End-to-end deliberative generation with parsed trace.
+  - `POST /api/v1/reasoning/self-consistency`: Multi-path rollout with majority vote resolution.
+  - `POST /api/v1/reasoning/best-of-n`: Best-of-$N$ search verification with scored candidate rankings.
+  - `POST /api/v1/reasoning/parse`: Static trace analysis.
+  - `ReasoningTraceAccordion.tsx`: Collapsible thinking process accordion with live elapsed timers and step markers.
+  - Local Ollama auto-discovery: dynamic catalog fetching models like `qwen3:4b` with streaming thinking support.
+
+---
+
 ## 4. Resource Usage & Storage Quota Audit
 
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,208.19 MB** (~1.21 GB)
+- **Total Workspace Footprint**: **875.84 MB** (<0.88 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,151.81 MB** (92.13% free)
+- **Remaining Storage Quota**: **14,484.16 MB** (94.3% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
-- **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **315 passed, 0 failed** (in 38.24s)
+- **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git` (`7b7ccae`)
+- **Pytest Status**: **340 passed, 0 failed** (13 new reasoning tests)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 
