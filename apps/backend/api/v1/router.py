@@ -17,6 +17,7 @@ from apps.backend.api.v1.endpoints import (
     health,
     models,
     peft,
+    paged_inference,
     quantization,
     rag,
     reasoning,
@@ -48,3 +49,4 @@ api_v1_router.include_router(telemetry.router, tags=["Token Telemetry"])
 api_v1_router.include_router(grammar.router, tags=["Grammar & Constrained Decoding"])
 api_v1_router.include_router(reasoning.router, tags=["Reasoning & Test-Time Compute"])
 api_v1_router.include_router(context.router, tags=["Context & RoPE Scaling"])
+api_v1_router.include_router(paged_inference.router, tags=["PagedAttention & Continuous Batching"])

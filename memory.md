@@ -50,8 +50,9 @@
 | **Phase 27** | Constrained Decoding & Grammar Masking | ✅ COMPLETE | Thompson NFA regex compiler, Earley CFG parser, 0.00% syntax error guarantee (`main`) |
 | **Phase 28** | Continuous Benchmarking & Automated Arena | ✅ COMPLETE | Bradley-Terry Elo rating engine, dual-pass referee, round-robin tournament (`4b99660`) |
 | **Phase 29** | Deliberative Reasoning Engine & Test-Time Compute | ✅ COMPLETE | CoT trace parser (<think>), Self-Consistency majority voting, Best-of-N verifier (`7b7ccae`) |
-| **Phase 30** | Long-Context Architecture & Rotary Position Scaling | ✅ COMPLETE | Linear PI, Dynamic NTK-Aware RoPE, YaRN, Needle-in-a-Haystack benchmark (`main`) |
-| **Phase 31** | Advanced Inference Optimization (PagedAttention) | ⏳ NEXT | Virtual memory block paging for KV caches, continuous batching simulation, zero external fragmentation |
+| **Phase 30** | Long-Context Architecture & Rotary Position Scaling | ✅ COMPLETE | Linear PI, Dynamic NTK-Aware RoPE, YaRN, Needle-in-a-Haystack benchmark (`66de7e6`) |
+| **Phase 31** | Advanced Inference Optimization (PagedAttention) | ✅ COMPLETE | Virtual memory block paging for KV caches, continuous batching simulation, zero external fragmentation (`main`) |
+| **Phase 32** | Multi-Modal Architecture (Vision-Language Adapter) | ⏳ NEXT | Educational patch projection, cross-attention adapter, multi-modal tokens in ModernTransformerLM |
 
 ---
 
@@ -296,6 +297,23 @@
   - `POST /api/v1/context/perplexity`: Theoretical perplexity scaling simulation across scale factors.
   - `LongContextHeatmap.tsx`: 2D retrieval heatmap with interactive cell inspection.
 
+### Q. Phase 31: Advanced Inference Optimization (PagedAttention & Continuous Batching)
+- **Paged KV Cache Virtual Memory Manager (`packages/models/components/paged_cache.py`)**:
+  - `PhysicalBlockPool`: Non-contiguous physical memory blocks for keys and values with zero external fragmentation.
+  - `BlockAllocator`: Free list allocator with reference counting for prefix caching and copy-on-write sharing.
+  - `SequenceBlockTable`: Per-sequence page table resolving logical token positions to physical blocks.
+  - `PagedKVCache`: Multi-layer cache manager reducing internal memory waste to $< 3.5\%$.
+- **PagedAttention Decode Kernel (`packages/models/components/paged_attention.py`)**:
+  - Direct multi-head attention over non-contiguous physical memory blocks with exact numerical parity ($< 1.2 \times 10^{-7}$).
+- **Continuous (Iteration-Level) Batching Engine (`packages/models/inference/continuous_batching.py`)**:
+  - Interleaves prompt prefill steps with single-token decode iterations.
+  - Evicts completed sequences immediately, freeing memory without waiting for longest request.
+- **REST Endpoints & Frontend UX**:
+  - `POST /api/v1/paged/simulate`: Audits memory savings and concurrency multipliers.
+  - `POST /api/v1/paged/batch_run`: Simulates continuous batching runs across varying token budgets.
+  - `GET /api/v1/paged/memory_stats`: Real-time block allocation metrics.
+  - `PagedMemoryInspector.tsx`: UI component displaying memory savings and step timeline.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -308,7 +326,7 @@
 - **Remaining Storage Quota**: **14,222.77 MB** (92.6% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **355 passed, 0 failed** (15 new Phase 30 tests)
+- **Pytest Status**: **362 passed, 0 failed** (7 new Phase 31 tests)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 

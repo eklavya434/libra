@@ -890,3 +890,83 @@ export async function runNeedleEvaluation(
   return await res.json();
 }
 
+// ---------------------------------------------------------------------------
+// Phase 31: PagedAttention & Continuous Batching API Interfaces
+// ---------------------------------------------------------------------------
+
+export interface PagedSimulationResult {
+  contiguous_reservation_bytes: number;
+  contiguous_waste_percent: number;
+  paged_allocation_bytes: number;
+  paged_internal_frag_percent: number;
+  memory_savings_percent: number;
+  max_concurrency_multiplier: number;
+  summary: string;
+}
+
+export interface BatchTimelineItem {
+  iteration: number;
+  running: number;
+  waiting: number;
+  finished: number;
+  allocated_blocks: number;
+  free_blocks: number;
+  elapsed_ms: number;
+}
+
+export interface BatchRunResponse {
+  total_requests: number;
+  total_tokens_generated: number;
+  total_iterations: number;
+  total_time_ms: number;
+  throughput_tokens_per_sec: number;
+  timeline: BatchTimelineItem[];
+  completed_requests: {
+    request_id: string;
+    prompt: string;
+    tokens_generated: number;
+    latency_ms: number;
+  }[];
+}
+
+export async function simulatePagedMemory(
+  batchSize = 8,
+  avgPromptTokens = 120,
+  maxOutputTokens = 256,
+  blockSize = 16
+): Promise<PagedSimulationResult> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/paged/simulate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      batch_size: batchSize,
+      avg_prompt_tokens: avgPromptTokens,
+      max_output_tokens: maxOutputTokens,
+      block_size: blockSize,
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to simulate paged memory");
+  return await res.json();
+}
+
+export async function runContinuousBatchSimulation(
+  prompts?: string[],
+  maxTokens = 12
+): Promise<BatchRunResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/paged/batch_run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompts: prompts || [
+        "Explain quantum superposition.",
+        "Write a Python function for binary search.",
+        "Describe the life cycle of a massive star.",
+        "What causes gravitational time dilation?",
+      ],
+      max_tokens: maxTokens,
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to run continuous batch simulation");
+  return await res.json();
+}
+
