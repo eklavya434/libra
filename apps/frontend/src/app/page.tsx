@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import ChatArea from '@/components/ChatArea';
 import ArenaView from '@/components/ArenaView';
 import KnowledgeBaseView from '@/components/KnowledgeBaseView';
+import CorpusViewer from '@/components/CorpusViewer';
 import {
   ConversationSummary,
   fetchConversations,
@@ -13,7 +14,7 @@ import {
 } from '@/lib/api';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag' | 'corpus'>('chat');
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
@@ -76,6 +77,7 @@ export default function Home() {
         )}
         {activeTab === 'arena' && <ArenaView />}
         {activeTab === 'rag' && <KnowledgeBaseView />}
+        {activeTab === 'corpus' && <CorpusViewer />}
       </main>
     </div>
   );

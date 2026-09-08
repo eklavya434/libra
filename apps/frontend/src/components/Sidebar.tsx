@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database } from 'lucide-react';
+import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText } from 'lucide-react';
 import { ConversationSummary } from '@/lib/api';
 
 interface SidebarProps {
   currentSessionId: string;
-  activeTab?: 'chat' | 'arena' | 'rag';
+  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus';
   conversations?: ConversationSummary[];
-  onSelectTab?: (tab: 'chat' | 'arena' | 'rag') => void;
+  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus') => void;
   onSelectConversation?: (id: string) => void;
   onNewConversation?: () => void;
   onDeleteConversation?: (id: string) => void;
@@ -97,6 +97,18 @@ export default function Sidebar({
             >
               <Database className={`w-4 h-4 ${activeTab === 'rag' ? 'text-indigo-400' : 'text-slate-400'}`} />
               <span>Knowledge Base (RAG)</span>
+            </button>
+
+            <button
+              onClick={() => onSelectTab && onSelectTab('corpus')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${
+                activeTab === 'corpus'
+                  ? 'bg-indigo-600/20 border border-indigo-500/40 text-indigo-200 font-medium'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+              }`}
+            >
+              <FileText className={`w-4 h-4 ${activeTab === 'corpus' ? 'text-indigo-400' : 'text-slate-400'}`} />
+              <span>Corpus & SFT Lab</span>
             </button>
           </div>
         </div>

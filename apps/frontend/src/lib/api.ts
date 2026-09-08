@@ -1039,3 +1039,66 @@ export async function generateWithVLM(
   return await res.json();
 }
 
+// ---------------------------------------------------------------------------
+// Phase 33: Domain Adaptation & Instruction Fine-Tuning Corpus API Interfaces
+// ---------------------------------------------------------------------------
+
+export interface TokenInspectionItem {
+  token_idx: number;
+  token_id: number;
+  char_repr: string;
+  is_masked: boolean;
+  label: number;
+}
+
+export interface FormatChatResponse {
+  raw_chatml: string;
+  total_tokens: number;
+  trainable_tokens: number;
+  masked_tokens: number;
+  trainable_fraction: number;
+  tokens: TokenInspectionItem[];
+}
+
+export interface PackResponse {
+  original_dialogues: number;
+  packed_sequences: number;
+  tokens_unpacked_with_padding: number;
+  tokens_packed: number;
+  efficiency_gain_percent: number;
+  packed_batches: {
+    batch_idx: number;
+    length: number;
+    active_labels: number;
+  }[];
+}
+
+export async function formatChatML(
+  messages: { role: string; content: string }[],
+  maxLength = 256
+): Promise<FormatChatResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/corpus/format_chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messages,
+      max_length: maxLength,
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to format ChatML dialogue");
+  return await res.json();
+}
+
+export async function packCorpusSequences(maxLength = 256): Promise<PackResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/corpus/pack`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      max_length: maxLength,
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to pack corpus sequences");
+  return await res.json();
+}
+
+
