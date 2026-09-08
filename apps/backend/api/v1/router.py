@@ -18,6 +18,7 @@ from apps.backend.api.v1.endpoints import (
     peft,
     quantization,
     rag,
+    reasoning,
     routing,
     structured,
     teams,
@@ -44,3 +45,4 @@ api_v1_router.include_router(quantization.router, tags=["Quantization & Compress
 api_v1_router.include_router(peft.router, tags=["PEFT & LoRA"])
 api_v1_router.include_router(telemetry.router, tags=["Token Telemetry"])
 api_v1_router.include_router(grammar.router, tags=["Grammar & Constrained Decoding"])
+api_v1_router.include_router(reasoning.router, tags=["Reasoning & Test-Time Compute"])

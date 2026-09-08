@@ -192,6 +192,115 @@ export async function voteInArena(
   return res.json();
 }
 
+export interface ReasoningTrace {
+  raw_thought: string;
+  steps: string[];
+  final_answer: string;
+  thinking_duration_ms: number;
+  thought_token_count: number;
+  has_thought: boolean;
+}
+
+export interface SelfConsistencyResult {
+  consensus_answer: string;
+  confidence: number;
+  total_paths: number;
+  vote_distribution: Record<string, number>;
+  trajectories: ReasoningTrace[];
+  winning_trajectory: ReasoningTrace | null;
+}
+
+export interface CandidateScore {
+  index: number;
+  score: number;
+  trace: ReasoningTrace;
+  rationale: string;
+}
+
+export interface BestOfNResult {
+  best_candidate: ReasoningTrace;
+  best_score: number;
+  best_index: number;
+  total_candidates: number;
+  candidates: CandidateScore[];
+  selection_method: string;
+}
+
+export async function executeReasoning(
+  prompt: string,
+  model = "qwen3:4b",
+  temperature = 0.7,
+  maxTokens = 512,
+  systemPrompt?: string
+): Promise<{ model: string; provider: string; trace: ReasoningTrace; raw_response: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/reasoning/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt,
+      model,
+      temperature,
+      max_tokens: maxTokens,
+      system_prompt: systemPrompt,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Reasoning generation failed (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
+export async function executeSelfConsistency(
+  prompt: string,
+  model = "qwen3:4b",
+  numPaths = 3,
+  temperature = 0.7,
+  maxTokens = 256
+): Promise<SelfConsistencyResult> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/reasoning/self-consistency`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt,
+      model,
+      num_paths: numPaths,
+      temperature,
+      max_tokens: maxTokens,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Self-consistency failed (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
+export async function executeBestOfN(
+  prompt: string,
+  model = "qwen3:4b",
+  nCandidates = 3,
+  temperature = 0.8,
+  maxTokens = 256
+): Promise<BestOfNResult> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/reasoning/best-of-n`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt,
+      model,
+      n_candidates: nCandidates,
+      temperature,
+      max_tokens: maxTokens,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Best-of-N failed (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
 export async function runArenaTournament(
   models: ArenaModelTarget[],
   categories?: string[],

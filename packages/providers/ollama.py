@@ -1,4 +1,4 @@
-﻿"""
+"""
 Libra Providers - Ollama Local Inference Adapter
 
 Direct integration with the local Ollama runtime (http://127.0.0.1:11434).
@@ -17,7 +17,7 @@ import json
 import os
 import time
 from collections.abc import AsyncIterator
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -27,7 +27,7 @@ from packages.providers.base import BaseProvider, ModelMetadata
 class OllamaProvider(BaseProvider):
     """Local inference adapter for the Ollama runtime."""
 
-    def __init__(self, base_url: Optional[str] = None, timeout: float = 60.0):
+    def __init__(self, base_url: str | None = None, timeout: float = 60.0):
         self.base_url = (base_url or os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")).rstrip("/")
         self.timeout = timeout
 
@@ -114,7 +114,7 @@ class OllamaProvider(BaseProvider):
         max_tokens: int,
         top_p: float = 0.9,
         top_k: int = 40,
-        stop: Optional[list[str]] = None,
+        stop: list[str] | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Map standard inference hyperparameters to Ollama option fields."""
@@ -139,7 +139,7 @@ class OllamaProvider(BaseProvider):
         max_tokens: int = 1024,
         top_p: float = 0.9,
         top_k: int = 40,
-        stop: Optional[list[str]] = None,
+        stop: list[str] | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Execute a non-streaming chat request with Ollama."""
@@ -165,6 +165,17 @@ class OllamaProvider(BaseProvider):
 
                 data = resp.json()
                 msg = data.get("message", {})
+                content = msg.get("content", "").strip()
+                thinking = msg.get("thinking", "").strip()
+                if thinking and content:
+                    full_content = f"<think>\n{thinking}\n</think>\n\n{content}"
+                elif content:
+                    full_content = content
+                elif thinking:
+                    full_content = f"<think>\n{thinking}\n</think>"
+                else:
+                    full_content = ""
+
                 return {
                     "id": f"ollama-{int(time.time())}",
                     "provider": "ollama",
@@ -174,7 +185,7 @@ class OllamaProvider(BaseProvider):
                             "index": 0,
                             "message": {
                                 "role": msg.get("role", "assistant"),
-                                "content": msg.get("content", ""),
+                                "content": full_content,
                             },
                             "finish_reason": "stop" if data.get("done") else "length",
                         }
@@ -198,10 +209,10 @@ class OllamaProvider(BaseProvider):
         max_tokens: int = 1024,
         top_p: float = 0.9,
         top_k: int = 40,
-        stop: Optional[list[str]] = None,
+        stop: list[str] | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[str]:
-        """Stream token deltas in real-time from Ollama."""
+        """Stream token deltas in real-time from Ollama, supporting both standard and reasoning models."""
         payload = {
             "model": model,
             "messages": messages,
@@ -223,13 +234,29 @@ class OllamaProvider(BaseProvider):
                         err_text = await resp.aread()
                         raise RuntimeError(f"Ollama stream error {resp.status_code}: {err_text.decode('utf-8', errors='ignore')}")
 
+                    in_thinking = False
                     async for line in resp.aiter_lines():
                         if line and line.strip():
                             chunk = json.loads(line)
-                            content = chunk.get("message", {}).get("content", "")
-                            if content:
-                                yield content
+                            msg_obj = chunk.get("message", {})
+                            thinking_chunk = msg_obj.get("thinking", "")
+                            content_chunk = msg_obj.get("content", "")
+
+                            if thinking_chunk:
+                                if not in_thinking:
+                                    in_thinking = True
+                                    yield "<think>\n"
+                                yield thinking_chunk
+
+                            if content_chunk:
+                                if in_thinking:
+                                    in_thinking = False
+                                    yield "\n</think>\n\n"
+                                yield content_chunk
+
                             if chunk.get("done", False):
+                                if in_thinking:
+                                    yield "\n</think>\n"
                                 break
         except httpx.ConnectError:
             raise ConnectionError(
