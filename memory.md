@@ -197,6 +197,29 @@
   - `POST /api/v1/peft/train_step`: Single step fine-tuning optimization.
   - `POST /api/v1/peft/merge`: Zero-overhead inference merging verification.
 
+### L. Phase 26: Streaming Token Telemetry & Token-Level Metrics
+- **First-Principles Telemetry Core (`packages/models/telemetry.py`)**:
+  - Exact token probability $p(w_t \mid w_{<t}) = \text{softmax}(z_t)[w_t]$ and natural log-probability $\ln p(w_t \mid w_{<t})$.
+  - Shannon Surprisal: $I(w_t) = -\log_2 p(w_t \mid w_{<t})$ in bits (quantifies self-information / unexpectedness).
+  - Next-token distribution entropy: $H(P_t) = -\sum_{v} p_t(v) \log_2 p_t(v)$ in bits (quantifies model uncertainty).
+  - Top-$k$ alternative candidate extraction with decoded text, probability %, and logprobs.
+  - Per-token step generation latency ($\Delta t$ ms) and cumulative throughput ($N / \sum \Delta t$ tok/s).
+  - Sequence Perplexity identity verification: $\text{PPL} = 2^{\bar{I}} = \exp(-\frac{1}{N}\sum \ln p(w_t))$.
+  - Outlier detection: identifies highest-surprisal token ($w_{\text{max}}$) and highest-confidence token ($w_{\text{min}}$).
+  - Autoregressive generators: `stream_generate_with_telemetry` and async `astream_generate_with_telemetry`.
+  - Teacher-forcing evaluation: `analyze_sequence_telemetry` computes surprisal and entropy without sampling.
+- **REST & SSE Endpoints (`apps/backend/api/v1/endpoints/telemetry.py`)**:
+  - `POST /api/v1/telemetry/generate`: Non-streaming generation returning full `SequenceTelemetry`.
+  - `POST /api/v1/telemetry/stream`: Real-time SSE streaming emitting `event: token` and `event: done` chunks.
+  - `POST /api/v1/telemetry/analyze`: Evaluates teacher-forcing surprisal across arbitrary input text.
+- **Frontend Surprisal Heatmap & Token Inspector (`apps/frontend/src/components/TokenSurprisalHeatmap.tsx`)**:
+  - Color-coded tokens based on surprisal: Green ($I < 1.0$ bit, $p > 50\%$), Amber ($1.0 \le I \le 3.0$ bits), Rose ($I > 3.0$ bits).
+  - Interactive popover on click/hover displaying token ID, probability %, surprisal, entropy, latency, and top-5 alternative candidate probability bars.
+  - Integrated into `ChatArea.tsx` with "Inspect Tokens" toggle for any assistant message.
+- **Verification & Tests**:
+  - 10 comprehensive tests in `tests/models/test_telemetry.py` and `tests/api/test_telemetry_endpoint.py`.
+  - Interactive CLI demo in `scripts/run_phase26_telemetry_demo.py` with live ANSI colored token streaming.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -204,12 +227,12 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,203.05 MB** (~1.20 GB)
+- **Total Workspace Footprint**: **1,207.97 MB** (~1.21 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,156.95 MB** (92.17% free)
+- **Remaining Storage Quota**: **14,152.03 MB** (92.14% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **295 passed, 0 failed** (in 36.37s)
+- **Pytest Status**: **305 passed, 0 failed** (in 37.10s)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 

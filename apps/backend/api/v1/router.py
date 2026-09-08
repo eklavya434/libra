@@ -20,6 +20,7 @@ from apps.backend.api.v1.endpoints import (
     routing,
     structured,
     teams,
+    telemetry,
     tools,
 )
 
@@ -40,7 +41,4 @@ api_v1_router.include_router(alignment.router, tags=["Alignment & RLHF"])
 api_v1_router.include_router(attention.router, tags=["Attention & KV Cache"])
 api_v1_router.include_router(quantization.router, tags=["Quantization & Compression"])
 api_v1_router.include_router(peft.router, tags=["PEFT & LoRA"])
-
-
-
-
+api_v1_router.include_router(telemetry.router, tags=["Token Telemetry"])

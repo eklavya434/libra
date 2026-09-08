@@ -1,17 +1,19 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sliders, Zap, RotateCcw, AlertCircle, Copy, Check, Square, RefreshCw } from 'lucide-react';
+import { Send, Bot, User, Sliders, Zap, RotateCcw, AlertCircle, Copy, Check, Square, RefreshCw, Activity } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import ModelSelector from './ModelSelector';
 import HyperparametersModal from './HyperparametersModal';
 import StreamingMarkdown from './StreamingMarkdown';
+import TokenSurprisalHeatmap from './TokenSurprisalHeatmap';
 import {
   streamChat,
   ChatMessage,
   ChatTelemetry,
   fetchConversation,
   clearConversationMessages,
+  API_BASE_URL,
 } from '@/lib/api';
 
 interface ExtendedMessage extends ChatMessage {
@@ -47,9 +49,54 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
   const [loading, setLoading] = useState(false);
   const [activeAssistantId, setActiveAssistantId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [activeHeatmapId, setActiveHeatmapId] = useState<string | null>(null);
+  const [heatmapLoadingId, setHeatmapLoadingId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const handleToggleHeatmap = async (msg: ExtendedMessage) => {
+    if (activeHeatmapId === msg.id) {
+      setActiveHeatmapId(null);
+      return;
+    }
+
+    if (msg.telemetry?.tokenSequence) {
+      setActiveHeatmapId(msg.id);
+      return;
+    }
+
+    // On-demand sequence analysis via API
+    setHeatmapLoadingId(msg.id);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/telemetry/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: msg.content.slice(0, 500) }),
+      });
+      if (res.ok) {
+        const seqData = await res.json();
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === msg.id
+              ? {
+                  ...m,
+                  telemetry: {
+                    ...(m.telemetry || {}),
+                    tokenSequence: seqData,
+                  },
+                }
+              : m
+          )
+        );
+        setActiveHeatmapId(msg.id);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch token sequence telemetry:', e);
+    } finally {
+      setHeatmapLoadingId(null);
+    }
+  };
 
   // Load conversation messages when conversationId changes
   useEffect(() => {
@@ -350,6 +397,13 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
                     </div>
                   )}
 
+                  {/* Heatmap view if toggled */}
+                  {activeHeatmapId === msg.id && msg.telemetry?.tokenSequence && (
+                    <div className="mt-3">
+                      <TokenSurprisalHeatmap sequence={msg.telemetry.tokenSequence} />
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-850/60 text-[10px]">
                     <div
                       className={`${
@@ -360,6 +414,25 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
                     </div>
 
                     <div className="flex items-center gap-1">
+                      {msg.role === 'assistant' && msg.content && !loading && (
+                        <button
+                          onClick={() => handleToggleHeatmap(msg)}
+                          className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded transition-all ${
+                            activeHeatmapId === msg.id
+                              ? 'bg-indigo-950/80 border border-indigo-500/50 text-indigo-300 font-medium'
+                              : 'text-slate-400 hover:text-indigo-300 hover:bg-slate-800/60'
+                          }`}
+                          title="Inspect Token Surprisal & Probabilities"
+                        >
+                          {heatmapLoadingId === msg.id ? (
+                            <RefreshCw className="w-3 h-3 animate-spin text-indigo-400" />
+                          ) : (
+                            <Activity className="w-3 h-3 text-indigo-400" />
+                          )}
+                          <span>{activeHeatmapId === msg.id ? 'Hide Tokens' : 'Inspect Tokens'}</span>
+                        </button>
+                      )}
+
                       {isLatestAssistant && (
                         <button
                           onClick={handleRegenerate}
