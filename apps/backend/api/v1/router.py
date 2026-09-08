@@ -16,6 +16,7 @@ from apps.backend.api.v1.endpoints import (
     grammar,
     health,
     models,
+    multimodal,
     peft,
     paged_inference,
     quantization,
@@ -50,3 +51,4 @@ api_v1_router.include_router(grammar.router, tags=["Grammar & Constrained Decodi
 api_v1_router.include_router(reasoning.router, tags=["Reasoning & Test-Time Compute"])
 api_v1_router.include_router(context.router, tags=["Context & RoPE Scaling"])
 api_v1_router.include_router(paged_inference.router, tags=["PagedAttention & Continuous Batching"])
+api_v1_router.include_router(multimodal.router, tags=["Multi-Modal & Vision-Language"])

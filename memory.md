@@ -51,8 +51,9 @@
 | **Phase 28** | Continuous Benchmarking & Automated Arena | ✅ COMPLETE | Bradley-Terry Elo rating engine, dual-pass referee, round-robin tournament (`4b99660`) |
 | **Phase 29** | Deliberative Reasoning Engine & Test-Time Compute | ✅ COMPLETE | CoT trace parser (<think>), Self-Consistency majority voting, Best-of-N verifier (`7b7ccae`) |
 | **Phase 30** | Long-Context Architecture & Rotary Position Scaling | ✅ COMPLETE | Linear PI, Dynamic NTK-Aware RoPE, YaRN, Needle-in-a-Haystack benchmark (`66de7e6`) |
-| **Phase 31** | Advanced Inference Optimization (PagedAttention) | ✅ COMPLETE | Virtual memory block paging for KV caches, continuous batching simulation, zero external fragmentation (`main`) |
-| **Phase 32** | Multi-Modal Architecture (Vision-Language Adapter) | ⏳ NEXT | Educational patch projection, cross-attention adapter, multi-modal tokens in ModernTransformerLM |
+| **Phase 31** | Advanced Inference Optimization (PagedAttention) | ✅ COMPLETE | Virtual memory block paging for KV caches, continuous batching simulation, zero external fragmentation (`f438e81`) |
+| **Phase 32** | Multi-Modal Architecture (Vision-Language Adapter) | ✅ COMPLETE | Image patch embedder, LLaVA MLP & Perceiver adapter, end-to-end LibraVLM (`main`) |
+| **Phase 33** | Domain Adaptation & Instruction Fine-Tuning Corpus | ⏳ NEXT | ChatML formatting, multi-turn packing, loss masking, domain instruction dataset pipeline |
 
 ---
 
@@ -314,6 +315,21 @@
   - `GET /api/v1/paged/memory_stats`: Real-time block allocation metrics.
   - `PagedMemoryInspector.tsx`: UI component displaying memory savings and step timeline.
 
+### R. Phase 32: Multi-Modal Architecture (Vision-Language Adapter: Patch Projection & Cross-Attention)
+- **Vision Patch Embedding Core (`packages/models/vision/patch_embed.py`)**:
+  - `ImagePatchEmbedder`: 2D image decomposition into flattened patch vectors ($P \times P \times C$) with learned 2D spatial position embeddings.
+  - `generate_synthetic_image`: Deterministic image synthesis (checkerboard, gradient, solid) for zero-download CPU testing.
+- **Multi-Modal Alignment Adapter (`packages/models/vision/vlm_projector.py`)**:
+  - `VisionLanguageAdapter`: Projects visual feature dimensions ($d_{\text{vision}}$) into LLM token embedding space ($d_{\text{model}}$).
+  - Supports LLaVA-style 2-layer GELU MLP and Flamingo-style Perceiver cross-attention latent resampling.
+- **End-to-End LibraVLM (`packages/models/vision/vlm_model.py`)**:
+  - Unified multi-modal model prepending visual patch tokens as visual prefixes before text prompt token IDs.
+  - Autoregressive causal generation conditioning text generation on visual semantics.
+- **REST Endpoints & Frontend UX**:
+  - `POST /api/v1/multimodal/embed_image`: Patch grid decomposition, shape audits, and token representations.
+  - `POST /api/v1/multimodal/generate`: Image-conditioned text generation with latency telemetry.
+  - `VisionPlayground.tsx`: Interactive Next.js component displaying the $4 \times 4$ visual patch grid and generated descriptions.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -326,7 +342,7 @@
 - **Remaining Storage Quota**: **14,222.77 MB** (92.6% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **362 passed, 0 failed** (7 new Phase 31 tests)
+- **Pytest Status**: **370 passed, 0 failed** (8 new Phase 32 tests)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 

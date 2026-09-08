@@ -970,3 +970,72 @@ export async function runContinuousBatchSimulation(
   return await res.json();
 }
 
+// ---------------------------------------------------------------------------
+// Phase 32: Multi-Modal Architecture (Vision-Language Adapter) API Interfaces
+// ---------------------------------------------------------------------------
+
+export interface PatchGridItem {
+  patch_index: number;
+  row: number;
+  col: number;
+  mean_rgb: number[];
+  norm: number;
+}
+
+export interface EmbedImageResponse {
+  image_size: number;
+  patch_size: number;
+  num_patches: number;
+  patch_dim: number;
+  vision_dim: number;
+  projected_llm_dim: number;
+  patch_grid: PatchGridItem[];
+}
+
+export interface VLMGenerateResponse {
+  prompt: string;
+  image_pattern: string;
+  num_visual_tokens: number;
+  generated_tokens: number[];
+  generated_text: string;
+  latency_ms: number;
+}
+
+export async function embedImage(
+  pattern = "checkerboard",
+  imageSize = 32,
+  patchSize = 8,
+  visionDim = 32
+): Promise<EmbedImageResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/multimodal/embed_image`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      pattern,
+      image_size: imageSize,
+      patch_size: patchSize,
+      vision_dim: visionDim,
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to embed image patches");
+  return await res.json();
+}
+
+export async function generateWithVLM(
+  prompt = "This image shows a",
+  pattern = "checkerboard",
+  maxNewTokens = 6
+): Promise<VLMGenerateResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/multimodal/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt,
+      pattern,
+      max_new_tokens: maxNewTokens,
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to generate with VLM");
+  return await res.json();
+}
+
