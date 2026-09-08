@@ -12,6 +12,7 @@ from apps.backend.api.v1.endpoints import (
     chat,
     coder,
     conversations,
+    grammar,
     health,
     models,
     peft,
@@ -42,3 +43,4 @@ api_v1_router.include_router(attention.router, tags=["Attention & KV Cache"])
 api_v1_router.include_router(quantization.router, tags=["Quantization & Compression"])
 api_v1_router.include_router(peft.router, tags=["PEFT & LoRA"])
 api_v1_router.include_router(telemetry.router, tags=["Token Telemetry"])
+api_v1_router.include_router(grammar.router, tags=["Grammar & Constrained Decoding"])

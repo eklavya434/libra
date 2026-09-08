@@ -220,6 +220,27 @@
   - 10 comprehensive tests in `tests/models/test_telemetry.py` and `tests/api/test_telemetry_endpoint.py`.
   - Interactive CLI demo in `scripts/run_phase26_telemetry_demo.py` with live ANSI colored token streaming.
 
+### M. Phase 27: Constrained Decoding & Grammar Masking (CFG & Regex)
+- **Thompson NFA Regex Automaton (`packages/core/grammar/regex_automaton.py`)**:
+  - Compiles arbitrary regex patterns into an NFA state graph with $\epsilon$-closures.
+  - Supports character classes, negation, wildcard, concatenation, alternation, repetition (`*`, `+`, `?`, `{n,m}`).
+  - First-principles prefix validation `is_valid_prefix(s)` and acceptance testing `is_accepted(s)`.
+- **Context-Free Grammar Earley Parser (`packages/core/grammar/cfg_parser.py`)**:
+  - Jay Earley (1970) chart parser implementing Predictor, Scanner, and Completer operations.
+  - Validates arbitrary BNF/EBNF context-free grammars (arithmetic, SQL, DSLs).
+  - Exact next terminal symbol lookahead extraction via `get_valid_next_terminals()`.
+- **Universal Grammar Logits Processor (`packages/core/grammar/grammar_processor.py`)**:
+  - Filters autoregressive logits by setting disallowed continuation tokens to $-\infty$.
+  - Guarantees strictly 0.00% syntax error rate across all generated outputs.
+  - Enables EOS token only when the grammar reaches an accepted state.
+- **REST Endpoints (`apps/backend/api/v1/endpoints/grammar.py`)**:
+  - `POST /api/v1/grammar/generate`: Constrained generation with verification.
+  - `POST /api/v1/grammar/validate`: Validates candidate string prefix and acceptance.
+  - `POST /api/v1/grammar/next_tokens`: Inspects allowed next vocabulary tokens.
+- **Verification & Tests**:
+  - 10 comprehensive unit and API tests in `tests/models/test_grammar.py` and `tests/api/test_grammar_endpoint.py`.
+  - Interactive CLI demo in `scripts/run_phase27_grammar_demo.py` verifying 0.00% error rate across 50 independent runs.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -227,12 +248,12 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,207.97 MB** (~1.21 GB)
+- **Total Workspace Footprint**: **1,208.19 MB** (~1.21 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,152.03 MB** (92.14% free)
+- **Remaining Storage Quota**: **14,151.81 MB** (92.13% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **305 passed, 0 failed** (in 37.10s)
+- **Pytest Status**: **315 passed, 0 failed** (in 38.24s)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 
