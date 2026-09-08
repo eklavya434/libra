@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+    image: libra-backend:latest
+    container_name: libra-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - LIBRA_ENV=production
+      - LIBRA_HOST=0.0.0.0
+      - LIBRA_PORT=8000
+      - LIBRA_LEARNING_MODE=true
+      - LIBRA_CACHE_DIR=/app/models
+      - LIBRA_DATA_DIR=/app/data
+      - OLLAMA_BASE_URL=http://ollama:11434
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8192M
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; exit(0 if urllib.request.urlopen('http://localhost:8000/api/v1/health').getcode() == 200 else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - libra-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.frontend
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+    image: libra-frontend:latest
+    container_name: libra-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+    depends_on:
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - libra-network
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: libra-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./data/ollama:/root/.ollama
+    networks:
+      - libra-network
+    profiles:
+      - local-llm
+
+networks:
+  libra-network:
+    driver: bridge\n

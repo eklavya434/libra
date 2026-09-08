@@ -1,0 +1,61 @@
+# ==============================================================================
+# LIBRA BACKEND DOCKERFILE (CPU-Optimized Multi-Stage Build)
+# ==============================================================================
+
+# Stage 1: Build & Dependency Resolution
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install CPU-first Python dependencies into isolated prefix
+COPY infra/docker/requirements-docker.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements-docker.txt
+
+# ------------------------------------------------------------------------------
+# Stage 2: Final Minimal Runtime Stage
+FROM python:3.11-slim AS runner
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    LIBRA_HOST=0.0.0.0 \
+    LIBRA_PORT=8000 \
+    LIBRA_ENV=production
+
+# Copy dependencies from builder
+COPY --from=builder /install /usr/local
+
+# Create non-root system user for security
+RUN groupadd -g 1000 libra && \
+    useradd -u 1000 -g libra -s /bin/bash -m libra && \
+    mkdir -p /app/models /app/data /app/checkpoints && \
+    chown -R libra:libra /app
+
+# Copy application source code
+COPY --chown=libra:libra apps/backend /app/apps/backend
+COPY --chown=libra:libra packages /app/packages
+COPY --chown=libra:libra configs /app/configs
+
+USER libra
+
+# Expose FastAPI backend port
+EXPOSE 8000
+
+# Health check using native python urllib (eliminates need for curl in runner)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD python3 -c "import urllib.request; sys_exit = 0 if urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=5).getcode() == 200 else 1; exit(sys_exit)"
+
+# Launch Uvicorn server bound to all interfaces
+CMD ["python3", "-m", "uvicorn", "apps.backend.main:app", "--host", "0.0.0.0", "--port", "8000"]\n

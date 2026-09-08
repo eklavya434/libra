@@ -1,4 +1,4 @@
-﻿.PHONY: help install dev-backend dev-frontend test lint format clean
+.PHONY: help install dev-backend dev-frontend test lint format clean docker-build docker-up docker-down docker-verify
 
 help:
 	@echo "Libra Developer Commands:"
@@ -9,6 +9,10 @@ help:
 	@echo "  make lint          - Check code quality"
 	@echo "  make format        - Format code"
 	@echo "  make clean         - Remove temporary cache files"
+	@echo "  make docker-verify - Validate container configuration & Dockerfiles"
+	@echo "  make docker-build  - Build Docker container images"
+	@echo "  make docker-up     - Start containerized stack in background"
+	@echo "  make docker-down   - Stop and tear down containerized stack"
 
 install:
 	.\.venv\Scripts\python -m pip install -e .[dev]
@@ -31,3 +35,15 @@ format:
 
 clean:
 	powershell -Command "Get-ChildItem -Include __pycache__,.pytest_cache,.ruff_cache -Recurse -Force | Remove-Item -Recurse -Force"
+
+docker-verify:
+	.\.venv\Scripts\python scripts/verify_docker_setup.py
+
+docker-build:
+	docker compose build
+
+docker-up:
+	docker compose up -d
+
+docker-down:
+	docker compose down
