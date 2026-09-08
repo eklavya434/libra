@@ -50,7 +50,8 @@
 | **Phase 27** | Constrained Decoding & Grammar Masking | ✅ COMPLETE | Thompson NFA regex compiler, Earley CFG parser, 0.00% syntax error guarantee (`main`) |
 | **Phase 28** | Continuous Benchmarking & Automated Arena | ✅ COMPLETE | Bradley-Terry Elo rating engine, dual-pass referee, round-robin tournament (`4b99660`) |
 | **Phase 29** | Deliberative Reasoning Engine & Test-Time Compute | ✅ COMPLETE | CoT trace parser (<think>), Self-Consistency majority voting, Best-of-N verifier (`7b7ccae`) |
-| **Phase 30** | Long-Context Architecture & Rotary Position Scaling | ⏳ NEXT | YaRN & Dynamic NTK-Aware RoPE, context extension from 2K to 32K+, needle-in-a-haystack eval |
+| **Phase 30** | Long-Context Architecture & Rotary Position Scaling | ✅ COMPLETE | Linear PI, Dynamic NTK-Aware RoPE, YaRN, Needle-in-a-Haystack benchmark (`main`) |
+| **Phase 31** | Advanced Inference Optimization (PagedAttention) | ⏳ NEXT | Virtual memory block paging for KV caches, continuous batching simulation, zero external fragmentation |
 
 ---
 
@@ -280,6 +281,21 @@
   - `ReasoningTraceAccordion.tsx`: Collapsible thinking process accordion with live elapsed timers and step markers.
   - Local Ollama auto-discovery: dynamic catalog fetching models like `qwen3:4b` with streaming thinking support.
 
+### P. Phase 30: Long-Context Architecture & Rotary Position Scaling (YaRN & Dynamic NTK)
+- **First-Principles RoPE Scaling Core (`packages/models/components/rope_scaling.py`)**:
+  - `compute_freqs_linear`: Linear position interpolation ($t' = t/s$).
+  - `compute_freqs_dynamic_ntk`: Base frequency scaling ($\theta_{\text{base}}' = \theta_{\text{base}} \cdot s^{d/(d-2)}$) preserving high-frequency local grammar.
+  - `compute_freqs_yarn`: Band-split ramp interpolation ($r_i > 32$ extrapolate, $r_i < 1$ interpolate, mid ramp blend) + attention entropy temperature scaling ($\tau = 1 / \sqrt{0.1 \ln s + 1}$).
+  - `ScaledRotaryEmbedding`: Unified drop-in RoPE module dynamically expanding buffers during inference.
+- **Needle-In-A-Haystack (NIAH) Benchmark (`packages/evaluation/needle_haystack.py`)**:
+  - Distractor synthesizer with configurable target word lengths ($250 \to 4000+$).
+  - Depth fraction positioning ($0\%$ to $100\%$) and exact/fuzzy factual recall scoring.
+- **REST Endpoints & Frontend UX**:
+  - `POST /api/v1/context/scale`: Frequencies, effective wavelengths, and attention temperature factor.
+  - `POST /api/v1/context/needle`: Full 2D Needle-In-A-Haystack retrieval matrix benchmark.
+  - `POST /api/v1/context/perplexity`: Theoretical perplexity scaling simulation across scale factors.
+  - `LongContextHeatmap.tsx`: 2D retrieval heatmap with interactive cell inspection.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -287,12 +303,12 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **875.84 MB** (<0.88 GB)
+- **Total Workspace Footprint**: **1,137.23 MB** (~1.11 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,484.16 MB** (94.3% free)
+- **Remaining Storage Quota**: **14,222.77 MB** (92.6% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
-- **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git` (`7b7ccae`)
-- **Pytest Status**: **340 passed, 0 failed** (13 new reasoning tests)
+- **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
+- **Pytest Status**: **355 passed, 0 failed** (15 new Phase 30 tests)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 

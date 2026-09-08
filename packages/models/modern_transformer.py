@@ -15,13 +15,13 @@ from torch import nn
 
 from packages.models.components.kv_cache import KVCache
 from packages.models.components.rmsnorm import RMSNorm
-from packages.models.components.rope import RotaryEmbedding
+from packages.models.components.rope_scaling import ScaledRotaryEmbedding, ScalingType
 from packages.models.components.swiglu import SwiGLU
 from packages.models.modern_config import ModernTransformerConfig
 
 
 class ModernCausalAttention(nn.Module):
-    """Causal Multi-Head / Grouped-Query Attention equipped with Rotary Position Embeddings (RoPE)."""
+    """Causal Multi-Head / Grouped-Query Attention equipped with Scaled Rotary Position Embeddings (RoPE)."""
 
     def __init__(self, config: ModernTransformerConfig) -> None:
         super().__init__()
@@ -36,11 +36,19 @@ class ModernCausalAttention(nn.Module):
         self.v_proj = nn.Linear(self.d_model, self.n_kv_heads * self.head_dim, bias=False)
         self.out_proj = nn.Linear(self.d_model, self.d_model, bias=False)
 
-        # Rotary Positional Embedding module
-        self.rope = RotaryEmbedding(
+        # Scaled Rotary Positional Embedding module
+        orig_seq_len = (
+            config.original_max_seq_len
+            if config.original_max_seq_len is not None
+            else config.max_context_length
+        )
+        self.rope = ScaledRotaryEmbedding(
             head_dim=self.head_dim,
             max_seq_len=config.max_context_length,
+            original_max_seq_len=orig_seq_len,
             theta_base=config.rope_theta_base,
+            scaling_type=config.rope_scaling_type,
+            scale=config.rope_scale,
         )
 
         self.attn_dropout = nn.Dropout(config.dropout)
@@ -81,11 +89,19 @@ class ModernCausalAttention(nn.Module):
             v = torch.repeat_interleave(v, repeats=self.num_queries_per_kv, dim=1)
 
         # 5. Scaled dot-product attention
-        scores = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(self.head_dim))
+        # Apply YaRN attention temperature factor if configured
+        scale_factor = (1.0 / math.sqrt(self.head_dim)) * getattr(self.rope, "attn_temperature_factor", 1.0)
+        scores = (q @ k.transpose(-2, -1)) * scale_factor
 
         if T > 1:
-            mask = self.causal_mask[:, :, start_pos : start_pos + T, :total_seq_len]
-            scores = scores.masked_fill(mask == 0, float("-inf"))
+            # Dynamic causal mask support if sequence exceeds pre-registered mask buffer
+            if start_pos + T > self.causal_mask.size(2) or total_seq_len > self.causal_mask.size(3):
+                max_len = max(start_pos + T, total_seq_len)
+                mask = torch.tril(torch.ones(max_len, max_len, device=x.device)).view(1, 1, max_len, max_len)
+                submask = mask[:, :, start_pos : start_pos + T, :total_seq_len]
+            else:
+                submask = self.causal_mask[:, :, start_pos : start_pos + T, :total_seq_len]
+            scores = scores.masked_fill(submask == 0, float("-inf"))
 
         attn_weights = F.softmax(scores, dim=-1)
         attn_weights = self.attn_dropout(attn_weights)

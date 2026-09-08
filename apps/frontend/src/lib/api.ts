@@ -811,3 +811,82 @@ export async function streamTelemetry(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Phase 30: Long-Context Architecture & RoPE Scaling API Interfaces
+// ---------------------------------------------------------------------------
+
+export interface FrequencyChannel {
+  dim_idx: number;
+  base_freq: number;
+  scaled_freq: number;
+  wavelength: number;
+  ratio: number;
+}
+
+export interface RoPEFrequencyResponse {
+  scaling_type: string;
+  scale: number;
+  dim: number;
+  max_seq_len: number;
+  original_max_seq_len: number;
+  attn_temperature_factor: number;
+  channels: FrequencyChannel[];
+}
+
+export interface NeedleResultItem {
+  context_length: number;
+  depth_percent: number;
+  is_correct: boolean;
+  score: number;
+  latency_ms: number;
+  retrieved_text: string;
+}
+
+export interface NeedleEvaluationResponse {
+  model: string;
+  total_trials: number;
+  accuracy_percent: number;
+  average_latency_ms: number;
+  results: NeedleResultItem[];
+}
+
+export async function inspectRoPEScaling(
+  dim = 64,
+  maxSeqLen = 2048,
+  scale = 4.0,
+  originalMaxSeqLen = 512,
+  scalingType = "yarn"
+): Promise<RoPEFrequencyResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/context/scale`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      dim,
+      max_seq_len: maxSeqLen,
+      scale,
+      original_max_seq_len: originalMaxSeqLen,
+      scaling_type: scalingType,
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to inspect RoPE scaling");
+  return await res.json();
+}
+
+export async function runNeedleEvaluation(
+  model = "mock",
+  contextLengths = [250, 500, 1000],
+  depthFractions = [0.0, 0.25, 0.5, 0.75, 1.0]
+): Promise<NeedleEvaluationResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/context/needle`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      context_lengths: contextLengths,
+      depth_fractions: depthFractions,
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to run needle evaluation");
+  return await res.json();
+}
+
