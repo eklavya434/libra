@@ -14,6 +14,7 @@ from apps.backend.api.v1.endpoints import (
     conversations,
     health,
     models,
+    peft,
     quantization,
     rag,
     routing,
@@ -38,6 +39,8 @@ api_v1_router.include_router(routing.router, tags=["Dynamic Routing"])
 api_v1_router.include_router(alignment.router, tags=["Alignment & RLHF"])
 api_v1_router.include_router(attention.router, tags=["Attention & KV Cache"])
 api_v1_router.include_router(quantization.router, tags=["Quantization & Compression"])
+api_v1_router.include_router(peft.router, tags=["PEFT & LoRA"])
+
 
 
 

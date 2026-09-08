@@ -45,7 +45,8 @@
 | **Phase 22** | RLHF & Direct Preference Optimization (DPO) | ✅ COMPLETE | Bradley-Terry reward model, DPO trainer with reference model regularization, POST /api/v1/alignment/*, 12 new tests (`main`) |
 | **Phase 23** | KV Cache Optimization & Grouped-Query Attention | ✅ COMPLETE | Dynamic KVCache, GQA/MQA (torch.repeat_interleave), RoPE start_pos offset, generate_with_cache, POST /api/v1/attention/*, 11 new tests (`main`) |
 | **Phase 24** | Quantization (INT8 / INT4 & Post-Training Quantization) | ✅ COMPLETE | Symmetric/asymmetric affine quantization, packed INT4 nibbles, QuantizedLinearINT8/INT4, PTQ engine, POST /api/v1/quantization/*, 9 new tests (`main`) |
-| **Phase 25** | Parameter-Efficient Fine-Tuning (PEFT & LoRA) | ⏳ NEXT | Low-rank adapter decomposition (W0 + BA), trainable LoRA projections, adapter merging |
+| **Phase 25** | Parameter-Efficient Fine-Tuning (PEFT & LoRA) | ✅ COMPLETE | LoRALinear, W0 + (alpha/r)*B*A decomposition, zero-init identity, adapter save/load/merge, POST /api/v1/peft/*, 9 new tests (`main`) |
+| **Phase 26** | Streaming Token Telemetry & Token-Level Metrics | ⏳ NEXT | Token-level confidence & surprisal tracking, SSE token latency, top-k candidate distribution |
 
 ---
 
@@ -179,6 +180,23 @@
   - `POST /api/v1/quantization/benchmark`: Size, memory reduction, latency, and fidelity metrics across FP32, INT8, and INT4.
   - `POST /api/v1/quantization/convert`: Model quantization audit endpoint.
 
+### K. Phase 25: Parameter-Efficient Fine-Tuning (PEFT & LoRA)
+- **First-Principles Low-Rank Linear Layer (`LoRALinear` in `packages/models/lora/lora_linear.py`)**:
+  - Decomposition: $W = W_0 + \frac{\alpha}{r} (B \cdot A)$.
+  - Base weight $W_0$ frozen (`requires_grad=False`).
+  - Matrix $A$ initialized with Kaiming uniform; Matrix $B$ initialized to **zeros**, ensuring exact numerical identity with base model at initialization.
+  - Dynamic zero-latency weight folding (`merge_weights`) and unfolding (`unmerge_weights`).
+- **Model Adapter Management (`packages/models/lora/lora_model.py`)**:
+  - `apply_lora`: Converts target transformer projections (`q_proj`, `v_proj`) into LoRA layers, training $<1\%$ of total model parameters.
+  - `save_lora_adapter` / `load_lora_adapter`: Lightweight serialization saving only trainable adapter tensors (~few KB).
+  - Whole-model merging (`merge_lora_weights`) for production deployment.
+- **CPU LoRA Trainer (`LoRATrainer` in `packages/training/lora_trainer.py`)**:
+  - Memory-efficient AdamW optimizer loop updating exclusively low-rank parameters with gradient clipping.
+- **REST Endpoints**:
+  - `POST /api/v1/peft/apply`: Parameter count and memory audit.
+  - `POST /api/v1/peft/train_step`: Single step fine-tuning optimization.
+  - `POST /api/v1/peft/merge`: Zero-overhead inference merging verification.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -186,12 +204,12 @@
 - **Venv Size**: ~855 MB
 - **Frontend node_modules**: ~281 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,202.85 MB** (~1.20 GB)
+- **Total Workspace Footprint**: **1,203.05 MB** (~1.20 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,157.15 MB** (92.17% free)
+- **Remaining Storage Quota**: **14,156.95 MB** (92.17% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **286 passed, 0 failed** (in 22.74s)
+- **Pytest Status**: **295 passed, 0 failed** (in 36.37s)
 - **Frontend Status**: Next.js 14 production build clean (0 errors)
 
 

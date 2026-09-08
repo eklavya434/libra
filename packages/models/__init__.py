@@ -6,6 +6,15 @@ from packages.models.config import TinyTransformerConfig
 from packages.models.generation import generate, generate_with_cache
 from packages.models.modern_config import ModernTransformerConfig
 from packages.models.modern_transformer import ModernTransformerLM
+from packages.models.lora import (
+    LoRALinear,
+    apply_lora,
+    get_lora_parameter_summary,
+    load_lora_adapter,
+    merge_lora_weights,
+    save_lora_adapter,
+    unmerge_lora_weights,
+)
 from packages.models.quantization import (
     QuantizedLinearINT4,
     QuantizedLinearINT8,
@@ -52,4 +61,11 @@ __all__ = [
     "audit_quantization_fidelity",
     "QuantizedLinearINT8",
     "QuantizedLinearINT4",
+    "LoRALinear",
+    "apply_lora",
+    "merge_lora_weights",
+    "unmerge_lora_weights",
+    "get_lora_parameter_summary",
+    "save_lora_adapter",
+    "load_lora_adapter",
 ]
