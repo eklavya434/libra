@@ -91,6 +91,128 @@ export interface ArenaComparisonResponse {
   };
 }
 
+export interface ModelEloRecord {
+  model_id: string;
+  rating: number;
+  matches: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  win_rate: number;
+  ci_lower: number;
+  ci_upper: number;
+  category_ratings: Record<string, number>;
+}
+
+export interface JudgeVerdict {
+  winner: string;
+  score_a: number;
+  score_b: number;
+  confidence: number;
+  rationale: string;
+  position_swapped: boolean;
+  criteria_breakdown: Record<string, Record<string, number>>;
+}
+
+export interface ArenaBattleResponse {
+  match: {
+    match_id: string;
+    model_a: string;
+    model_b: string;
+    winner: string;
+    category: string;
+    rating_a_before: number;
+    rating_b_before: number;
+    rating_a_after: number;
+    rating_b_after: number;
+    delta_a: number;
+    delta_b: number;
+  };
+  verdict: JudgeVerdict;
+  completion_a: string;
+  completion_b: string;
+}
+
+export async function fetchEloLeaderboard(category = "overall"): Promise<ModelEloRecord[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/arena/leaderboard?category=${encodeURIComponent(category)}`);
+    if (!res.ok) throw new Error("Failed to fetch Elo leaderboard");
+    return await res.json();
+  } catch (err) {
+    console.warn("Could not fetch Elo leaderboard:", err);
+    return [];
+  }
+}
+
+export async function runArenaBattle(
+  prompt: string,
+  modelA: ArenaModelTarget,
+  modelB: ArenaModelTarget,
+  category = "overall"
+): Promise<ArenaBattleResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/arena/battle`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt,
+      model_a: modelA,
+      model_b: modelB,
+      category,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Battle failed (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
+export async function voteInArena(
+  modelA: string,
+  modelB: string,
+  winner: "model_a" | "model_b" | "tie",
+  category = "overall",
+  prompt?: string
+): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/arena/vote`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model_a: modelA,
+      model_b: modelB,
+      winner,
+      category,
+      prompt,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Vote failed (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
+export async function runArenaTournament(
+  models: ArenaModelTarget[],
+  categories?: string[],
+  promptsPerCategory = 1
+): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/arena/tournament`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      models,
+      categories,
+      prompts_per_category: promptsPerCategory,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Tournament failed (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
 export async function fetchModels(): Promise<ModelMetadata[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/v1/models`);

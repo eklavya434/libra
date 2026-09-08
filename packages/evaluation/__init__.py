@@ -1,6 +1,16 @@
 """Libra Evaluation & Benchmarking Package."""
 
 from packages.evaluation.arena import ModelComparisonArena
+from packages.evaluation.automated_judge import AutomatedJudge, JudgeVerdict
+from packages.evaluation.elo import (
+    EloLeaderboard,
+    MatchRecord,
+    ModelEloRecord,
+    calculate_confidence_interval,
+    calculate_expected_score,
+    compute_elo_update,
+    get_leaderboard_store,
+)
 from packages.evaluation.harness import CategoryScore, EvaluationHarness, EvaluationReport
 from packages.evaluation.loss_eval import (
     LossMetrics,
@@ -16,23 +26,41 @@ from packages.evaluation.multiple_choice import (
     MultipleChoiceResult,
 )
 from packages.evaluation.probes import ProbeExample, filter_probes, get_standard_probes
+from packages.evaluation.tournament import (
+    DEFAULT_BENCHMARK_PROMPTS,
+    BenchmarkPrompt,
+    TournamentReport,
+    TournamentRunner,
+)
 
 __all__ = [
-    "compute_perplexity",
-    "compute_bits_per_token",
-    "LossMetrics",
-    "evaluate_tokens_loss",
-    "evaluate_dataset_loss",
-    "ChoiceScore",
-    "MultipleChoiceResult",
-    "MultipleChoiceEvaluator",
-    "ProbeExample",
-    "get_standard_probes",
-    "filter_probes",
-    "CategoryScore",
-    "EvaluationReport",
-    "EvaluationHarness",
-    "ModelComparisonArena",
+    "DEFAULT_BENCHMARK_PROMPTS",
     "ArenaModelMetric",
+    "AutomatedJudge",
+    "BenchmarkPrompt",
+    "CategoryScore",
+    "ChoiceScore",
+    "EloLeaderboard",
+    "EvaluationHarness",
+    "EvaluationReport",
+    "JudgeVerdict",
+    "LossMetrics",
+    "MatchRecord",
+    "ModelComparisonArena",
+    "ModelEloRecord",
+    "MultipleChoiceEvaluator",
+    "MultipleChoiceResult",
+    "ProbeExample",
+    "TournamentReport",
+    "TournamentRunner",
+    "calculate_confidence_interval",
+    "calculate_expected_score",
+    "compute_bits_per_token",
+    "compute_elo_update",
+    "compute_perplexity",
+    "evaluate_dataset_loss",
+    "evaluate_tokens_loss",
+    "filter_probes",
+    "get_leaderboard_store",
+    "get_standard_probes",
 ]
-

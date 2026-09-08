@@ -63,6 +63,7 @@ lerna-debug.log*
 /checkpoints/
 /data/processed/
 /data/tokenized/
+data/*_leaderboard.json
 experiments/runs/
 *.pt
 *.bin
