@@ -20,6 +20,7 @@ from apps.backend.api.v1.endpoints import (
     document_ocr,
     grammar,
     health,
+    kto,
     long_context,
     mcts_reasoning,
     medusa,
@@ -78,3 +79,4 @@ api_v1_router.include_router(mcts_reasoning.router, tags=["MCTS Reasoning & PRMs
 api_v1_router.include_router(distillation.router, tags=["Knowledge Distillation & Model Shrinking"])
 api_v1_router.include_router(moe.router, tags=["Mixture of Experts & Sparse Routing"])
 api_v1_router.include_router(medusa.router, tags=["Medusa Speculative Decoding"])
+api_v1_router.include_router(kto.router, tags=["KTO & Online DPO Alignment"])

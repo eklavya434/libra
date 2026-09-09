@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText, ShieldAlert, Activity, FileSearch, Compass, GitBranch, Shrink, Network, FastForward } from 'lucide-react';
+import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText, ShieldAlert, Activity, FileSearch, Compass, GitBranch, Shrink, Network, FastForward, Scale } from 'lucide-react';
 import { ConversationSummary } from '@/lib/api';
 
 interface SidebarProps {
   currentSessionId: string;
-  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa';
+  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa' | 'kto';
   conversations?: ConversationSummary[];
-  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa') => void;
+  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa' | 'kto') => void;
   onSelectConversation?: (id: string) => void;
   onNewConversation?: () => void;
   onDeleteConversation?: (id: string) => void;
@@ -229,6 +229,18 @@ export default function Sidebar({
             >
               <FastForward className={`w-4 h-4 ${activeTab === 'medusa' ? 'text-amber-400' : 'text-slate-400'}`} />
               <span>Medusa Speculative</span>
+            </button>
+
+            <button
+              onClick={() => onSelectTab && onSelectTab('kto')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${
+                activeTab === 'kto'
+                  ? 'bg-amber-600/20 border border-amber-500/40 text-amber-300 font-medium'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+              }`}
+            >
+              <Scale className={`w-4 h-4 ${activeTab === 'kto' ? 'text-amber-400' : 'text-slate-400'}`} />
+              <span>KTO Alignment</span>
             </button>
           </div>
         </div>

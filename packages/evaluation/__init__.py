@@ -1,5 +1,6 @@
 """Libra Evaluation & Benchmarking Package."""
 
+from packages.evaluation.alignment_eval import AlignmentEvaluator
 from packages.evaluation.arena import ModelComparisonArena
 from packages.evaluation.automated_judge import AutomatedJudge, JudgeVerdict
 from packages.evaluation.distillation_eval import DistillationEvaluator
@@ -39,6 +40,7 @@ from packages.evaluation.tournament import (
 
 __all__ = [
     "DEFAULT_BENCHMARK_PROMPTS",
+    "AlignmentEvaluator",
     "ArenaModelMetric",
     "AutomatedJudge",
     "BenchmarkPrompt",

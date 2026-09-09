@@ -66,8 +66,9 @@
 | **Phase 43** | RL via Self-Play & Monte Carlo Tree Search (MCTS) | ✅ COMPLETE | Process Reward Model (PRM), PUCT tree search, self-play DPO generator, MCTSTreeView UI (`main`) |
 | **Phase 44** | Knowledge Distillation & Model Shrinking | ✅ COMPLETE | Teacher-student logit transfer, tau^2-scaled KL divergence, layer dropping, Distillation Lab UI (`main`) |
 | **Phase 45** | Mixture of Experts Architecture (Sparse MoE) | ✅ COMPLETE | Top-k noisy gating, expert routing, load-balancing auxiliary loss, MoE Lab UI (`a3ade16`) |
-| **Phase 46** | Speculative Verification & Medusa Multi-Head Drafting | ✅ COMPLETE | Multi-head residual drafting, parallel prefix verification, MedusaEvaluator, Medusa Lab UI (`main`) |
-| **Phase 47** | Direct Alignment & Online DPO / KTO | ⏳ NEXT | Kahneman-Tversky Optimization (KTO), binary preference pairs, loss reweighting |
+| **Phase 46** | Speculative Verification & Medusa Multi-Head Drafting | ✅ COMPLETE | Multi-head residual drafting, parallel prefix verification, MedusaEvaluator, Medusa Lab UI (`68c60b1`) |
+| **Phase 47** | Direct Alignment & Online DPO / KTO | ✅ COMPLETE | Kahneman-Tversky Optimization (KTO), unpaired binary feedback, Online on-policy DPO, Alignment Lab UI (`main`) |
+| **Phase 48** | Reasoning via Verifiable Search (PRM & Best-of-N) | ⏳ NEXT | Process Reward Model (PRM) guided tree search, step-level credit assignment, backtracking |
 
 
 ---
@@ -594,6 +595,26 @@
   - Speedup gauge meter, throughput comparator, and per-head acceptance accuracy bar charts.
   - Interactive training panel for fine-tuning Medusa heads on CPU in seconds.
 
+### GG. Phase 47: Direct Alignment & Online DPO / Kahneman-Tversky Optimization (KTO)
+- **Unpaired Binary Alignment (`packages/training/kto_dataset.py` & `packages/training/kto_trainer.py`)**:
+  - `KTOSample` & `KTODataset`: Unpaired binary observations $(x, y, z \in \{+1, -1\})$ with prompt masking (-100).
+  - `KTOTrainer`: Computes implicit rewards $r_\theta(x, y) = \beta (\log \pi_\theta - \log \pi_{\text{ref}})$, dynamically centers against batch baseline $z_{\text{ref}} = \mathbb{E}[r_\theta]$, and applies asymmetric Kahneman-Tversky loss:
+    $$\mathcal{L}_{\text{KTO}} = \lambda_D (1 - \sigma(r - z_{\text{ref}})) + \lambda_U (1 - \sigma(z_{\text{ref}} - r))$$
+    with loss aversion weighting $\lambda_U > \lambda_D$ (default $\lambda_U = 1.33, \lambda_D = 1.0$).
+- **On-Policy Exploration (`packages/training/online_dpo_trainer.py`)**:
+  - `OnlineDPOTrainer`: Samples $K \ge 2$ responses on-policy from current policy, ranks them dynamically using a reward oracle, constructs $(y_w, y_l)$ preference pairs, and updates policy parameters via DPO without off-policy distribution shift.
+- **Multi-Paradigm Alignment Evaluator (`packages/evaluation/alignment_eval.py`)**:
+  - `AlignmentEvaluator`: Benchmarks SFT baseline, Offline DPO, Online DPO, and KTO across win rates, implicit reward margins, policy KL drift, and sample efficiency.
+- **KTO REST Endpoints (`apps/backend/api/v1/endpoints/kto.py`)**:
+  - `POST /api/v1/kto/step`: Single KTO training step on binary feedback samples.
+  - `POST /api/v1/kto/online-dpo/step`: On-policy candidate rollout and online DPO step.
+  - `POST /api/v1/kto/evaluate`: Side-by-side alignment benchmark across paradigms.
+  - `GET /api/v1/kto/presets`: Educational presets (helpfulness, safety boundaries, prospect theory curve).
+- **Interactive Alignment Lab UI (`apps/frontend/src/components/KTOView.tsx`)**:
+  - Interactive Kahneman-Tversky S-curve visualizer with loss aversion multiplier slider.
+  - Binary feedback playground with 1-click 👍 Desirable / 👎 Undesirable toggles.
+  - Real-time on-policy exploration telemetry and paradigm comparison arena.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -603,13 +624,13 @@
 - **Next.js Production Build (`.next`)**: ~104 MB
 - **Python & Pytest Caches**: ~199 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Source Code & Data**: 4.62 MB
-- **Total Workspace Footprint**: **1,466.16 MB** (~1.43 GB)
+- **Source Code & Data**: 4.66 MB
+- **Total Workspace Footprint**: **1,466.20 MB** (~1.43 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **13,893.84 MB** (90.5% free)
+- **Remaining Storage Quota**: **13,893.80 MB** (90.5% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **526 passed, 0 failed** across all 46 phases
+- **Pytest Status**: **538 passed, 0 failed** across all 47 phases
 - **Frontend Status**: Next.js 14 production build clean (0 errors, 4/4 static pages)
 
 
