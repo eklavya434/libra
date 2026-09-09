@@ -2,6 +2,7 @@
 
 from packages.evaluation.arena import ModelComparisonArena
 from packages.evaluation.automated_judge import AutomatedJudge, JudgeVerdict
+from packages.evaluation.distillation_eval import DistillationEvaluator
 from packages.evaluation.elo import (
     EloLeaderboard,
     MatchRecord,
@@ -41,6 +42,7 @@ __all__ = [
     "BenchmarkPrompt",
     "CategoryScore",
     "ChoiceScore",
+    "DistillationEvaluator",
     "EloLeaderboard",
     "EvaluationHarness",
     "EvaluationReport",

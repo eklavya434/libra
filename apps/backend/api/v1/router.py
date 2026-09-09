@@ -16,6 +16,7 @@ from apps.backend.api.v1.endpoints import (
     context,
     conversations,
     corpus,
+    distillation,
     document_ocr,
     grammar,
     health,
@@ -72,3 +73,4 @@ api_v1_router.include_router(
 )
 api_v1_router.include_router(long_context.router, tags=["Long-Context & Attention Compaction"])
 api_v1_router.include_router(mcts_reasoning.router, tags=["MCTS Reasoning & PRMs"])
+api_v1_router.include_router(distillation.router, tags=["Knowledge Distillation & Model Shrinking"])
