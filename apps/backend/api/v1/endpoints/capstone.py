@@ -37,7 +37,9 @@ async def get_capstone_status() -> CapstoneStatusResponse:
     """Returns the comprehensive Project Libra Capstone Release status."""
     hw = detect_hardware()
 
-    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+    repo_root = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
+    )
     tracked = ["models", "data", "checkpoints", ".venv"]
     total_bytes = 0
     for d in tracked:

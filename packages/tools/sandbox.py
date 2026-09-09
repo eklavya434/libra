@@ -173,6 +173,19 @@ class SafePythonSandbox:
 
             # 4. Spawn child process executing runner.py in isolated mode (-I: no user site, no PYTHONPATH)
             python_bin = getattr(sys, "_base_executable", sys.executable)
+            preexec = None
+            if sys.platform != "win32":
+                try:
+                    import resource
+
+                    def _set_posix_limits(limit_mb=mem_limit):
+                        bytes_limit = int(limit_mb * 1024 * 1024)
+                        resource.setrlimit(resource.RLIMIT_AS, (bytes_limit, bytes_limit))
+
+                    preexec = _set_posix_limits
+                except (ImportError, AttributeError):
+                    pass
+
             proc = subprocess.Popen(
                 [python_bin, "-I", "-s", RUNNER_PATH],
                 stdin=subprocess.PIPE,
@@ -181,6 +194,7 @@ class SafePythonSandbox:
                 cwd=temp_dir,
                 env=child_env,
                 text=True,
+                preexec_fn=preexec,
             )
 
             # 5. Apply OS Kernel Resource Limits (Memory & Subprocess Blocking)
