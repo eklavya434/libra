@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText, ShieldAlert, Activity, FileSearch, Compass, GitBranch, Shrink, Network, FastForward, Scale, CheckCheck } from 'lucide-react';
+import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText, ShieldAlert, Activity, FileSearch, Compass, GitBranch, Shrink, Network, FastForward, Scale, CheckCheck, Award } from 'lucide-react';
 import { ConversationSummary } from '@/lib/api';
 
 interface SidebarProps {
   currentSessionId: string;
-  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa' | 'kto' | 'verifiable_search';
+  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa' | 'kto' | 'verifiable_search' | 'self_rewarding';
   conversations?: ConversationSummary[];
-  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa' | 'kto' | 'verifiable_search') => void;
+  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa' | 'kto' | 'verifiable_search' | 'self_rewarding') => void;
   onSelectConversation?: (id: string) => void;
   onNewConversation?: () => void;
   onDeleteConversation?: (id: string) => void;
@@ -253,6 +253,18 @@ export default function Sidebar({
             >
               <CheckCheck className={`w-4 h-4 ${activeTab === 'verifiable_search' ? 'text-cyan-400' : 'text-slate-400'}`} />
               <span>Verifiable Search</span>
+            </button>
+
+            <button
+              onClick={() => onSelectTab && onSelectTab('self_rewarding')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${
+                activeTab === 'self_rewarding'
+                  ? 'bg-amber-600/20 border border-amber-500/40 text-amber-300 font-medium'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+              }`}
+            >
+              <Award className={`w-4 h-4 ${activeTab === 'self_rewarding' ? 'text-amber-400' : 'text-slate-400'}`} />
+              <span>Self-Rewarding</span>
             </button>
           </div>
         </div>

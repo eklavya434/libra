@@ -69,7 +69,8 @@
 | **Phase 46** | Speculative Verification & Medusa Multi-Head Drafting | ✅ COMPLETE | Multi-head residual drafting, parallel prefix verification, MedusaEvaluator, Medusa Lab UI (`68c60b1`) |
 | **Phase 47** | Direct Alignment & Online DPO / KTO | ✅ COMPLETE | Kahneman-Tversky Optimization (KTO), unpaired binary feedback, Online on-policy DPO, Alignment Lab UI (`59831c4`) |
 | **Phase 48** | Reasoning via Verifiable Search (PRM & Best-of-N) | ✅ COMPLETE | Step-level PRM verification, automatic branch pruning & backtracking, test-time compute scaling (`main`) |
-| **Phase 49** | Self-Rewarding Language Models (Iterative DPO) | ⏳ NEXT | LLM-as-a-Judge self-rewarding, iterative alignment loops, position bias mitigation |
+| **Phase 49** | Self-Rewarding Language Models (Iterative DPO) | ✅ COMPLETE | LLM-as-a-Judge self-rewarding, iterative alignment loops, position bias mitigation (`main`) |
+| **Phase 50** | Capstone Self-Evolution & Unified Autonomous Engine | ⏳ NEXT | Recursive self-evolution orchestrator, grand capstone certification, unified pipeline |
 
 
 ---
@@ -631,6 +632,23 @@
   - Step detail inspector displaying intermediate PRM confidence, cumulative path confidence, and detected errors.
   - Test-time compute benchmark comparison table and telemetry dashboard.
 
+### II. Phase 49: Self-Rewarding Language Models (Iterative DPO with LLM-as-a-Judge)
+- **Self-Rewarding Alignment Flywheel (`packages/training/self_rewarding.py`)**:
+  - `LLMJudge` & `JudgeRubric`: Structured multi-criteria evaluation engine assessing candidate responses on Correctness, Helpfulness, and Clarity (1–5 Likert scale) with CoT critique justification. Mitigates position bias via bidirectional order swapping:
+    $$r_{\text{debiased}}(A) = \frac{r(A \mid A, B) + r(A \mid B, A)}{2}$$
+  - `SelfRewardingTrainer`: Orchestrates iterative self-improvement loops: generates $K$ candidate completions on-policy, self-rewards candidates using `LLMJudge`, isolates winning and losing completions ($y_w, y_l$) when margin $\ge \Delta_{\text{min}}$, and updates model parameters using DPO with dynamic reference model promotion ($M_t \to M_{t+1}$).
+- **Quantitative Evaluator (`packages/evaluation/self_rewarding_eval.py`)**:
+  - `SelfRewardingEvaluator`: Measures progressive win-rates across iterations, order-inconsistency rates (position-bias metric), and Pearson correlation between self-judge ratings and oracle/ground-truth evaluations.
+- **Self-Rewarding REST Endpoints (`apps/backend/api/v1/endpoints/self_rewarding.py`)**:
+  - `POST /api/v1/self-rewarding/judge`: Single and pairwise LLM-as-a-Judge scoring with position-bias audit.
+  - `POST /api/v1/self-rewarding/iterate`: Complete on-policy flywheel step and DPO parameter update.
+  - `POST /api/v1/self-rewarding/benchmark`: Progressive iteration benchmarking.
+  - `GET /api/v1/self-rewarding/presets`: Educational prompts and rubrics (General Helpfulness, Code Quality, Mathematical Reasoning).
+- **Interactive Self-Rewarding Studio UI (`apps/frontend/src/components/SelfRewardingView.tsx`)**:
+  - Flywheel tab: Visual candidate rollouts, self-reward scores, winner/loser badges, DPO loss curves, and iteration slider.
+  - Judge studio: Rubric picker, single/pairwise comparative evaluation, CoT critique display, and order inconsistency gap meter.
+  - Progression arena: Iterative progression dashboard ($M_0 \to M_1 \to M_2$) tracking win rates, judge score elevation, and oracle correlation.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -640,13 +658,13 @@
 - **Next.js Production Build (`.next`)**: ~104 MB
 - **Python & Pytest Caches**: ~199 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Source Code & Data**: 4.70 MB
-- **Total Workspace Footprint**: **1,466.24 MB** (~1.43 GB)
+- **Source Code & Data**: 4.85 MB
+- **Total Workspace Footprint**: **1,466.90 MB** (~1.43 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **13,893.76 MB** (90.5% free)
+- **Remaining Storage Quota**: **13,893.10 MB** (90.5% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **546 passed, 0 failed** across all 48 phases
+- **Pytest Status**: **556 passed, 0 failed** across all 49 phases
 - **Frontend Status**: Next.js 14 production build clean (0 errors, 4/4 static pages)
 
 
