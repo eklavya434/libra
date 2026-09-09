@@ -505,6 +505,28 @@
   - KV Cache Compaction Visualizer: Color-coded token tape (Sinks, Heavy Hitters, Recent Window, Evicted).
   - Multi-Needle Recall Console: Interactive test runner with found/missing badges.
 
+### CC. Phase 43: Reinforcement Learning via Self-Play & Monte Carlo Tree Search (MCTS / LibraReason)
+- **Process Reward Model (PRM) (`packages/models/reasoning/prm.py`)**:
+  - Dense step-level supervision scoring intermediate reasoning steps ($r \in [0, 1]$).
+  - Exact arithmetic validation checking calculations ($a \odot b = c$) and contradiction identification.
+  - Detects first point of failure (`first_error_index`) for early branch pruning.
+- **Monte Carlo Tree Search (`packages/models/reasoning/mcts.py`)**:
+  - Step-by-step reasoning exploration guided by Polynomial Upper Confidence Trees (PUCT).
+  - 4-phase search loop: Selection (PUCT), Expansion (candidate steps), Evaluation (PRM score rollout), Backpropagation ($N, Q$).
+  - Optimal trajectory extraction and full graph tree serialization.
+- **Self-Play Preference Synthesizer (`packages/models/reasoning/self_play.py`)**:
+  - Generates reasoning problems across arithmetic, algebra, and geometry.
+  - Automatically synthesizes step-level DPO preference pairs `(prompt, chosen, rejected)` with reward margin $\Delta r$.
+- **MCTS REST Endpoints (`apps/backend/api/v1/endpoints/mcts_reasoning.py`)**:
+  - `POST /api/v1/reasoning/mcts/search`: Full MCTS step search returning visual tree graph and optimal path.
+  - `POST /api/v1/reasoning/mcts/prm/score`: Step-level PRM scoring and error identification.
+  - `POST /api/v1/reasoning/mcts/self_play/generate`: Synthetic self-play DPO pair generator.
+  - `GET /api/v1/reasoning/mcts/presets`: Pre-configured reasoning problem templates.
+- **Interactive MCTS Tree Visualizer UI (`apps/frontend/src/components/MCTSTreeView.tsx`)**:
+  - Visual tree canvas arranged by depth levels, color-coded by PRM validity score.
+  - Step Inspector drawer displaying PUCT metrics ($N$, $Q$, PRM score) and root-to-node trajectory.
+  - PRM Step Verifier and Self-Play DPO console.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit

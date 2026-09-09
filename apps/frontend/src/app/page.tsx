@@ -12,6 +12,7 @@ import BatchInferenceView from '@/components/BatchInferenceView';
 import DocumentOCRView from '@/components/DocumentOCRView';
 import NotebookView from '@/components/NotebookView';
 import LongContextView from '@/components/LongContextView';
+import MCTSTreeView from '@/components/MCTSTreeView';
 import {
   ConversationSummary,
   fetchConversations,
@@ -20,7 +21,7 @@ import {
 } from '@/lib/api';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts'>('chat');
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
@@ -90,6 +91,7 @@ export default function Home() {
         {activeTab === 'document' && <DocumentOCRView />}
         {activeTab === 'notebook' && <NotebookView />}
         {activeTab === 'long_context' && <LongContextView />}
+        {activeTab === 'mcts' && <MCTSTreeView />}
       </main>
     </div>
   );
