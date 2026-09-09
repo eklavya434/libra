@@ -130,22 +130,56 @@ class GeminiProvider(BaseProvider):
         for m in messages:
             role = m.get("role", "user").lower()
             content = m.get("content", "")
+            if not content or not str(content).strip():
+                continue
+
+            # Strip non-printable control characters
+            clean_text = "".join(ch for ch in str(content) if ch >= " " or ch in "\n\r\t").strip()
+            if not clean_text:
+                continue
+
+            # Strip out legacy mock prefix echoes so Gemini never mimics mock echoes
+            if clean_text.startswith("[MockStream]"):
+                prefix = "[MockStream] Hello from Libra! You said:"
+                if prefix in clean_text:
+                    clean_text = clean_text.replace(prefix, "").strip().strip("'\"")
+                else:
+                    clean_text = clean_text.replace("[MockStream]", "").strip()
+
             if role == "system":
-                system_parts.append({"text": content})
+                system_parts.append({"text": clean_text})
             else:
                 gemini_role = "model" if role == "assistant" else "user"
-                gemini_contents.append(
-                    {
-                        "role": gemini_role,
-                        "parts": [{"text": content}],
-                    }
-                )
+                # If consecutive message has the same role, combine them
+                if gemini_contents and gemini_contents[-1]["role"] == gemini_role:
+                    gemini_contents[-1]["parts"][0]["text"] += f"\n\n{clean_text}"
+                else:
+                    gemini_contents.append(
+                        {
+                            "role": gemini_role,
+                            "parts": [{"text": clean_text}],
+                        }
+                    )
 
-        system_instruction = {"parts": system_parts} if system_parts else None
+        # Gemini requires the final message to be 'user' to generate the next 'model' turn
+        while gemini_contents and gemini_contents[-1]["role"] == "model":
+            gemini_contents.pop()
 
         if not gemini_contents:
             gemini_contents = [{"role": "user", "parts": [{"text": "Hello"}]}]
 
+        # Default system instruction if none provided
+        if not system_parts:
+            system_parts = [
+                {
+                    "text": (
+                        "You are Libra, an intelligent and helpful AI conversational assistant. "
+                        "Answer user questions accurately, helpfully, and conversationally in Markdown format."
+                    )
+                }
+            ]
+
+        system_instruction = {"parts": system_parts}
         return gemini_contents, system_instruction
 
     async def chat(

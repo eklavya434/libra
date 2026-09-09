@@ -97,9 +97,17 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
                     content=last_req_msg.content,
                 )
 
+        # Sync conversation model if user switched models in UI
+        if conv and conv.model != request.model:
+            store.update_conversation(request.conversation_id, model=request.model)
+
         # Retrieve full conversation history from persistent store
         history = store.get_messages(request.conversation_id)
-        active_system_prompt = request.system_prompt or (conv.system_prompt if conv else None)
+        active_system_prompt = (
+            request.system_prompt
+            or (conv.system_prompt if conv else None)
+            or "You are Libra, an intelligent, helpful, and friendly AI assistant. Answer conversationally in Markdown."
+        )
         processed_context = context_manager.prepare_context(
             messages=history,
             override_system_prompt=active_system_prompt,
