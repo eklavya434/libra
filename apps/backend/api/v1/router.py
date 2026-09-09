@@ -16,6 +16,7 @@ from apps.backend.api.v1.endpoints import (
     context,
     conversations,
     corpus,
+    document_ocr,
     grammar,
     health,
     models,
@@ -62,3 +63,4 @@ api_v1_router.include_router(capstone.router, tags=["Capstone & Release"])
 api_v1_router.include_router(security.router, tags=["Security & Defense"])
 api_v1_router.include_router(observability.router, tags=["Observability & Tracing"])
 api_v1_router.include_router(batch.router, tags=["Batch Inference & Async Workers"])
+api_v1_router.include_router(document_ocr.router, tags=["Document Understanding & OCR"])

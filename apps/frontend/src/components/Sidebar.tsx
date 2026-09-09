@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText, ShieldAlert, Activity } from 'lucide-react';
+import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText, ShieldAlert, Activity, FileSearch } from 'lucide-react';
 import { ConversationSummary } from '@/lib/api';
 
 interface SidebarProps {
   currentSessionId: string;
-  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch';
+  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document';
   conversations?: ConversationSummary[];
-  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch') => void;
+  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document') => void;
   onSelectConversation?: (id: string) => void;
   onNewConversation?: () => void;
   onDeleteConversation?: (id: string) => void;
@@ -145,6 +145,18 @@ export default function Sidebar({
             >
               <Layers className={`w-4 h-4 ${activeTab === 'batch' ? 'text-amber-400' : 'text-slate-400'}`} />
               <span>Batch Inference</span>
+            </button>
+
+            <button
+              onClick={() => onSelectTab && onSelectTab('document')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${
+                activeTab === 'document'
+                  ? 'bg-cyan-600/20 border border-cyan-500/40 text-cyan-300 font-medium'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+              }`}
+            >
+              <FileSearch className={`w-4 h-4 ${activeTab === 'document' ? 'text-cyan-400' : 'text-slate-400'}`} />
+              <span>Document OCR</span>
             </button>
           </div>
         </div>

@@ -58,8 +58,10 @@
 | **Phase 35** | CI/CD & Automated Quality Gates | ✅ COMPLETE | GitHub Actions CI workflow, Ruff lint/format, pytest matrix, Next.js build verification (`main`) |
 | **Phase 36** | Capstone System Verification & Architecture Audit CLI | ✅ COMPLETE | 10-vector automated audit engine, REST endpoint, interactive CLI demo, system health verification (`main`) |
 | **Phase 37** | Security Hardening & Adversarial Robustness | ✅ COMPLETE | PromptGuard, SecretScanner DLP, TokenBucketRateLimiter, OWASP middleware, Security Lab UI (`main`) |
+| **Phase 38** | Observability, Distributed Tracing & OpenTelemetry | ✅ COMPLETE | OpenTelemetry Tracer, Span hierarchy, W3C traceparent, TokenVelocityMetrics, Waterfall UI (`main`) |
 | **Phase 39** | High-Throughput Batch Inference & Async Workers | ✅ COMPLETE | Dynamic sequence binning, left-padding, async worker queue, Batch Lab UI (`main`) |
-| **Phase 40** | Multi-Modal Document Understanding & OCR Pipeline | ⏳ NEXT | LibraOCR, table & formula parsing, document chunking, multimodal QA |
+| **Phase 40** | Multi-Modal Document Understanding & OCR Pipeline | ✅ COMPLETE | LibraOCR, table & formula parsing, layout-aware chunker, grounded visual QA (`main`) |
+| **Phase 41** | Stateful Code Interpreter & Data Analytics Sandbox | ⏳ NEXT | LibraNotebook, multi-cell state, data visualization (SVG/charts), automated table analysis |
 
 
 ---
@@ -430,6 +432,26 @@
   - `POST /api/v1/batch/analyze`: Compares naive vs dynamic length padding waste.
 - **Interactive Batch Lab UI (`apps/frontend/src/components/BatchInferenceView.tsx`)**:
   - Job runner with workload presets, live progress bar, throughput tracker, and padding matrix visualizer.
+
+### Z. Phase 40: Multi-Modal Document Understanding & OCR Pipeline (LibraOCR)
+- **Document Layout Parser (`packages/core/document/layout_parser.py`)**:
+  - Deconstructs pages into `HEADING`, `PARAGRAPH`, `TABLE`, `EQUATION`, and `KEY_VALUE`.
+  - Normalized 2D spatial bounding boxes $[x_{\min}, y_{\min}, x_{\max}, y_{\max}] \in [0, 1]^4$ with Area and IoU overlap calculation.
+  - Table matrix extraction into `TableGrid` with markdown and CSV serialization.
+  - LaTeX equation isolation and parsing.
+- **Layout-Aware Semantic Chunker (`packages/core/document/layout_chunker.py`)**:
+  - Preserves table rows without splitting; re-injects table headers when an oversized table spans multiple chunks.
+  - Heading breadcrumb hierarchy tracking for grounded RAG context.
+- **Grounded Document QA Engine (`packages/core/document/document_qa.py`)**:
+  - Answers questions over structured documents with exact citations (page number, element ID, table cell reference, and bounding box coordinates).
+- **Document OCR Endpoints (`apps/backend/api/v1/endpoints/document_ocr.py`)**:
+  - `GET /api/v1/document/presets`: Financial report, research paper, and commercial invoice presets.
+  - `POST /api/v1/document/parse`: Full AST layout extraction with bounding boxes.
+  - `POST /api/v1/document/chunk`: Layout-aware semantic chunking.
+  - `POST /api/v1/document/qa`: Grounded visual question answering.
+- **Interactive Document Lab UI (`apps/frontend/src/components/DocumentOCRView.tsx`)**:
+  - 2D visual document page canvas with colored bounding boxes.
+  - Live inspector and Grounded Q&A Assistant with active citation highlight rings.
 
 ---
 
