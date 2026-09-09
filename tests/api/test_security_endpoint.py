@@ -23,8 +23,13 @@ def test_security_scan_endpoint_detects_injection(client):
     assert len(data["prompt_audit"]["reasons"]) > 0
 
 
+# Synthetic tokens assembled dynamically to prevent false-positive alerts in static git scanners
+DUMMY_GEMINI_KEY = "AIzaSy" + "FakeTestDummyKey12345678901234567"
+DUMMY_OPENAI_KEY = "sk-" + "projFakeTestDummyKey123456789012345"
+
+
 def test_security_scan_endpoint_detects_secret(client):
-    payload = {"text": "Use this key: AIzaSyB9zT5w1Q8r3M0k2X4p7V9l6J8h4D2s1F3 for testing."}
+    payload = {"text": f"Use this key: {DUMMY_GEMINI_KEY} for testing."}
     response = client.post("/api/v1/security/scan", json=payload)
     assert response.status_code == 200
     data = response.json()
@@ -35,7 +40,7 @@ def test_security_scan_endpoint_detects_secret(client):
 
 
 def test_security_redact_endpoint(client):
-    payload = {"text": "Authorization: Bearer sk-proj9a8b7c6d5e4f3g2h1i0j9k8l7m6n5o4p3q2r1s0t"}
+    payload = {"text": f"Authorization: Bearer {DUMMY_OPENAI_KEY}"}
     response = client.post("/api/v1/security/redact", json=payload)
     assert response.status_code == 200
     data = response.json()

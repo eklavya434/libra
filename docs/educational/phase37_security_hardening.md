@@ -50,7 +50,7 @@ $$H(s) = -\sum_{i=1}^{K} p_i \log_2 p_i$$
 
 For example:
 - Natural English text ("welcome_to_libra"): $H \approx 2.7 - 3.2\text{ bits/char}$
-- Random Base64/Hex API Key ("AIzaSyB9zT5w1Q8r3M0k2X4p7V9l6J8h4D2s1F3"): $H \ge 3.8 - 4.5\text{ bits/char}$
+- Random Base64/Hex API Key ("AIzaSy[REDACTED_33_CHAR_STRING]"): $H \ge 3.8 - 4.5\text{ bits/char}$
 
 The `SecretScanner` flags tokens exceeding $H \ge 3.8$ bits/char with length $\ge 24$ characters as probable credentials.
 

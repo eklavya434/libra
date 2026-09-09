@@ -7,14 +7,19 @@ from packages.core.security.secret_scanner import (
     SecretType,
 )
 
+# Synthetic tokens assembled dynamically to prevent false-positive alerts in static git scanners
+DUMMY_GEMINI_KEY = "AIzaSy" + "FakeTestDummyKey12345678901234567"
+DUMMY_OPENAI_KEY = "sk-" + "projFakeTestDummyKey123456789012345"
+DUMMY_AWS_KEY = "AKIA" + "IOSFODNN7EXAMPLE"
+
 
 def test_gemini_api_key_detection():
     scanner = SecretScanner()
-    text = "Loaded key: AIzaSyB9zT5w1Q8r3M0k2X4p7V9l6J8h4D2s1F3 for model routing."
+    text = f"Loaded key: {DUMMY_GEMINI_KEY} for model routing."
     findings = scanner.scan(text)
     assert len(findings) == 1
     assert findings[0].secret_type == SecretType.GEMINI_API_KEY
-    assert findings[0].matched_value == "AIzaSyB9zT5w1Q8r3M0k2X4p7V9l6J8h4D2s1F3"
+    assert findings[0].matched_value == DUMMY_GEMINI_KEY
 
     redacted = scanner.redact(text)
     assert "[REDACTED_GEMINI_API_KEY]" in redacted
@@ -23,7 +28,7 @@ def test_gemini_api_key_detection():
 
 def test_openai_api_key_detection():
     scanner = SecretScanner()
-    text = "Client initialized with sk-proj9a8b7c6d5e4f3g2h1i0j9k8l7m6n5o4p3q2r1s0t key."
+    text = f"Client initialized with {DUMMY_OPENAI_KEY} key."
     findings = scanner.scan(text)
     assert len(findings) == 1
     assert findings[0].secret_type == SecretType.OPENAI_API_KEY
@@ -35,7 +40,7 @@ def test_openai_api_key_detection():
 
 def test_aws_key_detection():
     scanner = SecretScanner()
-    text = "Credentials: AKIAIOSFODNN7EXAMPLE stored locally."
+    text = f"Credentials: {DUMMY_AWS_KEY} stored locally."
     findings = scanner.scan(text)
     assert len(findings) == 1
     assert findings[0].secret_type == SecretType.AWS_ACCESS_KEY
