@@ -453,6 +453,38 @@
   - 2D visual document page canvas with colored bounding boxes.
   - Live inspector and Grounded Q&A Assistant with active citation highlight rings.
 
+### AA. Phase 41: Stateful Code Interpreter & Data Analytics Sandbox (LibraNotebook)
+- **Stateful REPL Kernel (`packages/core/notebook/session_kernel.py`)**:
+  - Persistent execution memory (`_globals`) across cells with isolated session scoping.
+  - AST statement/expression splitter compiling leading statements as `exec` and trailing expression as `eval` for automatic value display.
+  - Stream redirection capturing `sys.stdout` and `sys.stderr`.
+  - Execution counter tracking (`In [x]`), execution duration in milliseconds, and variable diffs.
+- **In-Memory Tabular Engine (`packages/core/notebook/analytics.py`)**:
+  - `LibraTable`: Zero-dependency DataFrame supporting `select`, `filter`, `sort_by`, `head`, `tail`.
+  - Group-by aggregation engine (`sum`, `mean`, `count`, `min`, `max`, `median`).
+  - Five-number percentile summaries and Bessel-corrected sample standard deviation in `describe()`.
+  - Multi-format serialization: Markdown, styled HTML, and CSV.
+- **Pure-Python SVG Vector Chart Engine (`packages/core/notebook/charts.py`)**:
+  - Zero-dependency vector graphics generator (`image/svg+xml`).
+  - Chart types: `LibraChart.bar`, `LibraChart.line`, `LibraChart.scatter`, `LibraChart.histogram`.
+  - Native Jupyter rich display hooks via `_repr_svg_()` and `_repr_html_()`.
+- **AST Security Policy (`packages/core/notebook/security.py`)**:
+  - Blocks dynamic execution (`eval`, `exec`), reflection attacks (`__subclasses__`, `__globals__`), and dangerous imports (`os`, `subprocess`, `socket`).
+- **Notebook REST Endpoints (`apps/backend/api/v1/endpoints/notebook.py`)**:
+  - `POST /api/v1/notebook/sessions`: Create or retrieve session.
+  - `GET /api/v1/notebook/sessions`: List active sessions.
+  - `GET /api/v1/notebook/sessions/{session_id}`: Inspect session status and namespace.
+  - `DELETE /api/v1/notebook/sessions/{session_id}`: Terminate session.
+  - `POST /api/v1/notebook/sessions/{session_id}/execute`: Execute code cell in stateful session.
+  - `GET /api/v1/notebook/sessions/{session_id}/variables`: Namespace variable inspection.
+  - `POST /api/v1/notebook/sessions/{session_id}/reset`: Reset namespace.
+  - `GET /api/v1/notebook/presets`: Fetch educational analytics templates.
+- **Interactive Notebook Lab UI (`apps/frontend/src/components/NotebookView.tsx`)**:
+  - Jupyter-style multi-cell notebook canvas with syntax-accented code cells and markdown cells.
+  - Controls: individual cell run (`Shift+Enter`), "Run All", restart kernel, cell reordering (`Up`/`Down`), and delete.
+  - Rich output renderer supporting stdout, stderr, rich HTML data tables, and embedded SVG charts.
+  - Live Variable Explorer sidebar inspecting active variable types, shapes, and values.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit

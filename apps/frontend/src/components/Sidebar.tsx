@@ -6,9 +6,9 @@ import { ConversationSummary } from '@/lib/api';
 
 interface SidebarProps {
   currentSessionId: string;
-  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document';
+  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook';
   conversations?: ConversationSummary[];
-  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document') => void;
+  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook') => void;
   onSelectConversation?: (id: string) => void;
   onNewConversation?: () => void;
   onDeleteConversation?: (id: string) => void;
@@ -157,6 +157,18 @@ export default function Sidebar({
             >
               <FileSearch className={`w-4 h-4 ${activeTab === 'document' ? 'text-cyan-400' : 'text-slate-400'}`} />
               <span>Document OCR</span>
+            </button>
+
+            <button
+              onClick={() => onSelectTab && onSelectTab('notebook')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${
+                activeTab === 'notebook'
+                  ? 'bg-violet-600/20 border border-violet-500/40 text-violet-300 font-medium'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+              }`}
+            >
+              <Terminal className={`w-4 h-4 ${activeTab === 'notebook' ? 'text-violet-400' : 'text-slate-400'}`} />
+              <span>Code Notebook</span>
             </button>
           </div>
         </div>

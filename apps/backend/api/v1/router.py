@@ -21,6 +21,7 @@ from apps.backend.api.v1.endpoints import (
     health,
     models,
     multimodal,
+    notebook,
     observability,
     paged_inference,
     peft,
@@ -64,3 +65,6 @@ api_v1_router.include_router(security.router, tags=["Security & Defense"])
 api_v1_router.include_router(observability.router, tags=["Observability & Tracing"])
 api_v1_router.include_router(batch.router, tags=["Batch Inference & Async Workers"])
 api_v1_router.include_router(document_ocr.router, tags=["Document Understanding & OCR"])
+api_v1_router.include_router(
+    notebook.router, prefix="/notebook", tags=["Code Interpreter & Notebook"]
+)
