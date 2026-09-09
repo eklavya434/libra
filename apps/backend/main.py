@@ -16,6 +16,7 @@ from apps.backend.middleware.security import (
     RequestSizeLimiterMiddleware,
     SecurityHeadersMiddleware,
 )
+from apps.backend.middleware.tracing import TracingMiddleware
 from packages.core.hardware import detect_hardware
 
 
@@ -54,6 +55,7 @@ app.add_middleware(
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestSizeLimiterMiddleware, max_bytes=10 * 1024 * 1024)
 app.add_middleware(RateLimitingMiddleware)
+app.add_middleware(TracingMiddleware)
 
 # Mount API routes
 app.include_router(api_v1_router)

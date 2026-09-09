@@ -58,7 +58,8 @@
 | **Phase 35** | CI/CD & Automated Quality Gates | ✅ COMPLETE | GitHub Actions CI workflow, Ruff lint/format, pytest matrix, Next.js build verification (`main`) |
 | **Phase 36** | Capstone System Verification & Architecture Audit CLI | ✅ COMPLETE | 10-vector automated audit engine, REST endpoint, interactive CLI demo, system health verification (`main`) |
 | **Phase 37** | Security Hardening & Adversarial Robustness | ✅ COMPLETE | PromptGuard, SecretScanner DLP, TokenBucketRateLimiter, OWASP middleware, Security Lab UI (`main`) |
-| **Phase 38** | Observability, Distributed Tracing & OpenTelemetry | ⏳ NEXT | End-to-end request tracing, token velocity metrics, OpenTelemetry spans, latency waterfalls |
+| **Phase 38** | Observability, Distributed Tracing & OpenTelemetry | ✅ COMPLETE | OpenTelemetry Tracer, Span hierarchy, W3C traceparent, TokenVelocityMetrics, Waterfall UI (`main`) |
+| **Phase 39** | High-Throughput Batch Inference & Async Workers | ⏳ NEXT | Dynamic sequence binning, asynchronous worker queues, batch job scheduling, progress SSE |
 
 ---
 
@@ -381,6 +382,31 @@
   - `GET /api/v1/security/stats`: Telemetry on security events, blocked attacks, and active rate limits.
   - `SecurityInspector.tsx`: Interactive Security Lab with attack bench, secret DLP tester, and telemetry monitor.
 
+### X. Phase 38: Observability, Distributed Tracing & OpenTelemetry
+- **Distributed Tracing Core (`packages/core/observability/tracer.py`)**:
+  - 128-bit `TraceId` and 64-bit `SpanId` conforming to W3C standards.
+  - Thread-safe context management with `contextvars` for hierarchical parent-child span nesting.
+  - OpenTelemetry span semantics: microsecond-accurate durations, attributes, events, and status codes.
+  - W3C `traceparent` parser and serializer (`00-{trace_id}-{span_id}-{flags}`).
+  - In-memory bounded `TraceCollector` ring buffer (default 100 traces) for zero-dependency local analysis.
+- **Token Velocity & Metrics Engine (`packages/core/observability/metrics.py`)**:
+  - Time to First Token (TTFT) in milliseconds.
+  - Inter-Token Latency (ITL) distribution: mean, median (p50), and 95th percentile (p95).
+  - Autoregressive generation velocity (tokens per second).
+  - Rolling request latency percentiles (p50, p95) and error rate tracking.
+- **Tracing Middleware (`apps/backend/middleware/tracing.py`)**:
+  - Intercepts all incoming HTTP requests, establishes a root span, and attaches OpenTelemetry attributes.
+  - Injects `X-Trace-Id` and W3C `Server-Timing: total;dur=...` headers on all responses.
+- **Observability REST Endpoints (`apps/backend/api/v1/endpoints/observability.py`)**:
+  - `GET /api/v1/observability/traces`: List recent request traces.
+  - `GET /api/v1/observability/traces/{trace_id}`: Fetch detailed span hierarchy with timeline offsets for Gantt rendering.
+  - `GET /api/v1/observability/metrics`: Summary percentiles and token velocities.
+  - `POST /api/v1/observability/traces/clear`: Reset buffer.
+- **Frontend Observability & Waterfall UI (`apps/frontend/src/components/ObservabilityView.tsx`)**:
+  - Interactive Gantt chart latency waterfall visualization.
+  - Span detail drawer displaying OpenTelemetry attributes and events.
+  - Real-time telemetry cards (TTFT, TPS, p50/p95 latency).
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -390,13 +416,13 @@
 - **Next.js Production Build (`.next`)**: ~104 MB
 - **Python & Pytest Caches**: ~199 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Source Code & Data**: 4.35 MB
-- **Total Workspace Footprint**: **1,465.43 MB** (~1.43 GB)
+- **Source Code & Data**: 4.45 MB
+- **Total Workspace Footprint**: **1,465.98 MB** (~1.43 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **13,894.57 MB** (90.5% free)
+- **Remaining Storage Quota**: **13,894.02 MB** (90.5% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **420 passed, 0 failed** across all 37 phases
+- **Pytest Status**: **431 passed, 0 failed** across all 38 phases
 - **Frontend Status**: Next.js 14 production build clean (0 errors, 4/4 static pages)
 
 

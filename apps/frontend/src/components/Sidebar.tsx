@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText, ShieldAlert } from 'lucide-react';
+import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText, ShieldAlert, Activity } from 'lucide-react';
 import { ConversationSummary } from '@/lib/api';
 
 interface SidebarProps {
   currentSessionId: string;
-  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security';
+  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability';
   conversations?: ConversationSummary[];
-  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security') => void;
+  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability') => void;
   onSelectConversation?: (id: string) => void;
   onNewConversation?: () => void;
   onDeleteConversation?: (id: string) => void;
@@ -121,6 +121,18 @@ export default function Sidebar({
             >
               <ShieldAlert className={`w-4 h-4 ${activeTab === 'security' ? 'text-emerald-400' : 'text-slate-400'}`} />
               <span>Security Lab</span>
+            </button>
+
+            <button
+              onClick={() => onSelectTab && onSelectTab('observability')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${
+                activeTab === 'observability'
+                  ? 'bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 font-medium'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+              }`}
+            >
+              <Activity className={`w-4 h-4 ${activeTab === 'observability' ? 'text-indigo-400' : 'text-slate-400'}`} />
+              <span>Observability & Traces</span>
             </button>
           </div>
         </div>

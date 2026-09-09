@@ -1178,4 +1178,89 @@ export async function fetchSecurityStats(): Promise<SecurityStatsResponse> {
   return await res.json();
 }
 
+// ==========================================
+// Phase 38: Observability & Distributed Tracing
+// ==========================================
+
+export interface TraceSummary {
+  trace_id: string;
+  root_name: string;
+  status: string;
+  span_count: number;
+  total_duration_ms: number;
+  start_time_ns: number;
+}
+
+export interface SpanDetail {
+  name: string;
+  trace_id: string;
+  span_id: string;
+  parent_span_id: string | null;
+  start_time_ns: number;
+  end_time_ns: number | null;
+  duration_ms: number;
+  offset_ms: number;
+  status: string;
+  status_description: string;
+  attributes: Record<string, any>;
+  events: Array<{
+    name: string;
+    timestamp_ns: number;
+    attributes: Record<string, any>;
+  }>;
+}
+
+export interface TraceDetail {
+  trace_id: string;
+  root_name: string;
+  status: string;
+  span_count: number;
+  total_duration_ms: number;
+  spans: SpanDetail[];
+}
+
+export interface ObservabilityMetrics {
+  total_requests: number;
+  total_errors: number;
+  error_rate: number;
+  avg_latency_ms: number;
+  p50_latency_ms: number;
+  p95_latency_ms: number;
+  avg_ttft_ms: number;
+  avg_tokens_per_second: number;
+  buffered_traces_count: number;
+}
+
+export async function fetchTraces(limit = 50, offset = 0): Promise<{
+  total: number;
+  limit: number;
+  offset: number;
+  traces: TraceSummary[];
+}> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/observability/traces?limit=${limit}&offset=${offset}`);
+  if (!res.ok) throw new Error("Failed to fetch distributed traces");
+  return await res.json();
+}
+
+export async function fetchTraceDetail(traceId: string): Promise<TraceDetail> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/observability/traces/${traceId}`);
+  if (!res.ok) throw new Error(`Failed to fetch trace '${traceId}'`);
+  return await res.json();
+}
+
+export async function fetchObservabilityMetrics(): Promise<ObservabilityMetrics> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/observability/metrics`);
+  if (!res.ok) throw new Error("Failed to fetch observability metrics");
+  return await res.json();
+}
+
+export async function clearTraces(): Promise<{ status: string; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/observability/traces/clear`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error("Failed to clear traces");
+  return await res.json();
+}
+
+
 
