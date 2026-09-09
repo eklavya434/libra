@@ -30,8 +30,18 @@ from packages.models.reasoning.trace_parser import (
     extract_reasoning_steps,
     parse_reasoning_trace,
 )
+from packages.models.reasoning.verifiable_search import (
+    SearchStepNode,
+    VerifiableSearchConfig,
+    VerifiableSearchEngine,
+    VerifiableSearchResult,
+)
 
 __all__ = [
+    "SearchStepNode",
+    "VerifiableSearchConfig",
+    "VerifiableSearchEngine",
+    "VerifiableSearchResult",
     "BestOfNResult",
     "BestOfNVerifier",
     "CandidateScore",

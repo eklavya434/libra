@@ -40,6 +40,7 @@ from apps.backend.api.v1.endpoints import (
     teams,
     telemetry,
     tools,
+    verifiable_search,
 )
 
 api_v1_router = APIRouter(prefix="/api/v1")
@@ -80,3 +81,4 @@ api_v1_router.include_router(distillation.router, tags=["Knowledge Distillation 
 api_v1_router.include_router(moe.router, tags=["Mixture of Experts & Sparse Routing"])
 api_v1_router.include_router(medusa.router, tags=["Medusa Speculative Decoding"])
 api_v1_router.include_router(kto.router, tags=["KTO & Online DPO Alignment"])
+api_v1_router.include_router(verifiable_search.router, tags=["Verifiable Search & PRM Reasoning"])

@@ -37,10 +37,18 @@ from packages.evaluation.tournament import (
     TournamentReport,
     TournamentRunner,
 )
+from packages.evaluation.verifiable_search_eval import (
+    SearchMethodMetrics,
+    VerifiableSearchComparisonResult,
+    VerifiableSearchEvaluator,
+)
 
 __all__ = [
     "DEFAULT_BENCHMARK_PROMPTS",
     "AlignmentEvaluator",
+    "SearchMethodMetrics",
+    "VerifiableSearchComparisonResult",
+    "VerifiableSearchEvaluator",
     "ArenaModelMetric",
     "AutomatedJudge",
     "BenchmarkPrompt",
