@@ -53,6 +53,10 @@ MODEL_PRICING_TABLE: dict[str, ModelPricing] = {
     "gemini-1.5-flash": ModelPricing(0.075, 0.30),
     "gemini-1.5-pro": ModelPricing(1.25, 5.00),
     "gemini-2.0-flash": ModelPricing(0.10, 0.40),
+    "gemini-2.5-flash": ModelPricing(0.075, 0.30),
+    "gemini-2.5-pro": ModelPricing(1.25, 5.00),
+    "gemini-flash-latest": ModelPricing(0.075, 0.30),
+    "gemini-pro-latest": ModelPricing(1.25, 5.00),
     # --- DEEPSEEK COMMERCIAL API ---
     "deepseek-chat": ModelPricing(0.14, 0.28),
     "deepseek-reasoner": ModelPricing(0.55, 2.19),

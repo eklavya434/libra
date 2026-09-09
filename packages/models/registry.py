@@ -58,6 +58,11 @@ class ModelMetadata:
         d["id"] = self.model_id
         d["hardware_tier"] = self.hardware_tier.value
         d["license_type"] = self.license_type.value
+        d["is_local"] = self.provider in ("ollama", "libra_lab", "huggingface", "mock-provider")
+        d["requires_gpu"] = self.hardware_tier in (
+            HardwareTier.GPU_REQUIRED,
+            HardwareTier.VERY_LARGE,
+        )
         return d
 
 
@@ -140,17 +145,31 @@ class ModelRegistry:
 
     def register(self, metadata: ModelMetadata) -> ModelMetadata:
         """Register a model, automatically updating hardware classification if needed."""
-        tier, ram_needed, can_run, verdict = HardwareClassifier.classify(
-            param_count=metadata.parameter_count,
-            quantization=metadata.quantization,
-            system_info=self.system_info,
+        is_cloud = metadata.provider in (
+            "gemini",
+            "openai",
+            "anthropic",
+            "groq",
+            "deepseek",
+            "openrouter",
         )
 
-        metadata.hardware_tier = tier
-        if metadata.recommended_ram_gb <= 0.0:
-            metadata.recommended_ram_gb = ram_needed
-        metadata.can_run_locally = can_run
-        metadata.hardware_verdict = verdict
+        if is_cloud:
+            metadata.hardware_tier = HardwareTier.CPU_FRIENDLY
+            metadata.recommended_ram_gb = 0.0
+            metadata.can_run_locally = True
+            metadata.hardware_verdict = "Cloud API (Zero Local RAM)"
+        else:
+            tier, ram_needed, can_run, verdict = HardwareClassifier.classify(
+                param_count=metadata.parameter_count,
+                quantization=metadata.quantization,
+                system_info=self.system_info,
+            )
+            metadata.hardware_tier = tier
+            if metadata.recommended_ram_gb <= 0.0:
+                metadata.recommended_ram_gb = ram_needed
+            metadata.can_run_locally = can_run
+            metadata.hardware_verdict = verdict
 
         self._models[metadata.model_id] = metadata
         return metadata

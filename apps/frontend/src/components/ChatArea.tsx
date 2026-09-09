@@ -132,6 +132,25 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
     loadConv();
   }, [conversationId]);
 
+  // Prefer Gemini for intelligent chat responses if configured
+  useEffect(() => {
+    async function checkAvailableModels() {
+      if (conversationId) return;
+      try {
+        const available = await fetchModels();
+        const preferred = available.find(
+          (m) => m.id === 'gemini-2.5-flash' || m.id.includes('gemini')
+        );
+        if (preferred) {
+          setSelectedModel(preferred.id);
+        }
+      } catch (e) {
+        // keep default
+      }
+    }
+    checkAvailableModels();
+  }, [conversationId]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };

@@ -54,14 +54,17 @@ async def list_models(
         pass
 
     hw_tier = None
-    if tier:
+    if isinstance(tier, str) and tier:
         try:
             hw_tier = HardwareTier(tier)
         except ValueError:
             pass
 
+    filter_provider = provider if isinstance(provider, str) else None
+    filter_cpu_friendly = cpu_friendly_only if isinstance(cpu_friendly_only, bool) else False
+
     models = registry.list_models(
-        provider=provider, tier=hw_tier, cpu_friendly_only=cpu_friendly_only
+        provider=filter_provider, tier=hw_tier, cpu_friendly_only=filter_cpu_friendly
     )
     return {
         "count": len(models),

@@ -4,6 +4,7 @@ Libra Providers - Google Gemini REST & Streaming Adapter
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import time
@@ -27,7 +28,16 @@ class GeminiProvider(BaseProvider):
         timeout: float = 60.0,
         http_client: Optional[httpx.AsyncClient] = None,
     ):
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            try:
+                from apps.backend.core.config import settings
+
+                api_key = settings.gemini_api_key or None
+            except Exception:
+                pass
+        self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self._custom_client = http_client
@@ -45,6 +55,16 @@ class GeminiProvider(BaseProvider):
             "supports_embeddings": True,
             "supports_streaming": True,
         }
+
+    def _normalize_model(self, model: str) -> str:
+        clean = model.strip()
+        if clean.startswith("models/"):
+            clean = clean[7:]
+        if clean in ("gemini-1.5-flash", "gemini-flash"):
+            return "gemini-2.5-flash"
+        if clean in ("gemini-1.5-pro", "gemini-pro"):
+            return "gemini-2.5-pro"
+        return clean
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._custom_client is not None:
@@ -64,8 +84,8 @@ class GeminiProvider(BaseProvider):
     async def list_models(self) -> list[ModelMetadata]:
         return [
             ModelMetadata(
-                id="gemini-1.5-flash",
-                name="Gemini 1.5 Flash",
+                id="gemini-2.5-flash",
+                name="Gemini 2.5 Flash",
                 provider=self.name,
                 architecture="Google Multimodal Transformer",
                 context_length=1000000,
@@ -76,8 +96,8 @@ class GeminiProvider(BaseProvider):
                 capabilities=self.capabilities(),
             ),
             ModelMetadata(
-                id="gemini-1.5-pro",
-                name="Gemini 1.5 Pro",
+                id="gemini-2.5-pro",
+                name="Gemini 2.5 Pro",
                 provider=self.name,
                 architecture="Google Multimodal Transformer",
                 context_length=2000000,
@@ -87,25 +107,51 @@ class GeminiProvider(BaseProvider):
                 hardware_tier="cloud",
                 capabilities=self.capabilities(),
             ),
+            ModelMetadata(
+                id="gemini-1.5-flash",
+                name="Gemini 1.5 Flash (Compatibility Alias)",
+                provider=self.name,
+                architecture="Google Multimodal Transformer",
+                context_length=1000000,
+                license="Commercial API / Free Tier",
+                is_local=False,
+                requires_gpu=False,
+                hardware_tier="cloud",
+                capabilities=self.capabilities(),
+            ),
         ]
 
-    def _convert_messages(self, messages: list[dict[str, str]]) -> list[dict[str, Any]]:
+    def _convert_messages(
+        self, messages: list[dict[str, str]]
+    ) -> tuple[list[dict[str, Any]], Optional[dict[str, Any]]]:
         gemini_contents: list[dict[str, Any]] = []
+        system_parts: list[dict[str, str]] = []
+
         for m in messages:
             role = m.get("role", "user").lower()
-            gemini_role = "model" if role == "assistant" else "user"
-            gemini_contents.append(
-                {
-                    "role": gemini_role,
-                    "parts": [{"text": m.get("content", "")}],
-                }
-            )
-        return gemini_contents
+            content = m.get("content", "")
+            if role == "system":
+                system_parts.append({"text": content})
+            else:
+                gemini_role = "model" if role == "assistant" else "user"
+                gemini_contents.append(
+                    {
+                        "role": gemini_role,
+                        "parts": [{"text": content}],
+                    }
+                )
+
+        system_instruction = {"parts": system_parts} if system_parts else None
+
+        if not gemini_contents:
+            gemini_contents = [{"role": "user", "parts": [{"text": "Hello"}]}]
+
+        return gemini_contents, system_instruction
 
     async def chat(
         self,
         messages: list[dict[str, str]],
-        model: str = "gemini-1.5-flash",
+        model: str = "gemini-2.5-flash",
         temperature: float = 0.7,
         max_tokens: int = 1024,
         stop: Optional[list[str]] = None,
@@ -118,22 +164,34 @@ class GeminiProvider(BaseProvider):
                 status_code=401,
             )
 
-        url = f"{self.base_url}/models/{model}:generateContent?key={self.api_key}"
-        contents = self._convert_messages(messages)
-        payload = {
+        target_model = self._normalize_model(model)
+        url = f"{self.base_url}/models/{target_model}:generateContent?key={self.api_key}"
+        contents, system_instruction = self._convert_messages(messages)
+        payload: dict[str, Any] = {
             "contents": contents,
             "generationConfig": {
                 "temperature": temperature,
                 "maxOutputTokens": max_tokens,
             },
         }
+        if system_instruction:
+            payload["systemInstruction"] = system_instruction
         if stop:
             payload["generationConfig"]["stopSequences"] = stop
 
         client = self._get_client()
-        resp = await client.post(url, json=payload)
-        if resp.status_code != 200:
-            raise normalize_http_error(resp.status_code, resp.text, self.name)
+        resp = None
+        for attempt in range(3):
+            resp = await client.post(url, json=payload)
+            if resp.status_code in (429, 503) and attempt < 2:
+                await asyncio.sleep(1.0 * (attempt + 1))
+                continue
+            break
+
+        if resp is None or resp.status_code != 200:
+            err_text = resp.text if resp is not None else "No response"
+            code = resp.status_code if resp is not None else 500
+            raise normalize_http_error(code, err_text, self.name)
 
         data = resp.json()
         text_out = ""
@@ -148,12 +206,12 @@ class GeminiProvider(BaseProvider):
         usage = data.get("usageMetadata", {})
         prompt_tokens = usage.get("promptTokenCount", 0)
         completion_tokens = usage.get("candidatesTokenCount", 0)
-        cost_info = calculate_cost(model, prompt_tokens, completion_tokens)
+        cost_info = calculate_cost(target_model, prompt_tokens, completion_tokens)
 
         return {
             "id": f"gemini-{int(time.time())}",
             "provider": self.name,
-            "model": model,
+            "model": target_model,
             "choices": [
                 {
                     "index": 0,
@@ -172,7 +230,7 @@ class GeminiProvider(BaseProvider):
     async def stream(
         self,
         messages: list[dict[str, str]],
-        model: str = "gemini-1.5-flash",
+        model: str = "gemini-2.5-flash",
         temperature: float = 0.7,
         max_tokens: int = 1024,
         stop: Optional[list[str]] = None,
@@ -185,42 +243,50 @@ class GeminiProvider(BaseProvider):
                 status_code=401,
             )
 
-        url = f"{self.base_url}/models/{model}:streamGenerateContent?alt=sse&key={self.api_key}"
-        contents = self._convert_messages(messages)
-        payload = {
+        target_model = self._normalize_model(model)
+        url = f"{self.base_url}/models/{target_model}:streamGenerateContent?alt=sse&key={self.api_key}"
+        contents, system_instruction = self._convert_messages(messages)
+        payload: dict[str, Any] = {
             "contents": contents,
             "generationConfig": {
                 "temperature": temperature,
                 "maxOutputTokens": max_tokens,
             },
         }
+        if system_instruction:
+            payload["systemInstruction"] = system_instruction
         if stop:
             payload["generationConfig"]["stopSequences"] = stop
 
         client = self._get_client()
-        async with client.stream("POST", url, json=payload) as resp:
-            if resp.status_code != 200:
-                err_text = await resp.aread()
-                raise normalize_http_error(
-                    resp.status_code, err_text.decode("utf-8", errors="ignore"), self.name
-                )
-
-            async for line in resp.aiter_lines():
-                if not line or not line.strip():
+        for attempt in range(3):
+            async with client.stream("POST", url, json=payload) as resp:
+                if resp.status_code in (429, 503) and attempt < 2:
+                    await asyncio.sleep(1.0 * (attempt + 1))
                     continue
-                if line.startswith("data: "):
-                    line_data = line[6:].strip()
-                    try:
-                        chunk = json.loads(line_data)
-                        candidates = chunk.get("candidates", [])
-                        if candidates:
-                            parts = candidates[0].get("content", {}).get("parts", [])
-                            for p in parts:
-                                txt = p.get("text", "")
-                                if txt:
-                                    yield txt
-                    except json.JSONDecodeError:
+                if resp.status_code != 200:
+                    err_text = await resp.aread()
+                    raise normalize_http_error(
+                        resp.status_code, err_text.decode("utf-8", errors="ignore"), self.name
+                    )
+
+                async for line in resp.aiter_lines():
+                    if not line or not line.strip():
                         continue
+                    if line.startswith("data: "):
+                        line_data = line[6:].strip()
+                        try:
+                            chunk = json.loads(line_data)
+                            candidates = chunk.get("candidates", [])
+                            if candidates:
+                                parts = candidates[0].get("content", {}).get("parts", [])
+                                for p in parts:
+                                    txt = p.get("text", "")
+                                    if txt:
+                                        yield txt
+                        except json.JSONDecodeError:
+                            continue
+                return
 
     async def embeddings(
         self, texts: list[str], model: str = "text-embedding-004"
