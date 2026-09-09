@@ -13,6 +13,7 @@ import {
   ChatTelemetry,
   fetchConversation,
   clearConversationMessages,
+  fetchModels,
   API_BASE_URL,
 } from '@/lib/api';
 

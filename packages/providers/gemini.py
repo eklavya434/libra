@@ -198,8 +198,12 @@ class GeminiProvider(BaseProvider):
                 status_code=401,
             )
 
-        target_model = self._normalize_model(model)
-        url = f"{self.base_url}/models/{target_model}:generateContent?key={self.api_key}"
+        primary_model = self._normalize_model(model)
+        candidate_models = [primary_model]
+        for fb in ["gemini-3.5-flash", "gemini-flash-latest"]:
+            if fb not in candidate_models:
+                candidate_models.append(fb)
+
         contents, system_instruction = self._convert_messages(messages)
         payload: dict[str, Any] = {
             "contents": contents,
@@ -215,12 +219,22 @@ class GeminiProvider(BaseProvider):
 
         client = self._get_client()
         resp = None
-        for attempt in range(3):
-            resp = await client.post(url, json=payload)
-            if resp.status_code in (429, 503) and attempt < 2:
-                await asyncio.sleep(1.0 * (attempt + 1))
-                continue
-            break
+        target_model = primary_model
+
+        for m in candidate_models:
+            target_model = m
+            url = f"{self.base_url}/models/{target_model}:generateContent?key={self.api_key}"
+            for attempt in range(2):
+                resp = await client.post(url, json=payload)
+                if resp.status_code == 503 and attempt < 1:
+                    await asyncio.sleep(1.0)
+                    continue
+                break
+            if resp.status_code == 200:
+                break
+            if resp.status_code != 429:
+                # If it's an auth error or client error (not rate-limit), break immediately
+                break
 
         if resp is None or resp.status_code != 200:
             err_text = resp.text if resp is not None else "No response"
@@ -277,8 +291,12 @@ class GeminiProvider(BaseProvider):
                 status_code=401,
             )
 
-        target_model = self._normalize_model(model)
-        url = f"{self.base_url}/models/{target_model}:streamGenerateContent?alt=sse&key={self.api_key}"
+        primary_model = self._normalize_model(model)
+        candidate_models = [primary_model]
+        for fb in ["gemini-3.5-flash", "gemini-flash-latest"]:
+            if fb not in candidate_models:
+                candidate_models.append(fb)
+
         contents, system_instruction = self._convert_messages(messages)
         payload: dict[str, Any] = {
             "contents": contents,
@@ -293,34 +311,56 @@ class GeminiProvider(BaseProvider):
             payload["generationConfig"]["stopSequences"] = stop
 
         client = self._get_client()
-        for attempt in range(3):
-            async with client.stream("POST", url, json=payload) as resp:
-                if resp.status_code in (429, 503) and attempt < 2:
-                    await asyncio.sleep(1.0 * (attempt + 1))
-                    continue
-                if resp.status_code != 200:
-                    err_text = await resp.aread()
-                    raise normalize_http_error(
-                        resp.status_code, err_text.decode("utf-8", errors="ignore"), self.name
-                    )
+        last_err: Optional[Exception] = None
 
-                async for line in resp.aiter_lines():
-                    if not line or not line.strip():
-                        continue
-                    if line.startswith("data: "):
-                        line_data = line[6:].strip()
-                        try:
-                            chunk = json.loads(line_data)
-                            candidates = chunk.get("candidates", [])
-                            if candidates:
-                                parts = candidates[0].get("content", {}).get("parts", [])
-                                for p in parts:
-                                    txt = p.get("text", "")
-                                    if txt:
-                                        yield txt
-                        except json.JSONDecodeError:
+        for target_model in candidate_models:
+            url = f"{self.base_url}/models/{target_model}:streamGenerateContent?alt=sse&key={self.api_key}"
+            for attempt in range(2):
+                try:
+                    async with client.stream("POST", url, json=payload) as resp:
+                        if resp.status_code == 503 and attempt < 1:
+                            await asyncio.sleep(1.0)
                             continue
-                return
+                        if resp.status_code == 429 and target_model != candidate_models[-1]:
+                            # Quota exceeded for this specific model; try next candidate model
+                            break
+                        if resp.status_code != 200:
+                            err_text = await resp.aread()
+                            last_err = normalize_http_error(
+                                resp.status_code,
+                                err_text.decode("utf-8", errors="ignore"),
+                                self.name,
+                            )
+                            if resp.status_code == 429:
+                                break
+                            raise last_err
+
+                        async for line in resp.aiter_lines():
+                            if not line or not line.strip():
+                                continue
+                            if line.startswith("data: "):
+                                line_data = line[6:].strip()
+                                try:
+                                    chunk = json.loads(line_data)
+                                    candidates = chunk.get("candidates", [])
+                                    if candidates:
+                                        parts = candidates[0].get("content", {}).get("parts", [])
+                                        for p in parts:
+                                            txt = p.get("text", "")
+                                            if txt:
+                                                yield txt
+                                except json.JSONDecodeError:
+                                    continue
+                        return
+                except Exception as e:
+                    if "429" in str(e) and target_model != candidate_models[-1]:
+                        break
+                    last_err = e
+                    if target_model == candidate_models[-1]:
+                        raise e
+
+        if last_err:
+            raise last_err
 
     async def embeddings(
         self, texts: list[str], model: str = "text-embedding-004"

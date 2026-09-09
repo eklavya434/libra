@@ -198,7 +198,17 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
 
             yield "data: [DONE]\n\n"
         except Exception as e:
-            err_chunk = {"error": str(e)}
+            msg = str(e)
+            if "429" in msg or "RESOURCE_EXHAUSTED" in msg or "rate" in msg.lower():
+                user_msg = (
+                    "Provider rate limit or daily free tier quota exhausted. "
+                    "Please switch to 'libra-mock-v1' or an Ollama local model, or try again later."
+                )
+            elif "401" in msg or "api_key" in msg.lower() or "auth" in msg.lower():
+                user_msg = "Provider authentication error. Please verify your API key in .env or switch to a local model."
+            else:
+                user_msg = f"Inference error: {msg}"
+            err_chunk = {"error": user_msg}
             yield f"data: {json.dumps(err_chunk)}\n\n"
             yield "data: [DONE]\n\n"
 

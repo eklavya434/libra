@@ -652,7 +652,8 @@ export async function streamChat(
         try {
           const parsed = JSON.parse(dataStr);
           if (parsed.error) {
-            throw new Error(parsed.error);
+            options.onError(new Error(parsed.error));
+            return;
           }
           const deltaContent = parsed.choices?.[0]?.delta?.content;
           if (deltaContent) {
@@ -663,7 +664,7 @@ export async function streamChat(
             options.onToken(deltaContent);
           }
         } catch {
-          // ignore parsing error for individual chunk
+          // ignore JSON parsing error for non-JSON SSE chunks
         }
       }
     }

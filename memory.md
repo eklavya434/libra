@@ -53,7 +53,11 @@
 | **Phase 30** | Long-Context Architecture & Rotary Position Scaling | ✅ COMPLETE | Linear PI, Dynamic NTK-Aware RoPE, YaRN, Needle-in-a-Haystack benchmark (`66de7e6`) |
 | **Phase 31** | Advanced Inference Optimization (PagedAttention) | ✅ COMPLETE | Virtual memory block paging for KV caches, continuous batching simulation, zero external fragmentation (`f438e81`) |
 | **Phase 32** | Multi-Modal Architecture (Vision-Language Adapter) | ✅ COMPLETE | Image patch embedder, LLaVA MLP & Perceiver adapter, end-to-end LibraVLM (`main`) |
-| **Phase 33** | Domain Adaptation & Instruction Fine-Tuning Corpus | ⏳ NEXT | ChatML formatting, multi-turn packing, loss masking, domain instruction dataset pipeline |
+| **Phase 33** | Domain Adaptation & Instruction Fine-Tuning Corpus | ✅ COMPLETE | ChatML formatting, multi-turn packing, loss masking, domain instruction dataset pipeline (`main`) |
+| **Phase 34** | Production Packaging & Containerization | ✅ COMPLETE | Multi-stage Dockerfiles, docker-compose orchestration, non-root security, health checks (`main`) |
+| **Phase 35** | CI/CD & Automated Quality Gates | ✅ COMPLETE | GitHub Actions CI workflow, Ruff lint/format, pytest matrix, Next.js build verification (`main`) |
+| **Phase 36** | Capstone System Verification & Architecture Audit CLI | ✅ COMPLETE | 10-vector automated audit engine, REST endpoint, interactive CLI demo, system health verification (`main`) |
+| **Phase 37** | Security Hardening & Adversarial Robustness | ⏳ NEXT | Prompt injection defense, secret scanner, rate-limiter middleware, secure sandboxing |
 
 ---
 
@@ -330,20 +334,48 @@
   - `POST /api/v1/multimodal/generate`: Image-conditioned text generation with latency telemetry.
   - `VisionPlayground.tsx`: Interactive Next.js component displaying the $4 \times 4$ visual patch grid and generated descriptions.
 
+### S. Phase 33: Domain Adaptation & Instruction Fine-Tuning Corpus
+- **Instruction Data Pipelines (`packages/training/sft_dataset.py`)**:
+  - ChatML formatter (`ChatMLFormatter`) supporting multi-turn dialogue with `<|im_start|>` and `<|im_end|>` delimiters.
+  - Multi-turn sequence packing with loss masking (prompt tokens set to `-100`, only assistant response tokens backpropagated).
+  - Domain corpus synthesis and dataset loaders for instruction fine-tuning on CPU.
+
+### T. Phase 34: Production Packaging & Containerization
+- **Container Architecture**:
+  - Multi-stage backend `Dockerfile` (Python 3.11-slim, non-root user `libra`, security hardening).
+  - Multi-stage frontend `Dockerfile` (Node.js 18-alpine, Next.js standalone output).
+  - `docker-compose.yml` orchestrating FastAPI backend, Next.js frontend, and health check endpoints.
+
+### U. Phase 35: Continuous Integration & Quality Gates
+- **Automated CI/CD Workflow (`.github/workflows/ci.yml`)**:
+  - Automated pre-commit quality gates with Ruff linting (`ruff check .`) and formatting (`ruff format --check .`).
+  - Pytest full matrix run ensuring 100% test coverage across all packages.
+  - Next.js production build verification (`npm run build`).
+
+### V. Phase 36: Capstone Integration & System Verification
+- **System-Wide Verification Engine (`packages/core/capstone_audit.py`)**:
+  - 10-vector automated audit covering Hardware, Tokenizer, Transformer, Training, Providers, RAG, Agents, Quantization, Telemetry, and DB Integrity.
+  - Interactive CLI verification tool (`scripts/capstone_audit_cli.py`).
+  - REST endpoint: `POST /api/v1/capstone/audit`.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
 
-- **Venv Size**: ~855 MB
-- **Frontend node_modules**: ~281 MB
+- **Venv Size**: ~856 MB
+- **Frontend node_modules**: ~282 MB
+- **Next.js Production Build (`.next`)**: ~104 MB
+- **Python & Pytest Caches**: ~199 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Total Workspace Footprint**: **1,137.23 MB** (~1.11 GB)
+- **Source Code & Data**: 4.19 MB
+- **Total Workspace Footprint**: **1,464.73 MB** (~1.43 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **14,222.77 MB** (92.6% free)
+- **Remaining Storage Quota**: **13,895.27 MB** (90.5% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **370 passed, 0 failed** (8 new Phase 32 tests)
-- **Frontend Status**: Next.js 14 production build clean (0 errors)
+- **Pytest Status**: **394 passed, 0 failed** across all 36 phases
+- **Frontend Status**: Next.js 14 production build clean (0 errors, 4/4 static pages)
+
 
 
 
