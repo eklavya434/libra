@@ -1,4 +1,4 @@
-.PHONY: help install dev-backend dev-frontend test lint format clean docker-build docker-up docker-down docker-verify ci-check install-hooks regression-gate
+.PHONY: help install dev-backend dev-frontend test lint format clean docker-build docker-up docker-down docker-verify ci-check install-hooks regression-gate capstone-audit
 
 help:
 	@echo "Libra Developer Commands:"
@@ -16,6 +16,7 @@ help:
 	@echo "  make ci-check        - Run local pre-commit and CI verification"
 	@echo "  make install-hooks   - Install git pre-commit hooks"
 	@echo "  make regression-gate - Run automated CPU performance regression gate"
+	@echo "  make capstone-audit  - Run master 36-phase capstone system audit"
 
 install:
 	.\.venv\Scripts\python -m pip install -e .[dev]
@@ -59,3 +60,6 @@ install-hooks:
 
 regression-gate:
 	.\.venv\Scripts\python scripts/run_phase35_regression_gate.py
+
+capstone-audit:
+	.\.venv\Scripts\python scripts/run_libra_capstone_audit.py
