@@ -22,6 +22,7 @@ from apps.backend.api.v1.endpoints import (
     health,
     long_context,
     mcts_reasoning,
+    medusa,
     models,
     moe,
     multimodal,
@@ -76,3 +77,4 @@ api_v1_router.include_router(long_context.router, tags=["Long-Context & Attentio
 api_v1_router.include_router(mcts_reasoning.router, tags=["MCTS Reasoning & PRMs"])
 api_v1_router.include_router(distillation.router, tags=["Knowledge Distillation & Model Shrinking"])
 api_v1_router.include_router(moe.router, tags=["Mixture of Experts & Sparse Routing"])
+api_v1_router.include_router(medusa.router, tags=["Medusa Speculative Decoding"])

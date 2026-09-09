@@ -65,8 +65,9 @@
 | **Phase 42** | Long-Context NIAH & Attention Compaction | ✅ COMPLETE | StreamingLLM sinks, H2O heavy hitters, multi-needle benchmark, 2D heatmap UI (`main`) |
 | **Phase 43** | RL via Self-Play & Monte Carlo Tree Search (MCTS) | ✅ COMPLETE | Process Reward Model (PRM), PUCT tree search, self-play DPO generator, MCTSTreeView UI (`main`) |
 | **Phase 44** | Knowledge Distillation & Model Shrinking | ✅ COMPLETE | Teacher-student logit transfer, tau^2-scaled KL divergence, layer dropping, Distillation Lab UI (`main`) |
-| **Phase 45** | Mixture of Experts Architecture (Sparse MoE) | ✅ COMPLETE | Top-k noisy gating, expert routing, load-balancing auxiliary loss, MoE Lab UI (`main`) |
-| **Phase 46** | Speculative Verification & Medusa Multi-Head Drafting | ⏳ NEXT | Multiple simultaneous speculative heads, tree attention verification, multi-token speedup |
+| **Phase 45** | Mixture of Experts Architecture (Sparse MoE) | ✅ COMPLETE | Top-k noisy gating, expert routing, load-balancing auxiliary loss, MoE Lab UI (`a3ade16`) |
+| **Phase 46** | Speculative Verification & Medusa Multi-Head Drafting | ✅ COMPLETE | Multi-head residual drafting, parallel prefix verification, MedusaEvaluator, Medusa Lab UI (`main`) |
+| **Phase 47** | Direct Alignment & Online DPO / KTO | ⏳ NEXT | Kahneman-Tversky Optimization (KTO), binary preference pairs, loss reweighting |
 
 
 ---
@@ -577,6 +578,22 @@
   - Expert Load Distribution Heatmap and Starvation detector.
   - Auxiliary Loss Optimizer dashboard.
 
+### FF. Phase 46: Speculative Verification & Medusa Multi-Head Drafting
+- **Medusa Architecture Components (`packages/models/components/medusa.py`)**:
+  - `MedusaHead`: Residual Linear-SiLU-Linear projection block + unembedding layer for speculative token prediction.
+  - `MedusaModel`: Wraps transformer base models, mounts $M$ Medusa heads, implements `forward_with_medusa`, `compute_medusa_loss` (exponential discounting $\lambda^k = 0.8^k$), and `medusa_generate` (parallel prefix verification).
+- **Medusa Evaluator & Telemetry (`packages/evaluation/medusa_eval.py`)**:
+  - `MedusaEvaluator`: Quantitatively benchmarks autoregressive vs Medusa decoding, measuring acceptance rate $\mathbb{E}[\alpha]$, per-head accuracy, wall-clock speedup, and rejection histograms.
+- **Medusa REST Endpoints (`apps/backend/api/v1/endpoints/medusa.py`)**:
+  - `POST /api/v1/medusa/generate`: Generates text with parallel speculative decoding, returns accepted tokens, rejected candidates, speedup, and wall-clock times.
+  - `POST /api/v1/medusa/benchmark`: Compares throughput and latency across standard autoregressive vs Medusa decoding.
+  - `POST /api/v1/medusa/train`: Educational CPU training loop fine-tuning Medusa heads with frozen base.
+  - `GET /api/v1/medusa/presets`: Presets for greedy decoding, conservative drafting, aggressive drafting, and code completion.
+- **Interactive Medusa Lab UI (`apps/frontend/src/components/MedusaView.tsx`)**:
+  - Dynamic **Verification Tape** with color-coded pills for accepted vs rejected candidates.
+  - Speedup gauge meter, throughput comparator, and per-head acceptance accuracy bar charts.
+  - Interactive training panel for fine-tuning Medusa heads on CPU in seconds.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -586,13 +603,13 @@
 - **Next.js Production Build (`.next`)**: ~104 MB
 - **Python & Pytest Caches**: ~199 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Source Code & Data**: 4.58 MB
-- **Total Workspace Footprint**: **1,466.12 MB** (~1.43 GB)
+- **Source Code & Data**: 4.62 MB
+- **Total Workspace Footprint**: **1,466.16 MB** (~1.43 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **13,893.88 MB** (90.5% free)
+- **Remaining Storage Quota**: **13,893.84 MB** (90.5% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **517 passed, 0 failed** across all 45 phases
+- **Pytest Status**: **526 passed, 0 failed** across all 46 phases
 - **Frontend Status**: Next.js 14 production build clean (0 errors, 4/4 static pages)
 
 

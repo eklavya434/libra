@@ -20,6 +20,7 @@ from packages.evaluation.loss_eval import (
     evaluate_dataset_loss,
     evaluate_tokens_loss,
 )
+from packages.evaluation.medusa_eval import MedusaEvaluator
 from packages.evaluation.metrics import ArenaModelMetric
 from packages.evaluation.moe_eval import MoEEvaluator
 from packages.evaluation.multiple_choice import (
@@ -50,6 +51,7 @@ __all__ = [
     "JudgeVerdict",
     "LossMetrics",
     "MatchRecord",
+    "MedusaEvaluator",
     "MoEEvaluator",
     "ModelComparisonArena",
     "ModelEloRecord",
