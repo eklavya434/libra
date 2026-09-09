@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText, ShieldAlert, Activity, FileSearch, Compass, GitBranch, Shrink, Network, FastForward, Scale, CheckCheck, Award } from 'lucide-react';
+import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText, ShieldAlert, Activity, FileSearch, Compass, GitBranch, Shrink, Network, FastForward, Scale, CheckCheck, Award, Crown } from 'lucide-react';
 import { ConversationSummary } from '@/lib/api';
 
 interface SidebarProps {
   currentSessionId: string;
-  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa' | 'kto' | 'verifiable_search' | 'self_rewarding';
+  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa' | 'kto' | 'verifiable_search' | 'self_rewarding' | 'grand_capstone';
   conversations?: ConversationSummary[];
-  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa' | 'kto' | 'verifiable_search' | 'self_rewarding') => void;
+  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa' | 'kto' | 'verifiable_search' | 'self_rewarding' | 'grand_capstone') => void;
   onSelectConversation?: (id: string) => void;
   onNewConversation?: () => void;
   onDeleteConversation?: (id: string) => void;
@@ -265,6 +265,21 @@ export default function Sidebar({
             >
               <Award className={`w-4 h-4 ${activeTab === 'self_rewarding' ? 'text-amber-400' : 'text-slate-400'}`} />
               <span>Self-Rewarding</span>
+            </button>
+
+            <button
+              onClick={() => onSelectTab && onSelectTab('grand_capstone')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${
+                activeTab === 'grand_capstone'
+                  ? 'bg-gradient-to-r from-amber-600/30 to-yellow-600/30 border border-amber-400/60 text-amber-200 font-bold shadow-sm shadow-amber-950/40'
+                  : 'text-amber-400/80 hover:text-amber-300 hover:bg-amber-950/30'
+              }`}
+            >
+              <Crown className={`w-4 h-4 ${activeTab === 'grand_capstone' ? 'text-amber-300' : 'text-amber-400'}`} />
+              <span className="flex-1">Grand Capstone</span>
+              <span className="text-[9px] font-mono bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30">
+                P50
+              </span>
             </button>
           </div>
         </div>

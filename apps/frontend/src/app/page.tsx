@@ -19,6 +19,7 @@ import MedusaView from '@/components/MedusaView';
 import KTOView from '@/components/KTOView';
 import VerifiableSearchView from '@/components/VerifiableSearchView';
 import SelfRewardingView from '@/components/SelfRewardingView';
+import GrandCapstoneView from '@/components/GrandCapstoneView';
 import {
   ConversationSummary,
   fetchConversations,
@@ -27,7 +28,7 @@ import {
 } from '@/lib/api';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa' | 'kto' | 'verifiable_search' | 'self_rewarding'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa' | 'kto' | 'verifiable_search' | 'self_rewarding' | 'grand_capstone'>('chat');
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
@@ -104,6 +105,7 @@ export default function Home() {
         {activeTab === 'kto' && <KTOView />}
         {activeTab === 'verifiable_search' && <VerifiableSearchView />}
         {activeTab === 'self_rewarding' && <SelfRewardingView />}
+        {activeTab === 'grand_capstone' && <GrandCapstoneView />}
       </main>
     </div>
   );

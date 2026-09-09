@@ -36,6 +36,7 @@ from apps.backend.api.v1.endpoints import (
     reasoning,
     routing,
     security,
+    self_evolution,
     self_rewarding,
     structured,
     teams,
@@ -84,3 +85,6 @@ api_v1_router.include_router(medusa.router, tags=["Medusa Speculative Decoding"]
 api_v1_router.include_router(kto.router, tags=["KTO & Online DPO Alignment"])
 api_v1_router.include_router(verifiable_search.router, tags=["Verifiable Search & PRM Reasoning"])
 api_v1_router.include_router(self_rewarding.router, tags=["Self-Rewarding Language Models"])
+api_v1_router.include_router(
+    self_evolution.router, tags=["Autonomous Self-Evolution & Grand Capstone"]
+)

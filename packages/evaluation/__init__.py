@@ -13,6 +13,11 @@ from packages.evaluation.elo import (
     compute_elo_update,
     get_leaderboard_store,
 )
+from packages.evaluation.grand_capstone import (
+    GrandCapstoneAudit,
+    GrandCapstoneReport,
+    GrandPillarAudit,
+)
 from packages.evaluation.harness import CategoryScore, EvaluationHarness, EvaluationReport
 from packages.evaluation.loss_eval import (
     LossMetrics,
@@ -52,6 +57,9 @@ from packages.evaluation.verifiable_search_eval import (
 __all__ = [
     "DEFAULT_BENCHMARK_PROMPTS",
     "AlignmentEvaluator",
+    "GrandCapstoneAudit",
+    "GrandCapstoneReport",
+    "GrandPillarAudit",
     "IterationMetric",
     "PositionBiasAnalysis",
     "SearchMethodMetrics",

@@ -11,6 +11,13 @@ from packages.training.engine import TrainingConfig, TrainingEngine
 from packages.training.metrics import ThroughputTracker, TrainingLogEntry, compute_perplexity
 from packages.training.preference_dataset import PreferenceDataset, PreferenceSample
 from packages.training.scheduler import CosineWarmupScheduler
+from packages.training.self_evolution import (
+    EvolutionStage,
+    EvolutionStepMetric,
+    SelfEvolutionConfig,
+    SelfEvolutionEngine,
+    SelfEvolutionReport,
+)
 from packages.training.self_rewarding import (
     CandidateOutput,
     JudgeDimension,
@@ -31,12 +38,17 @@ __all__ = [
     "DPOConfig",
     "DPOTelemetry",
     "DPOTrainer",
+    "EvolutionStage",
+    "EvolutionStepMetric",
     "JudgeDimension",
     "JudgeRubric",
     "JudgeScore",
     "LLMJudge",
     "PreferenceDataset",
     "PreferenceSample",
+    "SelfEvolutionConfig",
+    "SelfEvolutionEngine",
+    "SelfEvolutionReport",
     "SelfRewardingConfig",
     "SelfRewardingIterationResult",
     "SelfRewardingTrainer",
