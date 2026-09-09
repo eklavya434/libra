@@ -6,6 +6,7 @@ and completion detection for JSON generation.
 """
 
 import pytest
+
 from packages.core.grammar.json_state_machine import IncrementalJSONStateMachine
 
 
@@ -50,32 +51,32 @@ def test_pda_allowed_characters(pda):
     pda.reset()
     # At start, can open object, array, or primitives
     allowed = pda.get_allowed_characters()
-    assert '{' in allowed
-    assert '[' in allowed
+    assert "{" in allowed
+    assert "[" in allowed
     assert '"' in allowed
 
     # Feed '{'
-    pda.feed_char('{')
+    pda.feed_char("{")
     allowed = pda.get_allowed_characters()
     assert '"' in allowed
-    assert '}' in allowed
-    assert ':' not in allowed
+    assert "}" in allowed
+    assert ":" not in allowed
 
     # Feed '"key"'
     for ch in '"key"':
         pda.feed_char(ch)
     allowed = pda.get_allowed_characters()
-    assert ':' in allowed
-    assert '{' not in allowed
+    assert ":" in allowed
+    assert "{" not in allowed
 
     # Feed ':'
-    pda.feed_char(':')
+    pda.feed_char(":")
     allowed = pda.get_allowed_characters()
     assert '"' in allowed
-    assert '{' in allowed
-    assert '[' in allowed
-    assert 't' in allowed  # true
-    assert 'f' in allowed  # false
+    assert "{" in allowed
+    assert "[" in allowed
+    assert "t" in allowed  # true
+    assert "f" in allowed  # false
 
 
 def test_pda_string_escapes(pda):

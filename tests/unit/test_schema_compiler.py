@@ -3,7 +3,9 @@ Tests for SchemaCompiler and SchemaConstraint (packages/core/grammar/schema_comp
 """
 
 from typing import Optional
+
 from pydantic import BaseModel, Field
+
 from packages.core.grammar.schema_compiler import SchemaCompiler
 
 

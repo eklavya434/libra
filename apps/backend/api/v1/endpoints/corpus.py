@@ -6,13 +6,14 @@ Provides ChatML formatting, loss masking inspection, and sequence packing simula
 from __future__ import annotations
 
 from typing import Any
+
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from packages.training.chat_formatter import (
+    IGNORE_INDEX,
     ChatMessage,
     ChatMLFormatter,
-    IGNORE_INDEX,
     tokenize_with_loss_masking,
 )
 from packages.training.domain_corpora import get_educational_instruction_corpus
@@ -31,7 +32,10 @@ class FormatChatRequest(BaseModel):
         default=[
             MessageInput(role="system", content="You are Libra, an educational AI assistant."),
             MessageInput(role="user", content="Explain gradient descent in one sentence."),
-            MessageInput(role="assistant", content="Gradient descent iteratively updates parameters in the direction of steepest descent to minimize loss."),
+            MessageInput(
+                role="assistant",
+                content="Gradient descent iteratively updates parameters in the direction of steepest descent to minimize loss.",
+            ),
         ]
     )
     max_length: int = Field(default=256)
@@ -87,7 +91,7 @@ async def format_chat_endpoint(req: FormatChatRequest) -> FormatChatResponse:
     tokens = []
     trainable_count = 0
     for idx, (tok_id, lbl) in enumerate(zip(input_ids, label_ids, strict=False)):
-        is_masked = (lbl == IGNORE_INDEX)
+        is_masked = lbl == IGNORE_INDEX
         if not is_masked:
             trainable_count += 1
         char_repr = chr(tok_id) if 32 <= tok_id <= 126 else f"\\x{tok_id:02x}"
@@ -122,7 +126,9 @@ async def pack_dialogues_endpoint(req: PackRequest) -> PackResponse:
 
     dialogue_tokens = []
     for dialogue in corpus:
-        in_ids, lbl_ids = tokenize_with_loss_masking(dialogue, simple_tokenizer, max_length=req.max_length)
+        in_ids, lbl_ids = tokenize_with_loss_masking(
+            dialogue, simple_tokenizer, max_length=req.max_length
+        )
         dialogue_tokens.append((in_ids, lbl_ids))
 
     packed = pack_sequences(dialogue_tokens, max_length=req.max_length, eos_token_id=0)

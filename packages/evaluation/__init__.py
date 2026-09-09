@@ -25,8 +25,8 @@ from packages.evaluation.multiple_choice import (
     MultipleChoiceEvaluator,
     MultipleChoiceResult,
 )
-from packages.evaluation.probes import ProbeExample, filter_probes, get_standard_probes
 from packages.evaluation.needle_haystack import NeedleInHaystackEvaluator, NeedleResult
+from packages.evaluation.probes import ProbeExample, filter_probes, get_standard_probes
 from packages.evaluation.tournament import (
     DEFAULT_BENCHMARK_PROMPTS,
     BenchmarkPrompt,

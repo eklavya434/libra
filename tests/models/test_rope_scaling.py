@@ -9,13 +9,13 @@ Tests:
 """
 
 import math
-import torch
-import pytest
 
-from packages.models.components.rope import RotaryEmbedding, precompute_freqs_cis
+import torch
+
+from packages.models.components.rope import precompute_freqs_cis
 from packages.models.components.rope_scaling import (
-    ScalingType,
     ScaledRotaryEmbedding,
+    ScalingType,
     compute_base_freqs,
     compute_freqs_dynamic_ntk,
     compute_freqs_linear,

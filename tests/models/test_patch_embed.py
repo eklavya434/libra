@@ -2,7 +2,6 @@
 Unit Tests for Phase 32: Vision Patch Embedder & Projection Adapter
 """
 
-import pytest
 import torch
 
 from packages.models.vision.patch_embed import ImagePatchEmbedder, generate_synthetic_image

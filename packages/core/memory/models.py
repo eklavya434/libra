@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -43,7 +44,9 @@ class Conversation(BaseModel):
 class ConversationDetail(Conversation):
     """Detailed conversation object including ordered messages."""
 
-    messages: list[Message] = Field(default_factory=list, description="Ordered conversation history")
+    messages: list[Message] = Field(
+        default_factory=list, description="Ordered conversation history"
+    )
 
 
 class CreateConversationRequest(BaseModel):
@@ -51,7 +54,9 @@ class CreateConversationRequest(BaseModel):
 
     title: Optional[str] = Field(None, description="Optional initial conversation title")
     model: str = Field("libra-llama-tied", description="Target model ID")
-    system_prompt: Optional[str] = Field(None, description="Optional persistent system instructions")
+    system_prompt: Optional[str] = Field(
+        None, description="Optional persistent system instructions"
+    )
 
 
 class UpdateConversationRequest(BaseModel):

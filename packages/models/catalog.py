@@ -1,4 +1,4 @@
-﻿"""
+"""
 Libra Models - Canonical Open-Weight & Educational Model Catalog
 
 Curates official, verified open models across architectures and providers.
@@ -7,8 +7,6 @@ Curates official, verified open models across architectures and providers.
 from __future__ import annotations
 
 from packages.models.registry import (
-    HardwareClassifier,
-    HardwareTier,
     LicenseType,
     ModelMetadata,
     ModelRegistry,
@@ -64,7 +62,6 @@ def get_default_registry() -> ModelRegistry:
             capabilities=["educational", "next_token_prediction"],
             description="Modern decoder-only transformer with RoPE and weight tying.",
         ),
-
         # --- LLAMA 3.2 (Meta) ---
         ModelMetadata(
             model_id="llama3.2:1b",
@@ -94,7 +91,6 @@ def get_default_registry() -> ModelRegistry:
             capabilities=["chat", "reasoning", "coding", "tools"],
             description="High-capability compact model excelling in multilingual & agentic tasks.",
         ),
-
         # --- DEEPSEEK R1 DISTILL ---
         ModelMetadata(
             model_id="deepseek-r1:1.5b",
@@ -110,7 +106,6 @@ def get_default_registry() -> ModelRegistry:
             capabilities=["chat", "deep_reasoning", "math", "chain_of_thought"],
             description="Distilled reasoning model producing explicit <think> tokens for complex math and logic.",
         ),
-
         # --- QWEN 2.5 (Alibaba) ---
         ModelMetadata(
             model_id="qwen2.5:0.5b",
@@ -182,7 +177,6 @@ def get_default_registry() -> ModelRegistry:
             capabilities=["frontier_intelligence", "coding", "math", "reasoning"],
             description="Frontier-class open weights model requiring server GPU clusters.",
         ),
-
         # --- GEMMA 2 (Google) ---
         ModelMetadata(
             model_id="gemma2:2b",
@@ -212,7 +206,6 @@ def get_default_registry() -> ModelRegistry:
             capabilities=["chat", "reasoning", "coding"],
             description="State-of-the-art 9B model; tight memory fit on 16GB CPU.",
         ),
-
         # --- MISTRAL (Mistral AI) ---
         ModelMetadata(
             model_id="mistral:7b-instruct-v0.3",
@@ -228,7 +221,6 @@ def get_default_registry() -> ModelRegistry:
             capabilities=["chat", "coding", "function_calling"],
             description="Standard Apache 2.0 open-weights workhorse supporting function calling.",
         ),
-
         # --- PHI (Microsoft) ---
         ModelMetadata(
             model_id="phi3.5:3.8b",
@@ -244,7 +236,6 @@ def get_default_registry() -> ModelRegistry:
             capabilities=["chat", "reasoning", "code", "long_context"],
             description="Trained on high-quality synthetic textbook data with 128k context support.",
         ),
-
         # --- NEMOTRON (NVIDIA) ---
         ModelMetadata(
             model_id="nemotron-mini:4b",

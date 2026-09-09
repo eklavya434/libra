@@ -9,6 +9,7 @@ Runs an interactive demonstration on consumer CPU:
 import os
 import sys
 import time
+
 import torch
 
 # Ensure repository root is on sys.path
@@ -43,10 +44,16 @@ def demo_patch_decomposition():
 
     print(f"Input Image Resolution : {image_size} x {image_size} (Channels: {channels})")
     print(f"Patch Resolution       : {patch_size} x {patch_size} pixels")
-    print(f"Flattened Patch Dim    : {embedder.patch_dim} elements ({patch_size}*{patch_size}*{channels})")
-    print(f"Total Visual Patches   : {embedder.num_patches} patches in a {embedder.grid_size}x{embedder.grid_size} grid")
+    print(
+        f"Flattened Patch Dim    : {embedder.patch_dim} elements ({patch_size}*{patch_size}*{channels})"
+    )
+    print(
+        f"Total Visual Patches   : {embedder.num_patches} patches in a {embedder.grid_size}x{embedder.grid_size} grid"
+    )
     print(f"Output Patch Tensor    : {tuple(patches.shape)} (B, N_patches, d_vision)")
-    print("Verification: ImagePatchEmbedder successfully extracts and projects non-overlapping visual tokens.")
+    print(
+        "Verification: ImagePatchEmbedder successfully extracts and projects non-overlapping visual tokens."
+    )
 
 
 def demo_multimodal_projection():
@@ -74,8 +81,12 @@ def demo_multimodal_projection():
 
     print(f"Raw Vision Feature Shape       : {tuple(visual_feats.shape)} (d_vision = {vision_dim})")
     print(f"LLaVA MLP Projected Tokens      : {tuple(mlp_tokens.shape)} (d_model = {llm_dim})")
-    print(f"Perceiver Resampled Tokens     : {tuple(perceiver_tokens.shape)} (resampled to 4 latents)")
-    print("Verification: Vision features successfully projected to continuous LLM token embedding space.")
+    print(
+        f"Perceiver Resampled Tokens     : {tuple(perceiver_tokens.shape)} (resampled to 4 latents)"
+    )
+    print(
+        "Verification: Vision features successfully projected to continuous LLM token embedding space."
+    )
 
 
 def demo_vlm_generation():
@@ -105,10 +116,12 @@ def demo_vlm_generation():
     elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
     print(f"Input Prompt Token IDs : {prompt_ids.tolist()[0]}")
-    print(f"Conditioning Image     : 32x32 Checkerboard (16 visual prefix tokens)")
+    print("Conditioning Image     : 32x32 Checkerboard (16 visual prefix tokens)")
     print(f"Generated Token IDs    : {gen_tokens.tolist()[0]}")
     print(f"Generation Latency     : {elapsed_ms:.2f} ms on CPU")
-    print("Verification: ModernTransformerLM successfully conditioned autoregressive generation on visual prefix tokens.")
+    print(
+        "Verification: ModernTransformerLM successfully conditioned autoregressive generation on visual prefix tokens."
+    )
 
 
 if __name__ == "__main__":

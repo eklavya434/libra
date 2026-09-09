@@ -68,6 +68,7 @@ FORBIDDEN_ATTRS = {
 
 class SandboxSecurityError(PermissionError):
     """Raised when code violates static AST security analysis."""
+
     pass
 
 
@@ -152,10 +153,12 @@ class SafePythonSandbox:
 
         # 2. Ephemeral Scoped Working Directory
         with tempfile.TemporaryDirectory(prefix="libra_sandbox_") as temp_dir:
-            payload = json.dumps({
-                "code": code,
-                "sandbox_dir": temp_dir,
-            })
+            payload = json.dumps(
+                {
+                    "code": code,
+                    "sandbox_dir": temp_dir,
+                }
+            )
 
             # 3. Prepare blackholed network environment
             child_env = {
@@ -200,7 +203,9 @@ class SafePythonSandbox:
             if proc.returncode != 0 and not stdout_data.strip():
                 # Check for Windows Job Object memory ceiling or crash exit codes
                 # 0xC0000017 = STATUS_NO_MEMORY, 0xC0000005 = ACCESS_VIOLATION
-                err_msg = stderr_data.strip() or f"Process terminated with exit code {proc.returncode}"
+                err_msg = (
+                    stderr_data.strip() or f"Process terminated with exit code {proc.returncode}"
+                )
                 if proc.returncode in (3221225495, -1073741797) or "MemoryError" in err_msg:
                     err_msg = "MemoryError: Execution exceeded allocated memory limit"
                 return {
@@ -237,35 +242,35 @@ class SafePythonSandbox:
 
             class IO_COUNTERS(ctypes.Structure):
                 _fields_ = [
-                    ('ReadOperationCount', ctypes.c_uint64),
-                    ('WriteOperationCount', ctypes.c_uint64),
-                    ('OtherOperationCount', ctypes.c_uint64),
-                    ('ReadTransferCount', ctypes.c_uint64),
-                    ('TransferCount', ctypes.c_uint64),
-                    ('OtherTransferCount', ctypes.c_uint64),
+                    ("ReadOperationCount", ctypes.c_uint64),
+                    ("WriteOperationCount", ctypes.c_uint64),
+                    ("OtherOperationCount", ctypes.c_uint64),
+                    ("ReadTransferCount", ctypes.c_uint64),
+                    ("TransferCount", ctypes.c_uint64),
+                    ("OtherTransferCount", ctypes.c_uint64),
                 ]
 
             class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
                 _fields_ = [
-                    ('PerProcessUserTimeLimit', ctypes.c_int64),
-                    ('PerJobUserTimeLimit', ctypes.c_int64),
-                    ('LimitFlags', wintypes.DWORD),
-                    ('MinimumWorkingSetSize', ctypes.c_size_t),
-                    ('MaximumWorkingSetSize', ctypes.c_size_t),
-                    ('ActiveProcessLimit', wintypes.DWORD),
-                    ('Affinity', ctypes.c_size_t),
-                    ('PriorityClass', wintypes.DWORD),
-                    ('SchedulingClass', wintypes.DWORD),
+                    ("PerProcessUserTimeLimit", ctypes.c_int64),
+                    ("PerJobUserTimeLimit", ctypes.c_int64),
+                    ("LimitFlags", wintypes.DWORD),
+                    ("MinimumWorkingSetSize", ctypes.c_size_t),
+                    ("MaximumWorkingSetSize", ctypes.c_size_t),
+                    ("ActiveProcessLimit", wintypes.DWORD),
+                    ("Affinity", ctypes.c_size_t),
+                    ("PriorityClass", wintypes.DWORD),
+                    ("SchedulingClass", wintypes.DWORD),
                 ]
 
             class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
                 _fields_ = [
-                    ('BasicLimitInformation', JOBOBJECT_BASIC_LIMIT_INFORMATION),
-                    ('IoInfo', IO_COUNTERS),
-                    ('ProcessMemoryLimit', ctypes.c_size_t),
-                    ('JobMemoryLimit', ctypes.c_size_t),
-                    ('PeakProcessMemoryLimit', ctypes.c_size_t),
-                    ('PeakJobMemoryLimit', ctypes.c_size_t),
+                    ("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION),
+                    ("IoInfo", IO_COUNTERS),
+                    ("ProcessMemoryLimit", ctypes.c_size_t),
+                    ("JobMemoryLimit", ctypes.c_size_t),
+                    ("PeakProcessMemoryLimit", ctypes.c_size_t),
+                    ("PeakJobMemoryLimit", ctypes.c_size_t),
                 ]
 
             job = kernel32.CreateJobObjectW(None, None)
@@ -308,6 +313,7 @@ class SafePythonSandbox:
         if job_handle and sys.platform == "win32":
             try:
                 import ctypes
+
                 ctypes.windll.kernel32.CloseHandle(job_handle)
             except Exception:
                 pass

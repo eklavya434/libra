@@ -1,4 +1,4 @@
-﻿"""
+"""
 Libra Models - Model Registry & Hardware Compatibility Engine
 
 Provides:
@@ -10,7 +10,6 @@ Provides:
 
 from __future__ import annotations
 
-import math
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any, Optional
@@ -28,8 +27,8 @@ class HardwareTier(str, Enum):
 class LicenseType(str, Enum):
     PERMISSIVE_OPEN_SOURCE = "permissive_open_source"  # MIT, Apache 2.0, BSD
     OPEN_WEIGHTS_COMMUNITY = "open_weights_community"  # Llama Community, Gemma Terms
-    RESEARCH_ONLY = "research_only"                    # Non-commercial research
-    PROPRIETARY = "proprietary"                        # Closed commercial APIs (OpenAI, Gemini)
+    RESEARCH_ONLY = "research_only"  # Non-commercial research
+    PROPRIETARY = "proprietary"  # Closed commercial APIs (OpenAI, Gemini)
 
 
 @dataclass
@@ -173,7 +172,11 @@ class ModelRegistry:
         if tier:
             results = [m for m in results if m.hardware_tier == tier]
         if cpu_friendly_only:
-            results = [m for m in results if m.hardware_tier == HardwareTier.CPU_FRIENDLY and m.can_run_locally]
+            results = [
+                m
+                for m in results
+                if m.hardware_tier == HardwareTier.CPU_FRIENDLY and m.can_run_locally
+            ]
         return results
 
     def get_cpu_friendly_models(self) -> list[ModelMetadata]:

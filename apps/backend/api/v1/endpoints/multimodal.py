@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import time
 from typing import Any
+
 import torch
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -37,7 +38,9 @@ _global_vlm = LibraVLM(
 
 
 class EmbedImageRequest(BaseModel):
-    pattern: str = Field(default="checkerboard", description="checkerboard, horizontal_gradient, solid")
+    pattern: str = Field(
+        default="checkerboard", description="checkerboard, horizontal_gradient, solid"
+    )
     image_size: int = Field(default=32, ge=16, le=64)
     patch_size: int = Field(default=8, ge=4, le=16)
     vision_dim: int = Field(default=32)
@@ -55,7 +58,9 @@ class EmbedImageResponse(BaseModel):
 
 class VLMGenerateRequest(BaseModel):
     prompt: str = Field(default="This image shows a", description="Prefix text prompt")
-    pattern: str = Field(default="checkerboard", description="checkerboard, horizontal_gradient, solid")
+    pattern: str = Field(
+        default="checkerboard", description="checkerboard, horizontal_gradient, solid"
+    )
     max_new_tokens: int = Field(default=6, ge=1, le=16)
 
 
@@ -92,15 +97,22 @@ async def embed_image_endpoint(req: EmbedImageRequest) -> EmbedImageResponse:
         for c in range(grid_dim):
             idx = r * grid_dim + c
             # Mean intensity of patch across channels
-            patch_slice = img[0, :, r*req.patch_size:(r+1)*req.patch_size, c*req.patch_size:(c+1)*req.patch_size]
+            patch_slice = img[
+                0,
+                :,
+                r * req.patch_size : (r + 1) * req.patch_size,
+                c * req.patch_size : (c + 1) * req.patch_size,
+            ]
             mean_rgb = [round(patch_slice[ch].mean().item(), 3) for ch in range(3)]
-            patch_grid.append({
-                "patch_index": idx,
-                "row": r,
-                "col": c,
-                "mean_rgb": mean_rgb,
-                "norm": round(patches[0, idx].norm().item(), 4),
-            })
+            patch_grid.append(
+                {
+                    "patch_index": idx,
+                    "row": r,
+                    "col": c,
+                    "mean_rgb": mean_rgb,
+                    "norm": round(patches[0, idx].norm().item(), 4),
+                }
+            )
 
     return EmbedImageResponse(
         image_size=req.image_size,

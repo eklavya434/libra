@@ -12,6 +12,7 @@ Implements virtual memory page allocation for LLM inference:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+
 import torch
 
 
@@ -269,9 +270,7 @@ class PagedKVCache:
 
         internal_fragmentation_slots = allocated_slots - used_slots
         internal_frag_percent = (
-            (internal_fragmentation_slots / allocated_slots * 100.0)
-            if allocated_slots > 0
-            else 0.0
+            (internal_fragmentation_slots / allocated_slots * 100.0) if allocated_slots > 0 else 0.0
         )
 
         return {

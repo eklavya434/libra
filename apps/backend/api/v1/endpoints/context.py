@@ -9,6 +9,7 @@ Provides endpoints for:
 from __future__ import annotations
 
 import math
+
 import torch
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -18,7 +19,6 @@ from packages.evaluation.needle_haystack import (
     DEFAULT_NEEDLE_KEY,
     DEFAULT_NEEDLE_PROMPT,
     NeedleInHaystackEvaluator,
-    NeedleResult,
 )
 from packages.models.components.rope_scaling import (
     ScalingType,
@@ -39,7 +39,9 @@ class RoPEFrequencyRequest(BaseModel):
     scale: float = Field(default=4.0, description="Scale factor s")
     original_max_seq_len: int = Field(default=512, description="Original training sequence length")
     theta_base: float = Field(default=10000.0, description="Base theta frequency")
-    scaling_type: str = Field(default="yarn", description="Scaling type: none, linear, dynamic_ntk, yarn")
+    scaling_type: str = Field(
+        default="yarn", description="Scaling type: none, linear, dynamic_ntk, yarn"
+    )
 
 
 class FrequencyChannel(BaseModel):
@@ -99,7 +101,9 @@ async def inspect_rope_scaling(req: RoPEFrequencyRequest) -> RoPEFrequencyRespon
         cos, sin = compute_freqs_linear(req.dim, req.max_seq_len, req.scale, req.theta_base)
         scaled_freqs = base_freqs / req.scale
     elif scaling_norm == ScalingType.DYNAMIC_NTK.value:
-        cos, sin = compute_freqs_dynamic_ntk(req.dim, req.max_seq_len, req.original_max_seq_len, req.theta_base)
+        cos, sin = compute_freqs_dynamic_ntk(
+            req.dim, req.max_seq_len, req.original_max_seq_len, req.theta_base
+        )
         exponent = req.dim / (req.dim - 2.0)
         adj_base = req.theta_base * ((req.max_seq_len / req.original_max_seq_len) ** exponent)
         scaled_freqs = compute_base_freqs(req.dim, adj_base)
@@ -157,7 +161,9 @@ async def evaluate_needle_in_haystack(req: NeedleEvaluationRequest) -> NeedleEva
     def generate_fn(prompt: str) -> str:
         # If prompt contains the needle directly, resolve answer
         if req.target_key in prompt:
-            return f"According to the text, the secret access code to the vault is {req.target_key}."
+            return (
+                f"According to the text, the secret access code to the vault is {req.target_key}."
+            )
         res = provider.generate([{"role": "user", "content": prompt}], temperature=0.0)
         return res.content
 

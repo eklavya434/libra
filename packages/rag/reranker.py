@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from packages.rag.models import SearchResult
 
@@ -91,9 +90,7 @@ class HeuristicReRanker(BaseReRanker):
         if len(q_tokens) <= 1 or not doc_words:
             return 1.0
 
-        positions: list[int] = [
-            idx for idx, word in enumerate(doc_words) if word in q_tokens
-        ]
+        positions: list[int] = [idx for idx, word in enumerate(doc_words) if word in q_tokens]
         if len(positions) < 2:
             return 0.0
 

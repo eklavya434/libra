@@ -78,7 +78,11 @@ class ProviderRouter:
         model_lower = model_id.lower()
 
         # 1. Cloud routing heuristics by model prefix
-        if model_lower.startswith("gpt-") or model_lower.startswith("o1") or model_lower.startswith("text-embedding"):
+        if (
+            model_lower.startswith("gpt-")
+            or model_lower.startswith("o1")
+            or model_lower.startswith("text-embedding")
+        ):
             prov = self._providers["openai"]
             if getattr(prov, "api_key", None):
                 return prov

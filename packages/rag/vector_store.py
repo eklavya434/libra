@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import uuid
 from typing import Any, Optional
+
 import numpy as np
 
 from packages.rag.chunking import RecursiveCharacterChunker

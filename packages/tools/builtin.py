@@ -14,20 +14,24 @@ import ast
 import math
 import operator
 from typing import Any, Callable
+
 from pydantic import BaseModel, Field
 
-from packages.tools.base import BaseTool
-from packages.tools.sandbox import SafePythonSandbox
 from packages.rag.hybrid import get_hybrid_retriever
 from packages.rag.web_search import get_web_search_provider
-
+from packages.tools.base import BaseTool
+from packages.tools.sandbox import SafePythonSandbox
 
 # -----------------------------------------------------------------------------
 # 1. Calculator Tool (AST Based Arithmetic)
 # -----------------------------------------------------------------------------
 
+
 class CalculatorInput(BaseModel):
-    expression: str = Field(..., description="The mathematical expression to evaluate (e.g., '144 * 12', 'math.sqrt(256)', '2**16')")
+    expression: str = Field(
+        ...,
+        description="The mathematical expression to evaluate (e.g., '144 * 12', 'math.sqrt(256)', '2**16')",
+    )
 
 
 SAFE_OPERATORS: dict[type, Callable] = {
@@ -131,6 +135,7 @@ class CalculatorTool(BaseTool):
 # 2. Python Interpreter Tool
 # -----------------------------------------------------------------------------
 
+
 class PythonInterpreterInput(BaseModel):
     code: str = Field(..., description="The Python code snippet to execute in the secure sandbox")
 
@@ -153,9 +158,12 @@ class PythonInterpreterTool(BaseTool):
 # 3. Web Search Tool
 # -----------------------------------------------------------------------------
 
+
 class WebSearchToolInput(BaseModel):
     query: str = Field(..., description="The search query to look up on the web")
-    max_results: int = Field(5, ge=1, le=10, description="Maximum number of web search results to return")
+    max_results: int = Field(
+        5, ge=1, le=10, description="Maximum number of web search results to return"
+    )
 
 
 class WebSearchTool(BaseTool):
@@ -180,8 +188,11 @@ class WebSearchTool(BaseTool):
 # 4. Knowledge Base Tool
 # -----------------------------------------------------------------------------
 
+
 class KnowledgeBaseToolInput(BaseModel):
-    query: str = Field(..., description="The query to search within the local indexed knowledge base")
+    query: str = Field(
+        ..., description="The query to search within the local indexed knowledge base"
+    )
     top_k: int = Field(3, ge=1, le=10, description="Number of document chunks to retrieve")
     mode: str = Field("hybrid", description="Retrieval mode: 'hybrid', 'dense', or 'bm25'")
 

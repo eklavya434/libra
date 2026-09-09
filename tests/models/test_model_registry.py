@@ -1,4 +1,3 @@
-﻿import pytest
 from fastapi.testclient import TestClient
 
 from apps.backend.main import app
@@ -7,9 +6,6 @@ from packages.models.catalog import get_default_registry
 from packages.models.registry import (
     HardwareClassifier,
     HardwareTier,
-    LicenseType,
-    ModelMetadata,
-    ModelRegistry,
 )
 
 client = TestClient(app)

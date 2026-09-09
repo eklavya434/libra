@@ -18,7 +18,7 @@ def get_educational_instruction_corpus() -> list[list[ChatMessage]]:
             ChatMessage(
                 "assistant",
                 "Causal masking sets upper-triangular attention scores to negative infinity before softmax, "
-                "preventing tokens from attending to subsequent future positions during autoregressive generation."
+                "preventing tokens from attending to subsequent future positions during autoregressive generation.",
             ),
         ],
         [
@@ -27,16 +27,13 @@ def get_educational_instruction_corpus() -> list[list[ChatMessage]]:
             ChatMessage(
                 "assistant",
                 "The function subtracts instead of adding. The corrected code is:\n\n"
-                "```python\ndef add(a, b):\n    return a + b\n```"
+                "```python\ndef add(a, b):\n    return a + b\n```",
             ),
         ],
         [
             ChatMessage("system", "You are a mathematical reasoning tutor."),
             ChatMessage("user", "Calculate the dot product of [1, 2] and [3, 4]."),
-            ChatMessage(
-                "assistant",
-                "The dot product is (1 * 3) + (2 * 4) = 3 + 8 = 11."
-            ),
+            ChatMessage("assistant", "The dot product is (1 * 3) + (2 * 4) = 3 + 8 = 11."),
         ],
         [
             ChatMessage("system", "You are Libra, an educational AI assistant."),
@@ -44,7 +41,7 @@ def get_educational_instruction_corpus() -> list[list[ChatMessage]]:
             ChatMessage(
                 "assistant",
                 "Rotary Position Embedding (RoPE) encodes relative distance naturally via 2D rotation of Query and Key "
-                "vectors, allowing models to generalize to longer context lengths without retraining."
+                "vectors, allowing models to generalize to longer context lengths without retraining.",
             ),
         ],
     ]

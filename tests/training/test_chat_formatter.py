@@ -3,10 +3,10 @@ Tests for ChatML Formatter and Prompt Loss Masker (Phase 33)
 """
 
 from packages.training.chat_formatter import (
+    IGNORE_INDEX,
     ChatMessage,
     ChatMLFormatter,
     tokenize_with_loss_masking,
-    IGNORE_INDEX,
 )
 
 

@@ -40,4 +40,3 @@ class ArenaModelMetric:
             "is_free": self.is_free,
             "error": self.error,
         }
-

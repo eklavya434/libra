@@ -105,10 +105,10 @@ class SecurityVisitor(ast.NodeVisitor):
 ```python
 limits = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
 limits.BasicLimitInformation.LimitFlags = (
-    JOB_OBJECT_LIMIT_PROCESS_MEMORY |
-    JOB_OBJECT_LIMIT_JOB_MEMORY |
-    JOB_OBJECT_LIMIT_ACTIVE_PROCESS |
-    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+    JOB_OBJECT_LIMIT_PROCESS_MEMORY
+    | JOB_OBJECT_LIMIT_JOB_MEMORY
+    | JOB_OBJECT_LIMIT_ACTIVE_PROCESS
+    | JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
 )
 limits.BasicLimitInformation.ActiveProcessLimit = 1
 limits.ProcessMemoryLimit = 64 * 1024 * 1024

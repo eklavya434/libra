@@ -2,7 +2,6 @@
 Tests for HybridRetriever combining dense vector search, BM25, RRF, reranking, and deduplication
 """
 
-import pytest
 from packages.rag.hybrid import HybridRetriever
 from packages.rag.vector_store import InMemoryVectorStore
 

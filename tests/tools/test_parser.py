@@ -88,7 +88,7 @@ def test_parse_malformed_and_empty():
 def test_strip_tool_calls():
     text = (
         "I will calculate this:\n"
-        "<tool_call>{\"name\": \"calculator\", \"arguments\": {\"expression\": \"2+2\"}}</tool_call>\n"
+        '<tool_call>{"name": "calculator", "arguments": {"expression": "2+2"}}</tool_call>\n'
         "Here is the final text."
     )
     cleaned = ToolCallParser.strip_tool_calls(text)

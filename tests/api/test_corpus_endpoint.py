@@ -2,8 +2,8 @@
 Tests for Corpus Formatting and Packing API Endpoints (Phase 33)
 """
 
-import pytest
 from fastapi.testclient import TestClient
+
 from apps.backend.main import app
 
 client = TestClient(app)

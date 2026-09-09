@@ -9,8 +9,6 @@ from fastapi.testclient import TestClient
 
 from apps.backend.main import app
 from packages.evaluation.arena import ModelComparisonArena
-from packages.providers.mock import MockProvider
-from packages.providers.router import ProviderRouter
 
 
 @pytest.mark.asyncio
@@ -76,9 +74,7 @@ def test_arena_api_endpoint():
     client = TestClient(app)
     payload = {
         "prompt": "What is attention?",
-        "models": [
-            {"model": "libra-mock-v1", "provider": "mock-provider"}
-        ],
+        "models": [{"model": "libra-mock-v1", "provider": "mock-provider"}],
         "temperature": 0.7,
         "max_tokens": 64,
     }
@@ -92,4 +88,3 @@ def test_arena_api_endpoint():
     assert len(data["results"]) == 1
     assert data["results"][0]["model"] == "libra-mock-v1"
     assert data["rankings"]["highest_throughput"] == "libra-mock-v1"
-

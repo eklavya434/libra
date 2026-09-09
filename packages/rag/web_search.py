@@ -12,8 +12,9 @@ import re
 import urllib.parse
 from abc import ABC, abstractmethod
 from typing import Optional
-from pydantic import BaseModel, Field
+
 import httpx
+from pydantic import BaseModel, Field
 
 
 class WebSearchResult(BaseModel):
@@ -43,6 +44,7 @@ class BaseWebSearchProvider(ABC):
             return asyncio.run(self.search(query, max_results))
 
         import concurrent.futures
+
         with concurrent.futures.ThreadPoolExecutor() as pool:
             return pool.submit(asyncio.run, self.search(query, max_results)).result()
 
@@ -166,7 +168,9 @@ class DuckDuckGoSearchProvider(BaseWebSearchProvider):
                         if isinstance(topic, dict) and "Text" in topic and "FirstURL" in topic:
                             results.append(
                                 WebSearchResult(
-                                    title=topic["Text"].split(" - ")[0] if " - " in topic["Text"] else heading,
+                                    title=topic["Text"].split(" - ")[0]
+                                    if " - " in topic["Text"]
+                                    else heading,
                                     url=topic["FirstURL"],
                                     snippet=topic["Text"],
                                     source="duckduckgo",
@@ -182,7 +186,9 @@ class DuckDuckGoSearchProvider(BaseWebSearchProvider):
 
         # Second attempt: HTML search scraping
         try:
-            html_url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote_plus(query.strip())}"
+            html_url = (
+                f"https://html.duckduckgo.com/html/?q={urllib.parse.quote_plus(query.strip())}"
+            )
             async with httpx.AsyncClient(timeout=self.timeout_sec, follow_redirects=True) as client:
                 res = await client.get(html_url, headers=self.headers)
                 if res.status_code == 200:
@@ -199,7 +205,9 @@ class DuckDuckGoSearchProvider(BaseWebSearchProvider):
     def _parse_ddg_html(self, html: str, max_results: int) -> list[WebSearchResult]:
         results: list[WebSearchResult] = []
         # Pattern to capture result links and snippets from DuckDuckGo HTML
-        link_matches = list(re.finditer(r'<a class="result__url"[^>]*href="([^"]+)"[^>]*>([^<]+)</a>', html))
+        link_matches = list(
+            re.finditer(r'<a class="result__url"[^>]*href="([^"]+)"[^>]*>([^<]+)</a>', html)
+        )
         snippet_matches = list(re.finditer(r'<a class="result__snippet"[^>]*>([\s\S]*?)</a>', html))
 
         for i in range(min(len(link_matches), len(snippet_matches), max_results)):

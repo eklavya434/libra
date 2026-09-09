@@ -28,7 +28,9 @@ class OllamaProvider(BaseProvider):
     """Local inference adapter for the Ollama runtime."""
 
     def __init__(self, base_url: str | None = None, timeout: float = 60.0):
-        self.base_url = (base_url or os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")).rstrip("/")
+        self.base_url = (base_url or os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")).rstrip(
+            "/"
+        )
         self.timeout = timeout
 
     @property
@@ -95,8 +97,12 @@ class OllamaProvider(BaseProvider):
                                 provider="ollama",
                                 architecture=t.get("details", {}).get("family", "transformer"),
                                 context_length=4096,
-                                parameter_count=t.get("details", {}).get("parameter_size", "unknown"),
-                                quantization=t.get("details", {}).get("quantization_level", "unknown"),
+                                parameter_count=t.get("details", {}).get(
+                                    "parameter_size", "unknown"
+                                ),
+                                quantization=t.get("details", {}).get(
+                                    "quantization_level", "unknown"
+                                ),
                                 is_local=True,
                                 requires_gpu=False,
                                 hardware_tier="cpu-friendly",
@@ -193,7 +199,8 @@ class OllamaProvider(BaseProvider):
                     "usage": {
                         "prompt_tokens": data.get("prompt_eval_count", 0),
                         "completion_tokens": data.get("eval_count", 0),
-                        "total_tokens": data.get("prompt_eval_count", 0) + data.get("eval_count", 0),
+                        "total_tokens": data.get("prompt_eval_count", 0)
+                        + data.get("eval_count", 0),
                     },
                 }
         except httpx.ConnectError:
@@ -232,7 +239,9 @@ class OllamaProvider(BaseProvider):
                 async with client.stream("POST", f"{self.base_url}/api/chat", json=payload) as resp:
                     if resp.status_code != 200:
                         err_text = await resp.aread()
-                        raise RuntimeError(f"Ollama stream error {resp.status_code}: {err_text.decode('utf-8', errors='ignore')}")
+                        raise RuntimeError(
+                            f"Ollama stream error {resp.status_code}: {err_text.decode('utf-8', errors='ignore')}"
+                        )
 
                     in_thinking = False
                     async for line in resp.aiter_lines():

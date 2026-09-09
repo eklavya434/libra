@@ -8,25 +8,24 @@ and completion status for constrained autoregressive decoding.
 
 from __future__ import annotations
 
-import json
 from enum import Enum, auto
-from typing import Optional, Set
+from typing import Set
 
 
 class JSONState(Enum):
-    START = auto()                 # Before root value
-    IN_OBJECT_START = auto()       # Right after '{'
-    EXPECT_KEY = auto()            # Expecting string key
-    IN_KEY_STRING = auto()         # Inside key "..."
-    AFTER_KEY = auto()             # Key ended, expecting ':'
-    EXPECT_VALUE = auto()          # After ':' or array start/comma, expecting value
-    IN_VALUE_STRING = auto()       # Inside string value "..."
-    IN_NUMBER = auto()             # Inside numeric literal
-    IN_LITERAL = auto()            # Inside true/false/null
-    AFTER_VALUE = auto()           # After value, expecting ',' or '}' / ']'
-    EXPECT_COMMA_OR_END = auto()   # Inside object/array after value
-    DONE = auto()                  # Root value closed, only whitespace allowed
-    INVALID = auto()               # Unrecoverable syntax error
+    START = auto()  # Before root value
+    IN_OBJECT_START = auto()  # Right after '{'
+    EXPECT_KEY = auto()  # Expecting string key
+    IN_KEY_STRING = auto()  # Inside key "..."
+    AFTER_KEY = auto()  # Key ended, expecting ':'
+    EXPECT_VALUE = auto()  # After ':' or array start/comma, expecting value
+    IN_VALUE_STRING = auto()  # Inside string value "..."
+    IN_NUMBER = auto()  # Inside numeric literal
+    IN_LITERAL = auto()  # Inside true/false/null
+    AFTER_VALUE = auto()  # After value, expecting ',' or '}' / ']'
+    EXPECT_COMMA_OR_END = auto()  # Inside object/array after value
+    DONE = auto()  # Root value closed, only whitespace allowed
+    INVALID = auto()  # Unrecoverable syntax error
 
 
 DIGITS = set("0123456789")
@@ -45,11 +44,11 @@ class IncrementalJSONStateMachine:
         self.reset()
 
     def reset(self) -> None:
-        self.stack: list[str] = []         # Context stack: 'OBJECT' or 'ARRAY'
+        self.stack: list[str] = []  # Context stack: 'OBJECT' or 'ARRAY'
         self.state: JSONState = JSONState.START
-        self.in_escape: bool = False       # True if preceding char was '\'
-        self.literal_buffer: str = ""      # Buffer for true/false/null or numbers
-        self.expected_literal: str = ""    # Target string: 'true', 'false', 'null'
+        self.in_escape: bool = False  # True if preceding char was '\'
+        self.literal_buffer: str = ""  # Buffer for true/false/null or numbers
+        self.expected_literal: str = ""  # Target string: 'true', 'false', 'null'
 
     def is_valid_prefix(self, text: str) -> bool:
         """Returns True if text is a valid prefix that can potentially complete to valid JSON."""
@@ -68,11 +67,11 @@ class IncrementalJSONStateMachine:
         if self.state in (JSONState.IN_KEY_STRING, JSONState.IN_VALUE_STRING):
             if self.in_escape:
                 # Valid escape character
-                if ch in {'"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u'}:
+                if ch in {'"', "\\", "/", "b", "f", "n", "r", "t", "u"}:
                     self.in_escape = False
                     return True
                 return False
-            elif ch == '\\':
+            elif ch == "\\":
                 self.in_escape = True
                 return True
             elif ch == '"':
@@ -119,7 +118,7 @@ class IncrementalJSONStateMachine:
             return self._start_value(ch)
 
         if self.state == JSONState.IN_OBJECT_START:
-            if ch == '}':
+            if ch == "}":
                 # Empty object
                 self.stack.pop()
                 self._complete_value()
@@ -136,7 +135,7 @@ class IncrementalJSONStateMachine:
             return False
 
         if self.state == JSONState.AFTER_KEY:
-            if ch == ':':
+            if ch == ":":
                 self.state = JSONState.EXPECT_VALUE
                 return True
             return False
@@ -149,19 +148,19 @@ class IncrementalJSONStateMachine:
                 return False
             context = self.stack[-1]
             if context == "OBJECT":
-                if ch == '}':
+                if ch == "}":
                     self.stack.pop()
                     self._complete_value()
                     return True
-                elif ch == ',':
+                elif ch == ",":
                     self.state = JSONState.EXPECT_KEY
                     return True
             elif context == "ARRAY":
-                if ch == ']':
+                if ch == "]":
                     self.stack.pop()
                     self._complete_value()
                     return True
-                elif ch == ',':
+                elif ch == ",":
                     self.state = JSONState.EXPECT_VALUE
                     return True
             return False
@@ -174,11 +173,11 @@ class IncrementalJSONStateMachine:
 
     def _start_value(self, ch: str) -> bool:
         """Starts parsing a JSON value (string, object, array, number, boolean, null)."""
-        if ch == '{':
+        if ch == "{":
             self.stack.append("OBJECT")
             self.state = JSONState.IN_OBJECT_START
             return True
-        elif ch == '[':
+        elif ch == "[":
             self.stack.append("ARRAY")
             self.state = JSONState.EXPECT_VALUE
             return True
@@ -189,22 +188,22 @@ class IncrementalJSONStateMachine:
             self.state = JSONState.IN_NUMBER
             self.literal_buffer = ch
             return True
-        elif ch == 't':
+        elif ch == "t":
             self.state = JSONState.IN_LITERAL
             self.expected_literal = "true"
             self.literal_buffer = "t"
             return True
-        elif ch == 'f':
+        elif ch == "f":
             self.state = JSONState.IN_LITERAL
             self.expected_literal = "false"
             self.literal_buffer = "f"
             return True
-        elif ch == 'n':
+        elif ch == "n":
             self.state = JSONState.IN_LITERAL
             self.expected_literal = "null"
             self.literal_buffer = "n"
             return True
-        elif ch == ']' and self.stack and self.stack[-1] == "ARRAY":
+        elif ch == "]" and self.stack and self.stack[-1] == "ARRAY":
             # Empty array []
             self.stack.pop()
             self._complete_value()
@@ -245,7 +244,7 @@ class IncrementalJSONStateMachine:
 
         if self.state in (JSONState.IN_KEY_STRING, JSONState.IN_VALUE_STRING):
             if self.in_escape:
-                return {'"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u'}
+                return {'"', "\\", "/", "b", "f", "n", "r", "t", "u"}
             # Allow common printable ASCII characters
             allowed.update([chr(i) for i in range(32, 127)])
             return allowed
@@ -272,14 +271,14 @@ class IncrementalJSONStateMachine:
         allowed.update(WHITESPACE)
 
         if self.state in (JSONState.START, JSONState.EXPECT_VALUE):
-            allowed.update({'{', '[', '"', 't', 'f', 'n'})
+            allowed.update({"{", "[", '"', "t", "f", "n"})
             allowed.update(NUMBER_START_CHARS)
             if self.state == JSONState.EXPECT_VALUE and self.stack and self.stack[-1] == "ARRAY":
-                allowed.add(']')
+                allowed.add("]")
             return allowed
 
         if self.state == JSONState.IN_OBJECT_START:
-            allowed.update({'"', '}'})
+            allowed.update({'"', "}"})
             return allowed
 
         if self.state == JSONState.EXPECT_KEY:
@@ -287,15 +286,15 @@ class IncrementalJSONStateMachine:
             return allowed
 
         if self.state == JSONState.AFTER_KEY:
-            allowed.add(':')
+            allowed.add(":")
             return allowed
 
         if self.state == JSONState.EXPECT_COMMA_OR_END:
             if self.stack:
                 if self.stack[-1] == "OBJECT":
-                    allowed.update({',', '}'})
+                    allowed.update({",", "}"})
                 elif self.stack[-1] == "ARRAY":
-                    allowed.update({',', ']'})
+                    allowed.update({",", "]"})
             return allowed
 
         return allowed

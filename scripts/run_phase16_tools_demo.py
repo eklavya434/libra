@@ -22,7 +22,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from packages.tools import (
     CalculatorTool,
-    PythonInterpreterTool,
     SafePythonSandbox,
     SandboxSecurityError,
     ToolCallParser,
@@ -43,7 +42,9 @@ def demo_registry_and_schemas():
     schemas = registry.get_schemas()
     for s in schemas:
         fn = s["function"]
-        print(f"  - {fn['name']}: {fn['description'][:60]}... ({len(fn['parameters']['properties'])} args)")
+        print(
+            f"  - {fn['name']}: {fn['description'][:60]}... ({len(fn['parameters']['properties'])} args)"
+        )
 
 
 def demo_ast_calculator():

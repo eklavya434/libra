@@ -5,9 +5,9 @@ Tests for Conversations REST API & Chat Persistence Integration
 import pytest
 from fastapi.testclient import TestClient
 
+import packages.core.memory.sqlite_store as sqlite_module
 from apps.backend.main import app
 from packages.core.memory import SQLiteConversationStore
-import packages.core.memory.sqlite_store as sqlite_module
 
 
 @pytest.fixture(autouse=True)
@@ -83,7 +83,9 @@ def test_update_and_delete_conversation(client):
 
 def test_chat_completion_with_persistent_conversation(client):
     # Create conversation
-    conv_res = client.post("/api/v1/conversations", json={"title": "Persistent Chat", "model": "libra-mock-v1"})
+    conv_res = client.post(
+        "/api/v1/conversations", json={"title": "Persistent Chat", "model": "libra-mock-v1"}
+    )
     conv_id = conv_res.json()["id"]
 
     # Send chat completion request targeting this conversation

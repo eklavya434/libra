@@ -2,7 +2,6 @@
 Tests for Okapi BM25 Sparse Inverted Index
 """
 
-import pytest
 from packages.rag.bm25 import BM25Index, tokenize_bm25
 from packages.rag.models import DocumentChunk
 
@@ -64,7 +63,9 @@ def test_bm25_idf_rarity():
     chunks = [
         DocumentChunk(id="c1", doc_id="d1", doc_title="D1", text="common common common alpha"),
         DocumentChunk(id="c2", doc_id="d2", doc_title="D2", text="common common common beta"),
-        DocumentChunk(id="c3", doc_id="d3", doc_title="D3", text="common common common gamma rare_term"),
+        DocumentChunk(
+            id="c3", doc_id="d3", doc_title="D3", text="common common common gamma rare_term"
+        ),
     ]
     index.add_chunks(chunks)
 

@@ -66,7 +66,9 @@ class RecursiveCharacterChunker:
         # Merge splits up to chunk_size
         current_chunk: list[str] = []
         current_len = 0
-        remaining_separators = separators[separators.index(chosen_sep) + 1 :] if chosen_sep in separators else []
+        remaining_separators = (
+            separators[separators.index(chosen_sep) + 1 :] if chosen_sep in separators else []
+        )
 
         for piece in splits:
             piece_len = len(piece) + (len(chosen_sep) if current_chunk else 0)

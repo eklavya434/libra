@@ -7,10 +7,10 @@ execution statuses, and abstract base agent interfaces.
 
 from __future__ import annotations
 
-import time
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -32,7 +32,9 @@ class AgentStep(BaseModel):
     action_name: Optional[str] = Field(None, description="Tool invoked, or None if direct answer")
     action_input: Optional[dict[str, Any]] = Field(None, description="Arguments passed to the tool")
     observation: Optional[str] = Field(None, description="Tool output or error string observed")
-    is_final: bool = Field(False, description="Whether this step concluded the trajectory with final answer")
+    is_final: bool = Field(
+        False, description="Whether this step concluded the trajectory with final answer"
+    )
     execution_time_ms: float = Field(0.0, description="Step duration in milliseconds")
 
 
@@ -41,10 +43,16 @@ class AgentTrajectory(BaseModel):
 
     prompt: str = Field(..., description="Initial task prompt given to the agent")
     status: AgentStatus = Field(AgentStatus.IDLE, description="Final outcome status of the run")
-    steps: list[AgentStep] = Field(default_factory=list, description="Ordered sequence of executed steps")
-    final_answer: Optional[str] = Field(None, description="Synthesized final answer delivered to user")
+    steps: list[AgentStep] = Field(
+        default_factory=list, description="Ordered sequence of executed steps"
+    )
+    final_answer: Optional[str] = Field(
+        None, description="Synthesized final answer delivered to user"
+    )
     error: Optional[str] = Field(None, description="Error message if run failed or timed out")
-    total_duration_ms: float = Field(0.0, description="Total execution wall-clock time in milliseconds")
+    total_duration_ms: float = Field(
+        0.0, description="Total execution wall-clock time in milliseconds"
+    )
 
 
 class BaseAgent(ABC):

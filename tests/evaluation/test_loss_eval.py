@@ -1,14 +1,15 @@
-﻿import math
-import torch
+import math
+
 import pytest
+import torch
 
 from packages.evaluation.loss_eval import (
-    compute_perplexity,
-    compute_bits_per_token,
-    evaluate_tokens_loss,
     LossMetrics,
+    compute_bits_per_token,
+    compute_perplexity,
+    evaluate_tokens_loss,
 )
-from packages.models.modern_transformer import ModernTransformerLM, ModernTransformerConfig
+from packages.models.modern_transformer import ModernTransformerConfig, ModernTransformerLM
 
 
 def test_perplexity_and_bits_formulas():

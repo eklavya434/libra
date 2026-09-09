@@ -8,6 +8,7 @@ and context grounding.
 from __future__ import annotations
 
 from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
@@ -66,7 +67,11 @@ async def delete_document(doc_id: str) -> dict[str, Any]:
     return {"status": "deleted", "id": doc_id}
 
 
-@router.post("/query", response_model=RAGQueryResponse, summary="Hybrid vector/BM25 search & prompt synthesis")
+@router.post(
+    "/query",
+    response_model=RAGQueryResponse,
+    summary="Hybrid vector/BM25 search & prompt synthesis",
+)
 async def query_vector_store(request: RAGQueryRequest) -> RAGQueryResponse:
     """
     Execute dense, sparse (BM25), or hybrid retrieval with optional
@@ -109,7 +114,11 @@ async def execute_web_search(query: str, max_results: int = 5) -> list[WebSearch
     return await search_provider.search(query, max_results=max_results)
 
 
-@router.post("/research", response_model=DeepResearchReport, summary="Autonomous deep research agent workflow")
+@router.post(
+    "/research",
+    response_model=DeepResearchReport,
+    summary="Autonomous deep research agent workflow",
+)
 async def execute_deep_research(request: ResearchRequest) -> DeepResearchReport:
     """Decompose inquiry, gather web and local knowledge, synthesize citations, and generate report."""
     agent = DeepResearchAgent()

@@ -9,10 +9,11 @@ Directly tests:
 5. Subprocess spawning & dunder reflection breakout attempts.
 """
 
-import os
 import sys
 import time
+
 import pytest
+
 from packages.tools.sandbox import SafePythonSandbox, SandboxSecurityError
 
 
@@ -24,6 +25,7 @@ def sandbox():
 # =============================================================================
 # 1. ADVERSARIAL TEST: Infinite Loop & Hard Timeout Termination
 # =============================================================================
+
 
 def test_adversarial_infinite_loop(sandbox):
     """Verifies infinite loops are killed preemptively without thread abandonment or GIL stalling."""
@@ -46,6 +48,7 @@ while True:
 # 2. ADVERSARIAL TEST: Memory Bomb Allocation Guard
 # =============================================================================
 
+
 def test_adversarial_memory_bomb(sandbox):
     """Verifies that attempts to consume excessive memory are caught and blocked."""
     memory_bomb_code = """
@@ -62,6 +65,7 @@ while True:
 # =============================================================================
 # 3. ADVERSARIAL TEST: Filesystem Isolation & Escape Attempts
 # =============================================================================
+
 
 def test_adversarial_filesystem_escape_relative(sandbox):
     """Verifies that path traversal attempts (../..) outside the sandbox are denied."""
@@ -108,6 +112,7 @@ recovered
 # 4. ADVERSARIAL TEST: Disallowed & Dangerous Imports
 # =============================================================================
 
+
 @pytest.mark.parametrize(
     "disallowed_module",
     [
@@ -145,6 +150,7 @@ def test_adversarial_disallowed_from_import(sandbox):
 # 5. ADVERSARIAL TEST: Subprocess & Reflection Breakout Attempts
 # =============================================================================
 
+
 def test_adversarial_reflection_breakout(sandbox):
     """Verifies that dunder reflection attacks are blocked."""
     breakout_code = "().__class__.__subclasses__()"
@@ -172,6 +178,7 @@ def test_adversarial_forbidden_dunder_import_call(sandbox):
 # =============================================================================
 # 6. FUNCTIONAL TEST: Allowed Standard Libraries & Computations
 # =============================================================================
+
 
 def test_safe_calculations_and_stdlib(sandbox):
     """Verifies that safe mathematical, statistical, and formatting tools execute seamlessly."""

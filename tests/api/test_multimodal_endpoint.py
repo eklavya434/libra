@@ -2,7 +2,6 @@
 API Tests for Phase 32: Multi-Modal Endpoints
 """
 
-import pytest
 from fastapi.testclient import TestClient
 
 from apps.backend.main import app

@@ -33,13 +33,18 @@ def test_system_prompt_preservation():
 
 def test_sliding_window_truncation():
     # Strict budget: 60 tokens total, 10 reserved -> 50 tokens for input
-    mgr = ContextWindowManager(max_context_tokens=60, reserved_completion_tokens=10, chars_per_token=4.0)
+    mgr = ContextWindowManager(
+        max_context_tokens=60, reserved_completion_tokens=10, chars_per_token=4.0
+    )
 
     # Each message here will be ~15-20 tokens
     messages = [
         {"role": "system", "content": "System prompt."},
         {"role": "user", "content": "Very long user turn number 1 that consumes lots of tokens."},
-        {"role": "assistant", "content": "Very long assistant response turn 1 that consumes tokens."},
+        {
+            "role": "assistant",
+            "content": "Very long assistant response turn 1 that consumes tokens.",
+        },
         {"role": "user", "content": "Latest user question?"},
     ]
 
@@ -69,7 +74,9 @@ def test_override_system_prompt():
 def test_message_objects_supported():
     mgr = ContextWindowManager(max_context_tokens=500, reserved_completion_tokens=100)
     msg1 = Message(id="1", conversation_id="c1", role="user", content="Hello world", token_count=5)
-    msg2 = Message(id="2", conversation_id="c1", role="assistant", content="Hello back", token_count=6)
+    msg2 = Message(
+        id="2", conversation_id="c1", role="assistant", content="Hello back", token_count=6
+    )
 
     result = mgr.prepare_context([msg1, msg2])
     assert len(result.messages) == 2

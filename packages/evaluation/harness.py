@@ -1,4 +1,4 @@
-﻿"""Unified Evaluation Harness for Project Libra.
+"""Unified Evaluation Harness for Project Libra.
 
 Executes comprehensive model benchmarks:
 1. Perplexity & Loss evaluation
@@ -9,14 +9,14 @@ Executes comprehensive model benchmarks:
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional, Sequence
 
 import torch
 import torch.nn as nn
 
-from packages.evaluation.loss_eval import LossMetrics, evaluate_dataset_loss, evaluate_tokens_loss
+from packages.evaluation.loss_eval import LossMetrics, evaluate_tokens_loss
 from packages.evaluation.multiple_choice import MultipleChoiceEvaluator, MultipleChoiceResult
 from packages.evaluation.probes import ProbeExample, filter_probes, get_standard_probes
 
@@ -53,45 +53,57 @@ class EvaluationReport:
         ]
 
         if self.loss_metrics is not None:
-            lines.extend([
-                "## 1. Language Modeling & Compression Metrics",
-                "| Metric | Value | Interpretation |",
-                "| :--- | :--- | :--- |",
-                f"| **Tokens Evaluated** | {self.loss_metrics.total_tokens:,} | Total token count |",
-                f"| **Mean Loss (NLL)** | {self.loss_metrics.mean_loss:.4f} | Cross-entropy loss |",
-                f"| **Perplexity (PPL)** | {self.loss_metrics.perplexity:.2f} | Branching factor |",
-                f"| **Bits per Token** | {self.loss_metrics.bits_per_token:.4f} | Compression efficiency |",
-                "",
-            ])
+            lines.extend(
+                [
+                    "## 1. Language Modeling & Compression Metrics",
+                    "| Metric | Value | Interpretation |",
+                    "| :--- | :--- | :--- |",
+                    f"| **Tokens Evaluated** | {self.loss_metrics.total_tokens:,} | Total token count |",
+                    f"| **Mean Loss (NLL)** | {self.loss_metrics.mean_loss:.4f} | Cross-entropy loss |",
+                    f"| **Perplexity (PPL)** | {self.loss_metrics.perplexity:.2f} | Branching factor |",
+                    f"| **Bits per Token** | {self.loss_metrics.bits_per_token:.4f} | Compression efficiency |",
+                    "",
+                ]
+            )
 
-        lines.extend([
-            "## 2. Domain Task Probe Accuracies",
-            "| Domain / Category | Evaluated | Correct | Accuracy | Chance Baseline | Status |",
-            "| :--- | :--- | :--- | :--- | :--- | :--- |",
-        ])
+        lines.extend(
+            [
+                "## 2. Domain Task Probe Accuracies",
+                "| Domain / Category | Evaluated | Correct | Accuracy | Chance Baseline | Status |",
+                "| :--- | :--- | :--- | :--- | :--- | :--- |",
+            ]
+        )
 
         for cat, sc in self.category_scores.items():
             diff = sc.accuracy - sc.chance_accuracy
-            status = "🏆 Above Chance" if diff > 0.05 else ("⚠️ At Chance" if abs(diff) <= 0.05 else "❌ Below Chance")
+            status = (
+                "🏆 Above Chance"
+                if diff > 0.05
+                else ("⚠️ At Chance" if abs(diff) <= 0.05 else "❌ Below Chance")
+            )
             lines.append(
                 f"| **{cat.capitalize()}** | {sc.total} | {sc.correct} | "
                 f"**{sc.accuracy * 100:.1f}%** | {sc.chance_accuracy * 100:.1f}% | {status} |"
             )
 
-        lines.extend([
-            "| :--- | :--- | :--- | :--- | :--- | :--- |",
-            f"| **OVERALL TOTAL** | {self.overall_total_probes} | {self.overall_correct_probes} | "
-            f"**{self.overall_accuracy * 100:.1f}%** | {self.random_chance_accuracy * 100:.1f}% | "
-            f"{'🏆 Better than Random' if self.overall_accuracy > self.random_chance_accuracy else '⚠️ Baseline Level'} |",
-            "",
-        ])
+        lines.extend(
+            [
+                "| :--- | :--- | :--- | :--- | :--- | :--- |",
+                f"| **OVERALL TOTAL** | {self.overall_total_probes} | {self.overall_correct_probes} | "
+                f"**{self.overall_accuracy * 100:.1f}%** | {self.random_chance_accuracy * 100:.1f}% | "
+                f"{'🏆 Better than Random' if self.overall_accuracy > self.random_chance_accuracy else '⚠️ Baseline Level'} |",
+                "",
+            ]
+        )
 
         if self.sample_results:
-            lines.extend([
-                "## 3. Qualitative Sample Probes",
-                "| Prompt | Predicted | Expected | Correct? |",
-                "| :--- | :--- | :--- | :--- |",
-            ])
+            lines.extend(
+                [
+                    "## 3. Qualitative Sample Probes",
+                    "| Prompt | Predicted | Expected | Correct? |",
+                    "| :--- | :--- | :--- | :--- |",
+                ]
+            )
             for r in self.sample_results[:6]:
                 pred = r.choices[r.predicted_index].strip().replace("\n", " ")
                 exp = r.choices[r.correct_index].strip().replace("\n", " ")

@@ -8,7 +8,7 @@ exact per-request execution costs, enforcing our Zero-Cost policy.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -41,26 +41,21 @@ MODEL_PRICING_TABLE: dict[str, ModelPricing] = {
     "qwen2.5:1.5b": ModelPricing(0.0, 0.0, is_free=True),
     "qwen2.5:7b": ModelPricing(0.0, 0.0, is_free=True),
     "hf/gpt2": ModelPricing(0.0, 0.0, is_free=True),
-
     # --- OPENAI COMMERCIAL MODELS ---
     "gpt-4o": ModelPricing(2.50, 10.00),
     "gpt-4o-mini": ModelPricing(0.15, 0.60),
     "o1": ModelPricing(15.00, 60.00),
     "o1-mini": ModelPricing(3.00, 12.00),
-
     # --- ANTHROPIC CLAUDE COMMERCIAL MODELS ---
     "claude-3-5-sonnet-20241022": ModelPricing(3.00, 15.00),
     "claude-3-5-haiku-20241022": ModelPricing(0.80, 4.00),
-
     # --- GOOGLE GEMINI MODELS ---
     "gemini-1.5-flash": ModelPricing(0.075, 0.30),
     "gemini-1.5-pro": ModelPricing(1.25, 5.00),
     "gemini-2.0-flash": ModelPricing(0.10, 0.40),
-
     # --- DEEPSEEK COMMERCIAL API ---
     "deepseek-chat": ModelPricing(0.14, 0.28),
     "deepseek-reasoner": ModelPricing(0.55, 2.19),
-
     # --- GROQ CLOUD LPU ---
     "llama-3.3-70b-versatile": ModelPricing(0.59, 0.79),
     "llama-3.1-8b-instant": ModelPricing(0.05, 0.08),
@@ -93,7 +88,6 @@ def get_model_pricing(model_id: str) -> ModelPricing:
 
     # Generic default for external unknown models
     return ModelPricing(1.0, 2.0, is_free=False)
-
 
 
 def calculate_cost(
@@ -131,4 +125,3 @@ def calculate_cost(
         "is_free": False,
         "model": model_id,
     }
-

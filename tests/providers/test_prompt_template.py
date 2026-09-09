@@ -1,4 +1,3 @@
-﻿import pytest
 from packages.providers.prompt_template import PromptTemplate
 
 

@@ -1,4 +1,5 @@
-﻿import pytest
+import pytest
+
 from packages.providers.huggingface import HuggingFaceProvider
 
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from typing import Any
+
 import yaml
 
 
@@ -130,7 +131,12 @@ class DeploymentValidator:
         """Validates security, multi-stage architecture, and healthcheck of a Dockerfile."""
         full_path = os.path.join(self.repo_root, rel_path)
         if not os.path.isfile(full_path):
-            return {"path": rel_path, "exists": False, "is_valid": False, "errors": ["File not found"]}
+            return {
+                "path": rel_path,
+                "exists": False,
+                "is_valid": False,
+                "errors": ["File not found"],
+            }
 
         with open(full_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -193,7 +199,9 @@ class DeploymentValidator:
     def run_full_audit(self) -> dict[str, Any]:
         compose_rep = self.validate_compose()
         backend_df = self.validate_dockerfile(os.path.join("infra", "docker", "Dockerfile.backend"))
-        frontend_df = self.validate_dockerfile(os.path.join("infra", "docker", "Dockerfile.frontend"))
+        frontend_df = self.validate_dockerfile(
+            os.path.join("infra", "docker", "Dockerfile.frontend")
+        )
         dockerignore_res = self.validate_dockerignore()
 
         all_valid = (

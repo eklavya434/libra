@@ -9,7 +9,7 @@ Runs an interactive demonstration on consumer CPU:
 
 import os
 import sys
-import time
+
 import torch
 
 # Ensure repository root is on sys.path
@@ -17,7 +17,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from packages.models.components.paged_attention import paged_attention_decode
 from packages.models.components.paged_cache import (
-    BlockAllocator,
     PagedKVCache,
     PhysicalBlockPool,
     SequenceBlockTable,
@@ -70,14 +69,14 @@ def demo_paged_attention_equivalence():
     k_ref = torch.repeat_interleave(k_ref, repeats=2, dim=0)  # (heads, T, D)
     v_ref = torch.repeat_interleave(v_ref, repeats=2, dim=0)
 
-    scale = 1.0 / (head_dim ** 0.5)
+    scale = 1.0 / (head_dim**0.5)
     scores = torch.sum(query.unsqueeze(1) * k_ref, dim=-1) * scale
     weights = torch.softmax(scores, dim=-1)
     ref_out = torch.sum(weights.unsqueeze(-1) * v_ref, dim=1)
 
     max_diff = (paged_out - ref_out).abs().max().item()
     print(f"Sequence Length        : {num_tokens} tokens")
-    print(f"Physical Block Mapping : Logical 0 -> Block 2, Logical 1 -> Block 0")
+    print("Physical Block Mapping : Logical 0 -> Block 2, Logical 1 -> Block 0")
     print(f"Max Tensor Difference  : {max_diff:.8e}")
     print("Verification: PagedAttention matches standard attention with exact numerical parity.")
 
@@ -88,7 +87,9 @@ def demo_memory_fragmentation_audit():
     avg_prompt = 120
     max_output = 256
     block_size = 16
-    kv_state_bytes_per_token = 2 * 4 * 64 * 2 * 4  # 2 layers, 4 kv_heads, 64 dim, K+V, FP32 = 4,096 B/tok
+    kv_state_bytes_per_token = (
+        2 * 4 * 64 * 2 * 4
+    )  # 2 layers, 4 kv_heads, 64 dim, K+V, FP32 = 4,096 B/tok
 
     # Contiguous allocation: reserves full context capacity upfront
     contiguous_capacity = batch_size * (avg_prompt + max_output)
@@ -108,15 +109,25 @@ def demo_memory_fragmentation_audit():
 
     concurrency_boost = contiguous_bytes / paged_bytes
 
-    print(f"Workload: {batch_size} concurrent requests (Avg prompt {avg_prompt} tok, Max output {max_output} tok)")
+    print(
+        f"Workload: {batch_size} concurrent requests (Avg prompt {avg_prompt} tok, Max output {max_output} tok)"
+    )
     print("-" * 75)
     print(f"{'Metric':<30} | {'Standard Contiguous':<20} | {'PagedAttention'}")
     print("-" * 75)
-    print(f"{'Memory Footprint':<30} | {contiguous_bytes / 1024**2:<17.2f} MB | {paged_bytes / 1024**2:.2f} MB")
-    print(f"{'Memory Waste / Fragmentation':<30} | {contiguous_waste_pct:<17.1f} %  | {paged_frag_pct:.1f} %")
-    print(f"{'Internal Waste per Sequence':<30} | {max_output // 2:<17} tok | < {block_size} tok (avg {block_size/2:.0f})")
+    print(
+        f"{'Memory Footprint':<30} | {contiguous_bytes / 1024**2:<17.2f} MB | {paged_bytes / 1024**2:.2f} MB"
+    )
+    print(
+        f"{'Memory Waste / Fragmentation':<30} | {contiguous_waste_pct:<17.1f} %  | {paged_frag_pct:.1f} %"
+    )
+    print(
+        f"{'Internal Waste per Sequence':<30} | {max_output // 2:<17} tok | < {block_size} tok (avg {block_size / 2:.0f})"
+    )
     print("-" * 75)
-    print(f"Result: PagedAttention unlocks {concurrency_boost:.2f}x higher concurrent serving capacity.")
+    print(
+        f"Result: PagedAttention unlocks {concurrency_boost:.2f}x higher concurrent serving capacity."
+    )
 
 
 def demo_continuous_batching_simulation():
@@ -133,19 +144,27 @@ def demo_continuous_batching_simulation():
 
     for rid, prompt, max_toks in prompts:
         tokens = [hash(w) % 1000 for w in prompt.split()]
-        engine.add_request(request_id=rid, prompt=prompt, prompt_token_ids=tokens, max_new_tokens=max_toks)
+        engine.add_request(
+            request_id=rid, prompt=prompt, prompt_token_ids=tokens, max_new_tokens=max_toks
+        )
 
     print(f"Enqueued {len(prompts)} requests with varying generation budgets (4 to 10 tokens)...")
-    print(f"{'Iter':<6} | {'Running':<8} | {'Waiting':<8} | {'Finished':<9} | {'Alloc Blocks':<13} | {'Free Blocks'}")
+    print(
+        f"{'Iter':<6} | {'Running':<8} | {'Waiting':<8} | {'Finished':<9} | {'Alloc Blocks':<13} | {'Free Blocks'}"
+    )
     print("-" * 75)
 
     timeline = engine.run_until_complete()
     for r in timeline:
-        print(f"{r.iteration_idx:<6} | {r.num_running:<8} | {r.num_waiting:<8} | {r.num_finished:<9} | {r.allocated_blocks:<13} | {r.free_blocks}")
+        print(
+            f"{r.iteration_idx:<6} | {r.num_running:<8} | {r.num_waiting:<8} | {r.num_finished:<9} | {r.allocated_blocks:<13} | {r.free_blocks}"
+        )
 
     print("-" * 75)
     print(f"Continuous Batching Complete in {len(timeline)} iterations.")
-    print("Verification: Shorter sequences (req-3 @ iter 4, req-1 @ iter 5) exited and freed blocks immediately,")
+    print(
+        "Verification: Shorter sequences (req-3 @ iter 4, req-1 @ iter 5) exited and freed blocks immediately,"
+    )
     print("allowing longer sequences to finish without idling compute or delaying completion.")
 
 

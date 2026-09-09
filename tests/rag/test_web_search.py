@@ -3,9 +3,10 @@ Tests for Web Search Providers (Mock and DuckDuckGo)
 """
 
 import pytest
+
 from packages.rag.web_search import (
-    MockSearchProvider,
     DuckDuckGoSearchProvider,
+    MockSearchProvider,
     get_web_search_provider,
 )
 

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Libra Phase 6 - Comprehensive Evaluation & Benchmarking Demonstration
 
 Demonstrates:
@@ -50,14 +50,18 @@ def main() -> None:
     tok.train(corpus, num_merges=40)
     dataset = TextDataset(corpus, train_ratio=0.80)
 
-    val_tokens = dataset.val_data.clone().detach() if isinstance(dataset.val_data, torch.Tensor) else torch.tensor(dataset.val_data, dtype=torch.long)
-    print(f"\n1. Evaluation Corpus & Tokenizer:")
+    val_tokens = (
+        dataset.val_data.clone().detach()
+        if isinstance(dataset.val_data, torch.Tensor)
+        else torch.tensor(dataset.val_data, dtype=torch.long)
+    )
+    print("\n1. Evaluation Corpus & Tokenizer:")
     print(f"   • Validation Tokens: {len(val_tokens):,} tokens")
     print(f"   • Tokenizer Vocab Size: {tok.vocab_size} (Special: 4, Base Bytes: 256, Merges: 40)")
 
     # 2. Setup Models (Untrained Control vs. Trained Checkpoint)
     model_cfg = ModernTransformerConfig.from_yaml("configs/models/tiny_modern_tied.yaml")
-    
+
     # Untrained random baseline
     torch.manual_seed(999)
     untrained_model = ModernTransformerLM(model_cfg)
@@ -66,7 +70,7 @@ def main() -> None:
     # Trained model
     checkpoint_path = "checkpoints/best_engine_model.pt"
     trained_model = ModernTransformerLM(model_cfg)
-    
+
     if os.path.exists(checkpoint_path):
         print(f"\n2. Loading Pre-trained Checkpoint: {checkpoint_path}")
         checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
@@ -86,7 +90,9 @@ def main() -> None:
     print(f"   • Total Probes: {len(probes)} (Math, Reasoning, Coding, Instruction, Safety)")
 
     # Benchmark Untrained Model
-    untrained_harness = EvaluationHarness(untrained_model, tok, model_name="Random-Untrained-Baseline")
+    untrained_harness = EvaluationHarness(
+        untrained_model, tok, model_name="Random-Untrained-Baseline"
+    )
     untrained_report = untrained_harness.run_benchmark(probes=probes, val_tokens=val_tokens)
 
     # Benchmark Trained Model
@@ -97,13 +103,17 @@ def main() -> None:
     print("\n" + "=" * 80)
     print("EMPIRICAL BENCHMARK COMPARISON: UNTRAINED vs. TRAINED")
     print("=" * 80)
-    
+
     u_loss = untrained_report.loss_metrics
     t_loss = trained_report.loss_metrics
 
     print("\n[A. Perplexity & Language Modeling Loss]")
-    print(f"   • Untrained Baseline Loss: {u_loss.mean_loss:.4f}  | Perplexity: {u_loss.perplexity:.2f}")
-    print(f"   • Trained Model Loss:     {t_loss.mean_loss:.4f}  | Perplexity: {t_loss.perplexity:.2f}")
+    print(
+        f"   • Untrained Baseline Loss: {u_loss.mean_loss:.4f}  | Perplexity: {u_loss.perplexity:.2f}"
+    )
+    print(
+        f"   • Trained Model Loss:     {t_loss.mean_loss:.4f}  | Perplexity: {t_loss.perplexity:.2f}"
+    )
     ppl_drop = ((u_loss.perplexity - t_loss.perplexity) / u_loss.perplexity) * 100
     print(f"   • Perplexity Improvement: -{ppl_drop:.1f}% reduction in next-token uncertainty!")
 
@@ -118,7 +128,9 @@ def main() -> None:
         chance_str = f"{t_score.chance_accuracy * 100:.1f}%"
         u_acc_str = f"{u_score.accuracy * 100:.1f}%" if u_score else "N/A"
         t_acc_str = f"{t_score.accuracy * 100:.1f}%" if t_score else "N/A"
-        print(f"   | {cat.capitalize():<22} | {chance_str:<15} | {u_acc_str:<15} | {t_acc_str:<15} |")
+        print(
+            f"   | {cat.capitalize():<22} | {chance_str:<15} | {u_acc_str:<15} | {t_acc_str:<15} |"
+        )
 
     print("   |" + "-" * 24 + "|" + "-" * 17 + "|" + "-" * 17 + "|" + "-" * 17 + "|")
     u_tot = f"{untrained_report.overall_accuracy * 100:.1f}% ({untrained_report.overall_correct_probes}/{untrained_report.overall_total_probes})"
@@ -131,7 +143,9 @@ def main() -> None:
         pred = r.choices[r.predicted_index].strip()
         exp = r.choices[r.correct_index].strip()
         icon = "✅" if r.is_correct else "❌"
-        print(f"   {icon} Prompt: '{r.prompt.strip()}' -> Model Picked: '{pred}' (Expected: '{exp}')")
+        print(
+            f"   {icon} Prompt: '{r.prompt.strip()}' -> Model Picked: '{pred}' (Expected: '{exp}')"
+        )
 
     # 6. Save Benchmark Report to JSON
     report_path = "data/evaluation/benchmark_report.json"
@@ -139,7 +153,9 @@ def main() -> None:
     print(f"\n4. Benchmark Report Saved to: {report_path}")
 
     elapsed = time.perf_counter() - start_time
-    print(f"5. Total Benchmark Execution Time: {elapsed:.2f} seconds (< 15-Minute CPU Budget: PASS)")
+    print(
+        f"5. Total Benchmark Execution Time: {elapsed:.2f} seconds (< 15-Minute CPU Budget: PASS)"
+    )
     print("=" * 80)
 
 

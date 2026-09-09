@@ -10,7 +10,6 @@ Implements:
 
 from __future__ import annotations
 
-from typing import Optional
 from packages.rag.models import DocumentChunk, SearchResult
 
 
@@ -96,6 +95,7 @@ def weighted_score_fusion(
     Combines dense and sparse results using min-max normalized weighted linear interpolation.
     Score = alpha * S_dense_norm + (1 - alpha) * S_bm25_norm
     """
+
     def _normalize(scores: dict[str, float]) -> dict[str, float]:
         if not scores:
             return {}
@@ -106,8 +106,12 @@ def weighted_score_fusion(
             return {k: 1.0 if s_max > 0 else 0.0 for k in scores}
         return {k: (v - s_min) / span for k, v in scores.items()}
 
-    dense_dict = {r.chunk.id: (r.dense_score if r.dense_score is not None else r.score) for r in dense_results}
-    bm25_dict = {r.chunk.id: (r.bm25_score if r.bm25_score is not None else r.score) for r in bm25_results}
+    dense_dict = {
+        r.chunk.id: (r.dense_score if r.dense_score is not None else r.score) for r in dense_results
+    }
+    bm25_dict = {
+        r.chunk.id: (r.bm25_score if r.bm25_score is not None else r.score) for r in bm25_results
+    }
 
     dense_ranks = {r.chunk.id: r.rank for r in dense_results}
     bm25_ranks = {r.chunk.id: r.rank for r in bm25_results}

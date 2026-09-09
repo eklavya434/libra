@@ -44,7 +44,9 @@ def main():
     print(f"   Original Text Length: {len(sample_text)} characters")
     print(f"   Generated Chunks:     {len(chunks)} chunks (size=160, overlap=30)")
     for i, c in enumerate(chunks):
-        print(f"   [Chunk {i+1}] (chars {c.char_start:3d}-{c.char_end:3d}, ~{c.token_count:2d} tok): {c.text[:65]}...")
+        print(
+            f"   [Chunk {i + 1}] (chars {c.char_start:3d}-{c.char_end:3d}, ~{c.token_count:2d} tok): {c.text[:65]}..."
+        )
 
     # 2. Dense Vector Embeddings
     print("\n2. First-Principles Dense Vector Embeddings:")

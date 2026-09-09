@@ -10,13 +10,13 @@ Implements autonomous multi-step research:
 
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 from packages.rag.hybrid import HybridRetriever, get_hybrid_retriever
-from packages.rag.web_search import BaseWebSearchProvider, WebSearchResult, get_web_search_provider
+from packages.rag.web_search import BaseWebSearchProvider, get_web_search_provider
 
 
 class ResearchSource(BaseModel):
@@ -35,7 +35,9 @@ class ResearchSection(BaseModel):
     title: str = Field(..., description="Section title")
     sub_query: str = Field(..., description="Sub-topic query investigated")
     findings: list[str] = Field(default_factory=list, description="Synthesized bullet points")
-    citations: list[ResearchSource] = Field(default_factory=list, description="Citations supporting this section")
+    citations: list[ResearchSource] = Field(
+        default_factory=list, description="Citations supporting this section"
+    )
 
 
 class DeepResearchReport(BaseModel):
@@ -44,7 +46,9 @@ class DeepResearchReport(BaseModel):
     topic: str = Field(..., description="Primary research inquiry")
     executive_summary: str = Field(..., description="High-level synthesis of discoveries")
     sections: list[ResearchSection] = Field(default_factory=list, description="Deep-dive sections")
-    sources: list[ResearchSource] = Field(default_factory=list, description="Consolidated source index")
+    sources: list[ResearchSource] = Field(
+        default_factory=list, description="Consolidated source index"
+    )
     iterations_completed: int = Field(0, description="Number of iterative search cycles")
     markdown_report: str = Field(..., description="Complete ready-to-render Markdown report")
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -192,13 +196,15 @@ class DeepResearchAgent:
                 lines.append("- *No verified external findings for this specific angle.*")
             lines.append("")
 
-        lines.extend([
-            "## 3. Key Conclusions",
-            f"1. **Core Findings**: Insights derived across {len(sources)} source references indicate strong domain convergence.",
-            "2. **Implementation Takeaway**: Hybrid retrieval combining local knowledge and live web search eliminates single-retriever blind spots.",
-            "",
-            "## 4. Source Index & Citations",
-        ])
+        lines.extend(
+            [
+                "## 3. Key Conclusions",
+                f"1. **Core Findings**: Insights derived across {len(sources)} source references indicate strong domain convergence.",
+                "2. **Implementation Takeaway**: Hybrid retrieval combining local knowledge and live web search eliminates single-retriever blind spots.",
+                "",
+                "## 4. Source Index & Citations",
+            ]
+        )
 
         for idx, src in enumerate(sources, start=1):
             lines.append(f"{idx}. [{src.title}]({src.url}) `({src.source_type})`")

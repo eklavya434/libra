@@ -2,7 +2,6 @@
 Tests for Search Fusion Algorithms (Reciprocal Rank Fusion and Weighted Score Fusion)
 """
 
-import pytest
 from packages.rag.fusion import reciprocal_rank_fusion, weighted_score_fusion
 from packages.rag.models import DocumentChunk, SearchResult
 

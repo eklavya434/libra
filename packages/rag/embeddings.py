@@ -9,12 +9,11 @@ Provides embedding providers for semantic vector representation:
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 import re
-from abc import ABC, abstractmethod
-from typing import Optional
 import urllib.request
-import json
+from abc import ABC, abstractmethod
 
 
 class BaseEmbeddingProvider(ABC):

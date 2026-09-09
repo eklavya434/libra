@@ -3,6 +3,7 @@ Tests for Recursive Document Chunker (packages/rag/chunking.py)
 """
 
 import pytest
+
 from packages.rag.chunking import RecursiveCharacterChunker
 
 

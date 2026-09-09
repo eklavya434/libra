@@ -10,6 +10,7 @@ Validates:
 """
 
 import pytest
+
 from packages.agents import AgentStatus, ReActAgent
 from packages.providers.base import BaseProvider, ModelMetadata
 from packages.providers.router import ProviderRouter
@@ -61,9 +62,9 @@ def test_registry():
 
 @pytest.mark.asyncio
 async def test_react_direct_answer(test_registry):
-    provider = StepMockProvider([
-        "Thought: I know the answer directly.\nFinal Answer: The capital of France is Paris."
-    ])
+    provider = StepMockProvider(
+        ["Thought: I know the answer directly.\nFinal Answer: The capital of France is Paris."]
+    )
     router = ProviderRouter()
     router._providers["step-mock"] = provider
 
@@ -87,7 +88,7 @@ async def test_react_multi_step_calculation(test_registry):
         # Step 1: Tool call
         'Thought: I need to calculate 25 * 4.\nAction:\n<tool_call>{"name": "calculator", "arguments": {"expression": "25 * 4"}}</tool_call>',
         # Step 2: Final answer using observation
-        'Thought: The calculator returned 100.\nFinal Answer: 25 multiplied by 4 equals 100.',
+        "Thought: The calculator returned 100.\nFinal Answer: 25 multiplied by 4 equals 100.",
     ]
     provider = StepMockProvider(script)
     router = ProviderRouter()
@@ -171,7 +172,7 @@ async def test_react_circuit_breaker(test_registry):
 async def test_react_streaming_events(test_registry):
     script = [
         'Thought: Calculating.\nAction:\n<tool_call>{"name": "calculator", "arguments": {"expression": "9 * 9"}}</tool_call>',
-        'Thought: Concluding.\nFinal Answer: 81.',
+        "Thought: Concluding.\nFinal Answer: 81.",
     ]
     provider = StepMockProvider(script)
     router = ProviderRouter()

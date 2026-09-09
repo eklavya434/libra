@@ -13,10 +13,7 @@ import sys
 # Ensure repository root is on sys.path
 sys.path.insert(0, os.path.abspath("."))
 
-from packages.rag.bm25 import BM25Index
-from packages.rag.deduplication import ChunkDeduplicator
 from packages.rag.hybrid import HybridRetriever
-from packages.rag.reranker import HeuristicReRanker
 from packages.rag.synthesizer import RAGPromptSynthesizer
 from packages.rag.vector_store import InMemoryVectorStore
 
@@ -62,7 +59,9 @@ def main() -> None:
         doc, chunks = retriever.add_document(title=title, content=content)
         print(f"  + Indexed '{title}' -> {len(chunks)} chunk(s)")
 
-    print(f"\nTotal Documents: {retriever.total_documents} | Total Chunks: {retriever.total_chunks}")
+    print(
+        f"\nTotal Documents: {retriever.total_documents} | Total Chunks: {retriever.total_chunks}"
+    )
 
     # 3. Query 1: Exact Technical Keyword Search (BM25 Strength)
     q1 = "AVX2 SIMD i5-12450H"
@@ -72,9 +71,21 @@ def main() -> None:
     dense_res = retriever.search(q1, mode="dense", top_k=2)
     hybrid_res = retriever.search(q1, mode="hybrid", top_k=2)
 
-    print("  BM25 Top Match   :", bm25_res[0].chunk.doc_title, f"(BM25 Score: {bm25_res[0].score:.3f})")
-    print("  Dense Top Match  :", dense_res[0].chunk.doc_title, f"(Cosine Score: {dense_res[0].score:.3f})")
-    print("  Hybrid Top Match :", hybrid_res[0].chunk.doc_title, f"(RRF Score: {hybrid_res[0].score:.4f})")
+    print(
+        "  BM25 Top Match   :",
+        bm25_res[0].chunk.doc_title,
+        f"(BM25 Score: {bm25_res[0].score:.3f})",
+    )
+    print(
+        "  Dense Top Match  :",
+        dense_res[0].chunk.doc_title,
+        f"(Cosine Score: {dense_res[0].score:.3f})",
+    )
+    print(
+        "  Hybrid Top Match :",
+        hybrid_res[0].chunk.doc_title,
+        f"(RRF Score: {hybrid_res[0].score:.4f})",
+    )
 
     # 4. Query 2: Conceptual Semantic Search (Dense Strength)
     q2 = "rotating coordinate matrices to measure token distance"
@@ -86,8 +97,16 @@ def main() -> None:
 
     bm25_title = bm25_res2[0].chunk.doc_title if bm25_res2 else "No exact lexical match"
     print("  BM25 Top Match   :", bm25_title)
-    print("  Dense Top Match  :", dense_res2[0].chunk.doc_title, f"(Cosine Score: {dense_res2[0].score:.3f})")
-    print("  Hybrid Top Match :", hybrid_res2[0].chunk.doc_title, f"(RRF Score: {hybrid_res2[0].score:.4f})")
+    print(
+        "  Dense Top Match  :",
+        dense_res2[0].chunk.doc_title,
+        f"(Cosine Score: {dense_res2[0].score:.3f})",
+    )
+    print(
+        "  Hybrid Top Match :",
+        hybrid_res2[0].chunk.doc_title,
+        f"(RRF Score: {hybrid_res2[0].score:.4f})",
+    )
 
     # 5. Query 3: Multi-Factor Re-Ranking & Deduplication Demonstration
     q3 = "Write-Ahead Logging concurrency in SQLite databases"

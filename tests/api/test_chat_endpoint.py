@@ -1,5 +1,3 @@
-﻿import json
-import pytest
 from fastapi.testclient import TestClient
 
 from apps.backend.main import app
@@ -9,9 +7,7 @@ client = TestClient(app)
 
 def test_chat_completion_non_streaming():
     payload = {
-        "messages": [
-            {"role": "user", "content": "Hello, can you help me?"}
-        ],
+        "messages": [{"role": "user", "content": "Hello, can you help me?"}],
         "model": "libra-mock-v1",
         "provider": "mock-provider",
         "temperature": 0.5,
@@ -30,9 +26,7 @@ def test_chat_completion_non_streaming():
 
 def test_chat_completion_streaming():
     payload = {
-        "messages": [
-            {"role": "user", "content": "Tell me a short story."}
-        ],
+        "messages": [{"role": "user", "content": "Tell me a short story."}],
         "model": "libra-mock-v1",
         "provider": "mock-provider",
         "stream": True,

@@ -35,7 +35,7 @@ def main():
         model="libra-llama-tied",
         system_prompt="You are Libra, an educational AI assistant specializing in neural networks.",
     )
-    print(f"\n2. Created Session:")
+    print("\n2. Created Session:")
     print(f"   - ID:             {conv.id}")
     print(f"   - Initial Title:  '{conv.title}'")
     print(f"   - Model:          {conv.model}")
@@ -45,11 +45,20 @@ def main():
     print("\n3. Simulating Multi-Turn Dialog:")
     turns = [
         ("user", "What is attention in transformer models?"),
-        ("assistant", "Attention computes a weighted average of values based on similarity between queries and keys."),
+        (
+            "assistant",
+            "Attention computes a weighted average of values based on similarity between queries and keys.",
+        ),
         ("user", "Can you explain why dot product is scaled by sqrt(d_k)?"),
-        ("assistant", "Scaling prevents large dot products from pushing softmax gradients into tiny saturation regions."),
+        (
+            "assistant",
+            "Scaling prevents large dot products from pushing softmax gradients into tiny saturation regions.",
+        ),
         ("user", "Now explain what RoPE positional encoding does."),
-        ("assistant", "Rotary Positional Embedding rotates query and key vectors in complex 2D subspaces."),
+        (
+            "assistant",
+            "Rotary Positional Embedding rotates query and key vectors in complex 2D subspaces.",
+        ),
     ]
 
     for role, content in turns:
@@ -59,7 +68,7 @@ def main():
 
     # 4. Check auto-titling result
     updated_conv = store.get_conversation(conv.id)
-    print(f"\n4. Session State After Exchanges:")
+    print("\n4. Session State After Exchanges:")
     print(f"   - Auto-Titled:    '{updated_conv.title}'")
     print(f"   - Total Messages: {updated_conv.message_count}")
     print(f"   - Last Updated:   {updated_conv.updated_at}")
@@ -81,7 +90,7 @@ def main():
         override_system_prompt=updated_conv.system_prompt,
     )
 
-    print(f"\n   Context Window Budget Summary:")
+    print("\n   Context Window Budget Summary:")
     print(f"   - Max Context Tokens:     {truncated.max_context_tokens}")
     print(f"   - Reserved for Output:    {truncated.reserved_completion_tokens}")
     print(f"   - Total Input Tokens:     {truncated.total_tokens}")
@@ -97,7 +106,7 @@ def main():
     print("\n6. Verifying Storage Deletion & Integrity:")
     store.delete_conversation(conv.id)
     remaining_messages = store.get_messages(conv.id)
-    print(f"   - Conversation deleted successfully.")
+    print("   - Conversation deleted successfully.")
     print(f"   - Cascaded message count in DB: {len(remaining_messages)} (Verified clean cascade)")
 
     print("\n" + "=" * 80)

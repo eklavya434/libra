@@ -5,13 +5,10 @@ Verifies mapping of HTTP status codes (401, 403, 404, 429, 500) and connection f
 
 from __future__ import annotations
 
-import pytest
-
 from packages.providers.errors import (
     ModelNotFoundError,
     ProviderAuthenticationError,
     ProviderError,
-    ProviderOfflineError,
     ProviderQuotaExceededError,
     ProviderRateLimitError,
     normalize_http_error,

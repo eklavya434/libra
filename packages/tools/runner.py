@@ -53,9 +53,7 @@ def main() -> None:
         try:
             common = os.path.commonpath([sandbox_dir, target_path])
         except ValueError:
-            raise PermissionError(
-                f"Access denied: path '{file}' is outside the sandbox drive"
-            )
+            raise PermissionError(f"Access denied: path '{file}' is outside the sandbox drive")
         if common != sandbox_dir:
             raise PermissionError(
                 f"Access denied: path '{file}' attempts to escape scoped sandbox directory"
@@ -162,7 +160,9 @@ def main() -> None:
             json.dumps(
                 {
                     "stdout": out_str,
-                    "result": normalized_result if normalized_result is not None else out_str.strip(),
+                    "result": normalized_result
+                    if normalized_result is not None
+                    else out_str.strip(),
                     "success": True,
                     "error": None,
                 }

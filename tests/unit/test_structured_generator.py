@@ -4,6 +4,7 @@ Tests for StructuredOutputGenerator and self-healing repair loop (packages/provi
 
 import pytest
 from pydantic import BaseModel, Field
+
 from packages.providers.base import BaseProvider, ModelMetadata
 from packages.providers.router import ProviderRouter
 from packages.providers.structured import (
@@ -50,15 +51,11 @@ class FlakyMockProvider(BaseProvider):
         self.call_count += 1
         if self.call_count == 1:
             # Missing required field 'population'
-            return {
-                "choices": [{"message": {"content": '{"city": "Paris"}'}}]
-            }
+            return {"choices": [{"message": {"content": '{"city": "Paris"}'}}]}
         else:
             # Valid response
             return {
-                "choices": [
-                    {"message": {"content": '{"city": "Paris", "population": 2161000}'}}
-                ]
+                "choices": [{"message": {"content": '{"city": "Paris", "population": 2161000}'}}]
             }
 
     async def stream(self, messages, model=None, **kwargs):

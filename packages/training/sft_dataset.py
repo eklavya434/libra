@@ -4,13 +4,14 @@ Libra Training - Supervised Fine-Tuning (SFT) Dataset & Multi-Turn Sequence Pack
 
 from __future__ import annotations
 
-from typing import Callable, Any
+from typing import Callable
+
 import torch
 from torch.utils.data import Dataset
 
 from packages.training.chat_formatter import (
-    ChatMessage,
     IGNORE_INDEX,
+    ChatMessage,
     tokenize_with_loss_masking,
 )
 
@@ -70,10 +71,12 @@ def pack_sequences(
         # Check if adding this dialogue exceeds max_length
         if len(curr_inputs) + len(inputs) + 1 > max_length and curr_inputs:
             # Finalize current packed sequence
-            packed_batches.append({
-                "input_ids": torch.tensor(curr_inputs, dtype=torch.long),
-                "labels": torch.tensor(curr_labels, dtype=torch.long),
-            })
+            packed_batches.append(
+                {
+                    "input_ids": torch.tensor(curr_inputs, dtype=torch.long),
+                    "labels": torch.tensor(curr_labels, dtype=torch.long),
+                }
+            )
             curr_inputs = []
             curr_labels = []
 
@@ -84,9 +87,11 @@ def pack_sequences(
         curr_labels.append(IGNORE_INDEX)
 
     if curr_inputs:
-        packed_batches.append({
-            "input_ids": torch.tensor(curr_inputs, dtype=torch.long),
-            "labels": torch.tensor(curr_labels, dtype=torch.long),
-        })
+        packed_batches.append(
+            {
+                "input_ids": torch.tensor(curr_inputs, dtype=torch.long),
+                "labels": torch.tensor(curr_labels, dtype=torch.long),
+            }
+        )
 
     return packed_batches

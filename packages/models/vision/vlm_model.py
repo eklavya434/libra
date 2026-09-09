@@ -99,7 +99,9 @@ class LibraVLM(nn.Module):
             # If targets match text sequence length, align with tail of logits
             t_text = text_ids.size(1)
             text_logits = logits[:, -t_text:, :]
-            loss = F.cross_entropy(text_logits.reshape(-1, text_logits.size(-1)), targets.reshape(-1))
+            loss = F.cross_entropy(
+                text_logits.reshape(-1, text_logits.size(-1)), targets.reshape(-1)
+            )
 
         return logits, loss
 
@@ -126,4 +128,4 @@ class LibraVLM(nn.Module):
 
             generated = torch.cat([generated, next_token], dim=1)
 
-        return generated[:, prompt_text_ids.size(1):]
+        return generated[:, prompt_text_ids.size(1) :]

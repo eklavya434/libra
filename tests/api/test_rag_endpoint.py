@@ -5,10 +5,10 @@ Tests for RAG REST API & Chat Grounding Integration (apps/backend/api/v1/endpoin
 import pytest
 from fastapi.testclient import TestClient
 
-from apps.backend.main import app
-from packages.rag import InMemoryVectorStore, HybridRetriever
-import packages.rag.vector_store as rag_module
 import packages.rag.hybrid as hybrid_module
+import packages.rag.vector_store as rag_module
+from apps.backend.main import app
+from packages.rag import HybridRetriever, InMemoryVectorStore
 
 
 @pytest.fixture(autouse=True)
@@ -96,7 +96,9 @@ def test_chat_with_use_rag_grounding(client):
         "/api/v1/chat/completions",
         json={
             "model": "libra-mock-v1",
-            "messages": [{"role": "user", "content": "What is the secret verification passphrase?"}],
+            "messages": [
+                {"role": "user", "content": "What is the secret verification passphrase?"}
+            ],
             "use_rag": True,
             "stream": False,
         },
@@ -133,4 +135,3 @@ def test_hybrid_rag_query(client):
     assert len(data["results"]) >= 1
     assert data["results"][0]["chunk"]["doc_title"] == "Machine Learning Hardware"
     assert data["results"][0]["rank"] == 1
-

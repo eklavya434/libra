@@ -21,7 +21,9 @@ class ModernTransformerConfig:
     rope_theta_base: float = 10000.0
     rope_scaling_type: str = "none"  # "none", "linear", "dynamic_ntk", "yarn"
     rope_scale: float = 1.0  # Context extension scale factor s (e.g. 2.0, 4.0, 8.0)
-    original_max_seq_len: int | None = None  # Original training max context length (defaults to max_context_length)
+    original_max_seq_len: int | None = (
+        None  # Original training max context length (defaults to max_context_length)
+    )
     norm_eps: float = 1e-6
     dropout: float = 0.0
     tie_weights: bool = False  # Weight tying: output_head.weight = tok_emb.weight

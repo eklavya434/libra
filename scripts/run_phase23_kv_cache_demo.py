@@ -12,6 +12,7 @@ Demonstrates:
 import sys
 import time
 from pathlib import Path
+
 import torch
 
 # Ensure repository root is on sys.path
@@ -22,9 +23,9 @@ if str(repo_root) not in sys.path:
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
 
+from packages.models.generation import generate, generate_with_cache
 from packages.models.modern_config import ModernTransformerConfig
 from packages.models.modern_transformer import ModernTransformerLM
-from packages.models.generation import generate, generate_with_cache
 
 
 def print_banner(text: str) -> None:
@@ -49,7 +50,9 @@ def demo_gqa_architectures() -> None:
         ("Multi-Query Attention (MQA)", 1),
     ]
 
-    print(f"{'Architecture':<35} | {'Q Heads':<8} | {'KV Heads':<8} | {'Ratio':<6} | {'Params':<10}")
+    print(
+        f"{'Architecture':<35} | {'Q Heads':<8} | {'KV Heads':<8} | {'Ratio':<6} | {'Params':<10}"
+    )
     print("-" * 75)
 
     for name, n_kv in configs:
@@ -68,7 +71,9 @@ def demo_gqa_architectures() -> None:
 
 
 def demo_kv_cache_memory() -> None:
-    print_banner("2. Theoretical KV Cache Memory Scaling (Context: 2048 tokens, 32 layers, d_model=4096)")
+    print_banner(
+        "2. Theoretical KV Cache Memory Scaling (Context: 2048 tokens, 32 layers, d_model=4096)"
+    )
 
     n_layers = 32
     d_model = 4096
@@ -132,13 +137,15 @@ def demo_latency_and_equivalence() -> None:
     # 2. KV Cached generation
     t0 = time.perf_counter()
     with torch.no_grad():
-        out_cache, telemetry = generate_with_cache(model, prompt.clone(), max_new_tokens=gen_len, temperature=0.0)
+        out_cache, telemetry = generate_with_cache(
+            model, prompt.clone(), max_new_tokens=gen_len, temperature=0.0
+        )
     t_cache = (time.perf_counter() - t0) * 1000
 
     # Check mathematical equivalence
     exact_match = torch.equal(out_nocache, out_cache)
 
-    print(f"\n[Generation Results]")
+    print("\n[Generation Results]")
     print(f"Cacheless Latency:  {t_nocache:.2f} ms ({gen_len / (t_nocache / 1000):.1f} tok/s)")
     print(f"Cached Latency:     {t_cache:.2f} ms ({gen_len / (t_cache / 1000):.1f} tok/s)")
     speedup = t_nocache / max(t_cache, 1e-6)

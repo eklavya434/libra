@@ -1,4 +1,4 @@
-﻿"""
+"""
 Libra Providers - vLLM Architectural Specification (Future GPU-Only)
 
 IMPORTANT OPERATIONAL PROTOCOL (Prompt 2 Directive 6):

@@ -4,6 +4,7 @@ Tests for Tools REST API Endpoints (apps/backend/api/v1/endpoints/tools.py)
 
 import pytest
 from fastapi.testclient import TestClient
+
 from apps.backend.main import app
 from packages.tools.registry import reset_tool_registry
 
@@ -91,7 +92,7 @@ def test_execute_unknown_tool(client):
 
 
 def test_parse_tool_endpoint(client):
-    text = "<tool_call>{\"name\": \"calculator\", \"arguments\": {\"expression\": \"3 * 7\"}}</tool_call>"
+    text = '<tool_call>{"name": "calculator", "arguments": {"expression": "3 * 7"}}</tool_call>'
     res = client.post(
         "/api/v1/tools/parse",
         json={"text": text},

@@ -3,8 +3,9 @@ Tests for SFT Dataset and Sequence Packing (Phase 33)
 """
 
 import torch
-from packages.training.chat_formatter import ChatMessage, IGNORE_INDEX
-from packages.training.sft_dataset import InstructionDataset, pack_sequences, default_tokenizer
+
+from packages.training.chat_formatter import IGNORE_INDEX, ChatMessage
+from packages.training.sft_dataset import InstructionDataset, pack_sequences
 
 
 def test_instruction_dataset():

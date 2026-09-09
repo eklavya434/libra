@@ -1,4 +1,4 @@
-﻿"""
+"""
 Libra Providers - Google Gemini REST & Streaming Adapter
 """
 
@@ -94,10 +94,12 @@ class GeminiProvider(BaseProvider):
         for m in messages:
             role = m.get("role", "user").lower()
             gemini_role = "model" if role == "assistant" else "user"
-            gemini_contents.append({
-                "role": gemini_role,
-                "parts": [{"text": m.get("content", "")}],
-            })
+            gemini_contents.append(
+                {
+                    "role": gemini_role,
+                    "parts": [{"text": m.get("content", "")}],
+                }
+            )
         return gemini_contents
 
     async def chat(
@@ -199,7 +201,9 @@ class GeminiProvider(BaseProvider):
         async with client.stream("POST", url, json=payload) as resp:
             if resp.status_code != 200:
                 err_text = await resp.aread()
-                raise normalize_http_error(resp.status_code, err_text.decode("utf-8", errors="ignore"), self.name)
+                raise normalize_http_error(
+                    resp.status_code, err_text.decode("utf-8", errors="ignore"), self.name
+                )
 
             async for line in resp.aiter_lines():
                 if not line or not line.strip():
@@ -218,11 +222,15 @@ class GeminiProvider(BaseProvider):
                     except json.JSONDecodeError:
                         continue
 
-    async def embeddings(self, texts: list[str], model: str = "text-embedding-004") -> list[list[float]]:
+    async def embeddings(
+        self, texts: list[str], model: str = "text-embedding-004"
+    ) -> list[list[float]]:
         if not self.api_key:
             return [[0.0] * 768 for _ in texts]
         url = f"{self.base_url}/models/{model}:batchEmbedContents?key={self.api_key}"
-        requests = [{"model": f"models/{model}", "content": {"parts": [{"text": t}]}} for t in texts]
+        requests = [
+            {"model": f"models/{model}", "content": {"parts": [{"text": t}]}} for t in texts
+        ]
         client = self._get_client()
         resp = await client.post(url, json={"requests": requests})
         if resp.status_code == 200:

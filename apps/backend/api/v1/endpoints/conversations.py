@@ -8,6 +8,7 @@ history retrieval, and message management.
 from __future__ import annotations
 
 from typing import Any
+
 from fastapi import APIRouter, HTTPException, Query
 
 from packages.core.memory import (
@@ -44,7 +45,9 @@ async def create_conversation(request: CreateConversationRequest) -> Conversatio
     )
 
 
-@router.get("/{conv_id}", response_model=ConversationDetail, summary="Get conversation details and messages")
+@router.get(
+    "/{conv_id}", response_model=ConversationDetail, summary="Get conversation details and messages"
+)
 async def get_conversation(conv_id: str) -> ConversationDetail:
     """Fetch a single conversation session with all chronologically ordered messages."""
     store = get_conversation_store()
@@ -54,7 +57,9 @@ async def get_conversation(conv_id: str) -> ConversationDetail:
     return conv
 
 
-@router.patch("/{conv_id}", response_model=Conversation, summary="Update conversation settings or title")
+@router.patch(
+    "/{conv_id}", response_model=Conversation, summary="Update conversation settings or title"
+)
 async def update_conversation(conv_id: str, request: UpdateConversationRequest) -> Conversation:
     """Update title, model, or system prompt for an existing conversation."""
     store = get_conversation_store()
@@ -79,7 +84,9 @@ async def delete_conversation(conv_id: str) -> dict[str, Any]:
     return {"status": "deleted", "id": conv_id}
 
 
-@router.post("/{conv_id}/messages", response_model=Message, summary="Append a message to a conversation")
+@router.post(
+    "/{conv_id}/messages", response_model=Message, summary="Append a message to a conversation"
+)
 async def append_message(conv_id: str, request: AddMessageRequest) -> Message:
     """Directly append a message to an existing conversation."""
     store = get_conversation_store()

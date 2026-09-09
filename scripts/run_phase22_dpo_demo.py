@@ -43,13 +43,15 @@ def demo_preference_data() -> None:
     item = dataset[0]
 
     prompt_len = item["prompt_length"]
-    print(f"Prompt:   \"{sample.prompt}\" (length: {prompt_len} tokens)")
-    print(f"Chosen:   \"{sample.chosen}\"")
-    print(f"Rejected: \"{sample.rejected}\"")
+    print(f'Prompt:   "{sample.prompt}" (length: {prompt_len} tokens)')
+    print(f'Chosen:   "{sample.chosen}"')
+    print(f'Rejected: "{sample.rejected}"')
 
     print("\nToken Masking Demonstration:")
     print(f"  • Prompt Labels:     {item['chosen_labels'][:prompt_len]} (All masked to -100!)")
-    print(f"  • Completion Labels: {item['chosen_labels'][prompt_len:prompt_len + 8]}... (Active in loss!)")
+    print(
+        f"  • Completion Labels: {item['chosen_labels'][prompt_len : prompt_len + 8]}... (Active in loss!)"
+    )
 
 
 def demo_reward_model() -> None:
@@ -71,7 +73,11 @@ def demo_reward_model() -> None:
 
     # 2 Preference pairs
     samples = [
-        PreferenceSample("Help me fix my code: ", "Sure! Here is the corrected logic with unit tests.", "Fix it yourself."),
+        PreferenceSample(
+            "Help me fix my code: ",
+            "Sure! Here is the corrected logic with unit tests.",
+            "Fix it yourself.",
+        ),
         PreferenceSample("What is 12 * 12? ", "12 multiplied by 12 equals 144.", "A big number."),
     ]
     ds = PreferenceDataset(samples=samples, max_length=64)

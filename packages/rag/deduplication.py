@@ -9,7 +9,6 @@ Implements:
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 from packages.rag.models import SearchResult
 
@@ -105,8 +104,7 @@ class ChunkDeduplicator:
             for idx, cand in enumerate(unselected):
                 # Max similarity to any already selected chunk
                 max_sim = max(
-                    jaccard_similarity(cand.chunk.text, sel.chunk.text)
-                    for sel in selected
+                    jaccard_similarity(cand.chunk.text, sel.chunk.text) for sel in selected
                 )
                 mmr_val = (self.mmr_lambda * cand.score) - ((1.0 - self.mmr_lambda) * max_sim)
 

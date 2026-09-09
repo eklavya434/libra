@@ -3,10 +3,11 @@ Tests for Deep Research Agent Workflow
 """
 
 import pytest
+
 from packages.rag.deep_research import DeepResearchAgent, DeepResearchReport
-from packages.rag.web_search import MockSearchProvider
-from packages.rag.vector_store import InMemoryVectorStore
 from packages.rag.hybrid import HybridRetriever
+from packages.rag.vector_store import InMemoryVectorStore
+from packages.rag.web_search import MockSearchProvider
 
 
 @pytest.mark.anyio

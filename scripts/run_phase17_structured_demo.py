@@ -13,9 +13,10 @@ from __future__ import annotations
 import json
 import os
 import sys
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from typing import List
+
 import torch
+from pydantic import BaseModel, Field
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -54,7 +55,17 @@ def demo_schema_compilation():
 def demo_incremental_state_machine():
     print_banner("2. INCREMENTAL PUSHDOWN AUTOMATON (PDA) TRACE")
     pda = IncrementalJSONStateMachine()
-    test_fragments = ['{', '"model_name"', ':', '"TinyTransformer"', ',', '"accuracy"', ':', '0.94', '}']
+    test_fragments = [
+        "{",
+        '"model_name"',
+        ":",
+        '"TinyTransformer"',
+        ",",
+        '"accuracy"',
+        ":",
+        "0.94",
+        "}",
+    ]
 
     current = ""
     for frag in test_fragments:
@@ -62,7 +73,9 @@ def demo_incremental_state_machine():
             pda.feed_char(ch)
             current += ch
         allowed = sorted(list(pda.get_allowed_characters()))[:8]
-        print(f"  Prefix: {current:<35} | Complete: {str(pda.is_complete()):<5} | Sample Allowed Next: {allowed}")
+        print(
+            f"  Prefix: {current:<35} | Complete: {str(pda.is_complete()):<5} | Sample Allowed Next: {allowed}"
+        )
 
 
 def demo_logit_masking():
@@ -109,7 +122,9 @@ class SimulatedFlakyProvider(BaseProvider):
                 "choices": [{"message": {"content": '{"model_name": "Libra-1", "accuracy": 0.92}'}}]
             }
         else:
-            print("    [Attempt 2] Model received validation feedback and generated corrected JSON...")
+            print(
+                "    [Attempt 2] Model received validation feedback and generated corrected JSON..."
+            )
             return {
                 "choices": [
                     {

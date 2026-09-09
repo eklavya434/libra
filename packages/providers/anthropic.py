@@ -1,4 +1,4 @@
-﻿"""
+"""
 Libra Providers - Anthropic Claude REST & Streaming Adapter
 """
 
@@ -102,7 +102,9 @@ class AnthropicProvider(BaseProvider):
             ),
         ]
 
-    def _extract_system_and_messages(self, messages: list[dict[str, str]]) -> tuple[Optional[str], list[dict[str, str]]]:
+    def _extract_system_and_messages(
+        self, messages: list[dict[str, str]]
+    ) -> tuple[Optional[str], list[dict[str, str]]]:
         system_content: Optional[str] = None
         filtered_msgs: list[dict[str, str]] = []
         for m in messages:
@@ -196,10 +198,14 @@ class AnthropicProvider(BaseProvider):
             payload["stop_sequences"] = stop
 
         client = self._get_client()
-        async with client.stream("POST", f"{self.base_url}/messages", headers=headers, json=payload) as resp:
+        async with client.stream(
+            "POST", f"{self.base_url}/messages", headers=headers, json=payload
+        ) as resp:
             if resp.status_code != 200:
                 err_text = await resp.aread()
-                raise normalize_http_error(resp.status_code, err_text.decode("utf-8", errors="ignore"), self.name)
+                raise normalize_http_error(
+                    resp.status_code, err_text.decode("utf-8", errors="ignore"), self.name
+                )
 
             async for line in resp.aiter_lines():
                 if not line or not line.strip():

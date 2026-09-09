@@ -13,8 +13,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Any, Callable
-
+from typing import Callable
 
 DEFAULT_NEEDLE_FACT = "The secret access code to the vault is 849204."
 DEFAULT_NEEDLE_KEY = "849204"

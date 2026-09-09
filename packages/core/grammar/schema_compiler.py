@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from typing import Any, Optional, Type
+
 from pydantic import BaseModel, ValidationError
 
 
@@ -99,4 +100,6 @@ class SchemaCompiler:
                 name=name or target.get("title", "StructuredResponse"),
             )
         else:
-            raise TypeError(f"Target must be a Pydantic BaseModel subclass or dict, got: {type(target)}")
+            raise TypeError(
+                f"Target must be a Pydantic BaseModel subclass or dict, got: {type(target)}"
+            )

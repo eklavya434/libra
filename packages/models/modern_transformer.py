@@ -15,7 +15,7 @@ from torch import nn
 
 from packages.models.components.kv_cache import KVCache
 from packages.models.components.rmsnorm import RMSNorm
-from packages.models.components.rope_scaling import ScaledRotaryEmbedding, ScalingType
+from packages.models.components.rope_scaling import ScaledRotaryEmbedding
 from packages.models.components.swiglu import SwiGLU
 from packages.models.modern_config import ModernTransformerConfig
 
@@ -90,14 +90,18 @@ class ModernCausalAttention(nn.Module):
 
         # 5. Scaled dot-product attention
         # Apply YaRN attention temperature factor if configured
-        scale_factor = (1.0 / math.sqrt(self.head_dim)) * getattr(self.rope, "attn_temperature_factor", 1.0)
+        scale_factor = (1.0 / math.sqrt(self.head_dim)) * getattr(
+            self.rope, "attn_temperature_factor", 1.0
+        )
         scores = (q @ k.transpose(-2, -1)) * scale_factor
 
         if T > 1:
             # Dynamic causal mask support if sequence exceeds pre-registered mask buffer
             if start_pos + T > self.causal_mask.size(2) or total_seq_len > self.causal_mask.size(3):
                 max_len = max(start_pos + T, total_seq_len)
-                mask = torch.tril(torch.ones(max_len, max_len, device=x.device)).view(1, 1, max_len, max_len)
+                mask = torch.tril(torch.ones(max_len, max_len, device=x.device)).view(
+                    1, 1, max_len, max_len
+                )
                 submask = mask[:, :, start_pos : start_pos + T, :total_seq_len]
             else:
                 submask = self.causal_mask[:, :, start_pos : start_pos + T, :total_seq_len]

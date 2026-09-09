@@ -9,8 +9,8 @@ Demonstrates:
 5. Zero-cost deployment readiness check
 """
 
-import sys
 import os
+import sys
 
 # Ensure project root is in sys.path
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

@@ -29,7 +29,6 @@ from packages.models.speculative import (
     standard_autoregressive_generate,
 )
 from packages.routing.classifier import (
-    ExecutionTier,
     get_query_classifier,
 )
 from packages.routing.dynamic_router import (
@@ -55,12 +54,14 @@ def demo_query_classification() -> None:
 
     for q in queries:
         res = classifier.classify(q)
-        print(f"\nPrompt: \"{res.prompt_snippet}\"")
+        print(f'\nPrompt: "{res.prompt_snippet}"')
         print(f"  • Intent:          {res.intent.value.upper()} (Domain: {res.domain})")
         print(f"  • Recommended Tier: {res.recommended_tier.value.upper()}")
-        print(f"  • Complexity:      Overall={res.complexity.overall_score:.2f} "
-              f"(len={res.complexity.length_score:.2f}, code={res.complexity.code_score:.2f}, "
-              f"reason={res.complexity.reasoning_score:.2f}, const={res.complexity.constraint_score:.2f})")
+        print(
+            f"  • Complexity:      Overall={res.complexity.overall_score:.2f} "
+            f"(len={res.complexity.length_score:.2f}, code={res.complexity.code_score:.2f}, "
+            f"reason={res.complexity.reasoning_score:.2f}, const={res.complexity.constraint_score:.2f})"
+        )
         print(f"  • Rationale:       {res.rationale}")
 
 
@@ -86,12 +87,16 @@ async def demo_dynamic_routing() -> None:
         print(f"  • Primary Engine:    {decision.selected_provider} / {decision.selected_model}")
         print(f"  • Estimated Latency: {decision.estimated_latency_tier}")
         print(f"  • Estimated Cost:    {decision.estimated_cost_tier}")
-        print(f"  • Fallback Chain:    {[fb['provider'] + '/' + fb['model'] for fb in decision.fallback_chain]}")
+        print(
+            f"  • Fallback Chain:    {[fb['provider'] + '/' + fb['model'] for fb in decision.fallback_chain]}"
+        )
 
         # Execute
         messages = [{"role": "user", "content": prompt}]
         exec_res = await router.route_and_execute(messages, policy=policy)
-        print(f"  • Execution Model:   {exec_res['model_used']} (Fallback Triggered: {exec_res['fallback_triggered']})")
+        print(
+            f"  • Execution Model:   {exec_res['model_used']} (Fallback Triggered: {exec_res['fallback_triggered']})"
+        )
 
 
 def demo_speculative_decoding() -> None:
@@ -143,7 +148,7 @@ def demo_speculative_decoding() -> None:
     )
     t_std = time.perf_counter() - t0
 
-    print(f"[Standard Autoregressive]")
+    print("[Standard Autoregressive]")
     print(f"  • Generated Tokens:     {std_tokens}")
     print(f"  • Target Passes:        {std_passes} passes (1 pass per token)")
     print(f"  • Time:                 {t_std * 1000:.2f} ms")
@@ -157,19 +162,27 @@ def demo_speculative_decoding() -> None:
     )
     spec_result = decoder.generate(prompt_tokens, max_new_tokens=max_tokens)
 
-    print(f"\n[Speculative Decoding (Lookahead K=3)]")
+    print("\n[Speculative Decoding (Lookahead K=3)]")
     print(f"  • Generated Tokens:     {spec_result.output_tokens}")
-    print(f"  • Target Passes:        {spec_result.target_forward_passes} passes (Saved {spec_result.passes_saved} passes!)")
+    print(
+        f"  • Target Passes:        {spec_result.target_forward_passes} passes (Saved {spec_result.passes_saved} passes!)"
+    )
     print(f"  • Proposed Drafts:      {spec_result.draft_tokens_proposed}")
     print(f"  • Accepted Drafts:      {spec_result.draft_tokens_accepted}")
     print(f"  • Acceptance Rate (α):  {spec_result.acceptance_rate * 100:.1f}%")
-    print(f"  • Theoretical Speedup:  {spec_result.theoretical_speedup:.2f}x reduction in target passes")
+    print(
+        f"  • Theoretical Speedup:  {spec_result.theoretical_speedup:.2f}x reduction in target passes"
+    )
     print(f"  • Time:                 {spec_result.elapsed_time_sec * 1000:.2f} ms")
 
     # Verify mathematical identity
-    identical = (spec_result.output_tokens == std_tokens)
-    print(f"\n[Mathematical Equivalence Invariant]: {'✅ EXACT 100% MATCH' if identical else '❌ MISMATCH'}")
-    assert identical, "Speculative decoding under greedy mode MUST match target autoregressive decoding exactly!"
+    identical = spec_result.output_tokens == std_tokens
+    print(
+        f"\n[Mathematical Equivalence Invariant]: {'✅ EXACT 100% MATCH' if identical else '❌ MISMATCH'}"
+    )
+    assert identical, (
+        "Speculative decoding under greedy mode MUST match target autoregressive decoding exactly!"
+    )
 
 
 async def main() -> None:

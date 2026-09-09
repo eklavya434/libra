@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import math
 from enum import Enum
+
 import torch
 from torch import nn
 

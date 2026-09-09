@@ -1,4 +1,4 @@
-﻿"""
+"""
 Libra Providers - Prompt Formatting & Chat Templates
 
 Transforms structured conversation messages into model-specific input prompts:
@@ -16,7 +16,9 @@ class PromptTemplate:
     """Formatter that compiles message dictionaries into delimited prompt strings."""
 
     @staticmethod
-    def format_chatml(messages: Sequence[dict[str, str]], add_generation_prompt: bool = True) -> str:
+    def format_chatml(
+        messages: Sequence[dict[str, str]], add_generation_prompt: bool = True
+    ) -> str:
         """Formats messages using the standard ChatML syntax (<|im_start|>role\ncontent<|im_end|>)."""
         chunks = []
         for msg in messages:
@@ -30,7 +32,9 @@ class PromptTemplate:
         return "\n".join(chunks)
 
     @staticmethod
-    def format_llama3(messages: Sequence[dict[str, str]], add_generation_prompt: bool = True) -> str:
+    def format_llama3(
+        messages: Sequence[dict[str, str]], add_generation_prompt: bool = True
+    ) -> str:
         """Formats messages using Llama 3 / 3.2 special header tokens (<|start_header_id|>...<|eot_id|>)."""
         chunks = ["<|begin_of_text|>"]
         for msg in messages:

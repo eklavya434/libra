@@ -18,7 +18,6 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from packages.agents import (
-    AgentStatus,
     PlanAndSolveAgent,
     ReActAgent,
 )
@@ -110,7 +109,7 @@ async def demo_react_agent_steps():
             print(f"    Action:      {step.action_name}({step.action_input})")
             print(f"    Observation: {step.observation}")
         if step.is_final:
-            print(f"    Final Step:  Yes")
+            print("    Final Step:  Yes")
         print(f"    Duration:    {step.execution_time_ms}ms\n")
 
     print(f"[+] Final Answer: {trajectory.final_answer}")
@@ -121,7 +120,7 @@ async def demo_react_streaming():
     print_banner("2. REAL-TIME AGENT STEP STREAMING")
     script = [
         'Thought: I need to calculate 144 / 12.\nAction:\n<tool_call>{"name": "calculator", "arguments": {"expression": "144 / 12"}}</tool_call>',
-        'Thought: The quotient is 12.\nFinal Answer: 144 divided by 12 is 12.',
+        "Thought: The quotient is 12.\nFinal Answer: 144 divided by 12 is 12.",
     ]
     registry = ToolRegistry()
     registry.register(CalculatorTool())
@@ -199,25 +198,58 @@ async def demo_guardrails():
 
 async def demo_plan_and_solve():
     print_banner("4. PLAN-AND-SOLVE AGENT (DELIBERATE PLANNING)")
+
     # Provider responds to planning, milestone, and synthesis
     class PlanProvider(BaseProvider):
         @property
-        def name(self): return "plan-p"
-        async def list_models(self): return []
+        def name(self):
+            return "plan-p"
+
+        async def list_models(self):
+            return []
+
         async def chat(self, messages, model=None, **kwargs):
             last = messages[-1]["content"]
             if "master planning agent" in last:
-                return {"choices": [{"message": {"content": '{"problem_summary": "Factorial of 5", "steps": ["Calculate 5 * 4 * 3 * 2 * 1", "Verify result"]}'}}]}
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": '{"problem_summary": "Factorial of 5", "steps": ["Calculate 5 * 4 * 3 * 2 * 1", "Verify result"]}'
+                            }
+                        }
+                    ]
+                }
             elif "milestone 1" in last:
-                return {"choices": [{"message": {"content": 'Thought: Multiplying numbers.\n<tool_call>{"name": "calculator", "arguments": {"expression": "5 * 4 * 3 * 2 * 1"}}</tool_call>'}}]}
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": 'Thought: Multiplying numbers.\n<tool_call>{"name": "calculator", "arguments": {"expression": "5 * 4 * 3 * 2 * 1"}}</tool_call>'
+                            }
+                        }
+                    ]
+                }
             elif "milestone 2" in last:
-                return {"choices": [{"message": {"content": 'Verification: 120 is the exact factorial.'}}]}
+                return {
+                    "choices": [
+                        {"message": {"content": "Verification: 120 is the exact factorial."}}
+                    ]
+                }
             else:
                 return {"choices": [{"message": {"content": "5 factorial (5!) is 120."}}]}
-        async def stream(self, messages, model=None, **kwargs): yield ""
-        async def health(self): return {"status": "healthy"}
-        async def embeddings(self, texts, model=None): return [[0.0] * 16]
-        def capabilities(self): return {"supports_text": True}
+
+        async def stream(self, messages, model=None, **kwargs):
+            yield ""
+
+        async def health(self):
+            return {"status": "healthy"}
+
+        async def embeddings(self, texts, model=None):
+            return [[0.0] * 16]
+
+        def capabilities(self):
+            return {"supports_text": True}
 
     registry = ToolRegistry()
     registry.register(CalculatorTool())

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Libra Phase 7 - Model Registry & Hardware Compatibility Demonstration
 
 Demonstrates:
@@ -21,7 +21,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from packages.core.hardware import detect_hardware
 from packages.models.catalog import get_default_registry
-from packages.models.registry import HardwareTier
 
 
 def main() -> None:
@@ -33,8 +32,12 @@ def main() -> None:
     # 1. Detect System Hardware
     hw = detect_hardware()
     print("\n1. Detected User Machine Specs:")
-    print(f"   • CPU:       {hw.cpu_model} ({hw.cpu_physical_cores} Cores / {hw.cpu_logical_cores} Threads)")
-    print(f"   • System RAM: {hw.ram_total_gb:.1f} GB Total ({hw.ram_available_gb:.1f} GB Available)")
+    print(
+        f"   • CPU:       {hw.cpu_model} ({hw.cpu_physical_cores} Cores / {hw.cpu_logical_cores} Threads)"
+    )
+    print(
+        f"   • System RAM: {hw.ram_total_gb:.1f} GB Total ({hw.ram_available_gb:.1f} GB Available)"
+    )
     print(f"   • Storage:   {hw.disk_free_gb:.1f} GB Free (on 477 GB SSD)")
     print(f"   • GPU:       {hw.gpu_name or 'None'} (CUDA Available: {hw.has_cuda})")
     print(f"   • Machine Tier: [{hw.device_tier.upper()}]")
@@ -57,9 +60,17 @@ def main() -> None:
         param_str = (
             f"{m.parameter_count / 1e9:.1f}B"
             if m.parameter_count >= 1e9
-            else (f"{m.parameter_count / 1e6:.1f}M" if m.parameter_count >= 1e6 else f"{m.parameter_count / 1e3:.0f}K")
+            else (
+                f"{m.parameter_count / 1e6:.1f}M"
+                if m.parameter_count >= 1e6
+                else f"{m.parameter_count / 1e3:.0f}K"
+            )
         )
-        status_icon = "✅ Run Locally" if m.can_run_locally else ("⚠️ Tight Fit" if "Tight" in m.hardware_verdict else "❌ Cannot Run")
+        status_icon = (
+            "✅ Run Locally"
+            if m.can_run_locally
+            else ("⚠️ Tight Fit" if "Tight" in m.hardware_verdict else "❌ Cannot Run")
+        )
         tier_str = m.hardware_tier.value
 
         print(
@@ -80,13 +91,19 @@ def main() -> None:
     for m in cpu_friendly:
         print(f"\n• [{m.model_id}] {m.name}")
         print(f"  - Organization: {m.organization} | License: {m.license} ({m.license_type.value})")
-        print(f"  - Context Window: {m.context_length:,} tokens | Capabilities: {', '.join(m.capabilities)}")
+        print(
+            f"  - Context Window: {m.context_length:,} tokens | Capabilities: {', '.join(m.capabilities)}"
+        )
         print(f"  - Verdict: {m.hardware_verdict}")
 
     print("\n" + "=" * 95)
     print("4. Verification & Sizing Math Summary:")
-    print(f"   • Your 16GB RAM can comfortably host 0.5B, 1B, 1.5B, and 3B models in Q4 quantization.")
-    print(f"   • Models >= 7B in 16-bit or >= 70B in 4-bit require dedicated GPU or high-RAM cloud servers.")
+    print(
+        "   • Your 16GB RAM can comfortably host 0.5B, 1B, 1.5B, and 3B models in Q4 quantization."
+    )
+    print(
+        "   • Models >= 7B in 16-bit or >= 70B in 4-bit require dedicated GPU or high-RAM cloud servers."
+    )
     print("   • All registry queries completed in < 0.05 seconds.")
     print("=" * 95)
 

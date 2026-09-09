@@ -2,7 +2,6 @@
 Unit Tests for Phase 32: End-to-End LibraVLM
 """
 
-import pytest
 import torch
 
 from packages.models.modern_config import ModernTransformerConfig

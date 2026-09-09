@@ -122,9 +122,7 @@ class SQLiteConversationStore:
     def get_conversation(self, conv_id: str) -> Optional[ConversationDetail]:
         """Fetch a conversation session along with all ordered messages."""
         with self._get_connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM conversations WHERE id = ?;", (conv_id,)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM conversations WHERE id = ?;", (conv_id,)).fetchone()
             if not row:
                 return None
 

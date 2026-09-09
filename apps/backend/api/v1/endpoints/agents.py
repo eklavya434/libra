@@ -8,7 +8,8 @@ with synchronous and real-time Server-Sent Event (SSE) trajectory streaming.
 from __future__ import annotations
 
 import json
-from typing import Any, Optional
+from typing import Optional
+
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field

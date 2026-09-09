@@ -1,4 +1,3 @@
-﻿import pytest
 import torch
 import torch.nn as nn
 
@@ -28,7 +27,7 @@ class DeterministicMockModel(nn.Module):
         logits = torch.zeros(batch, seq_len, self.vocab_size)
         # Strongly predict token 3 ("Paris")
         logits[:, :, 3] = 10.0
-        logits[:, :, 4] = 2.0   # "London"
+        logits[:, :, 4] = 2.0  # "London"
         logits[:, :, 5] = -5.0  # "Rome"
         return logits
 

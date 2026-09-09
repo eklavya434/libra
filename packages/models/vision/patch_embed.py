@@ -8,7 +8,6 @@ applies linear projection to vision embedding dimension, and adds learned spatia
 
 from __future__ import annotations
 
-import math
 import torch
 from torch import nn
 
@@ -25,7 +24,9 @@ class ImagePatchEmbedder(nn.Module):
     ) -> None:
         super().__init__()
         if image_size % patch_size != 0:
-            raise ValueError(f"image_size ({image_size}) must be divisible by patch_size ({patch_size})")
+            raise ValueError(
+                f"image_size ({image_size}) must be divisible by patch_size ({patch_size})"
+            )
 
         self.image_size = image_size
         self.patch_size = patch_size

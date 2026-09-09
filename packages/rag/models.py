@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -46,7 +47,9 @@ class SearchResult(BaseModel):
     chunk: DocumentChunk = Field(..., description="The matched document chunk")
     score: float = Field(..., description="Composite / primary similarity score")
     rank: int = Field(..., description="1-based final ranking index")
-    dense_score: Optional[float] = Field(None, description="Raw or normalized dense cosine similarity score")
+    dense_score: Optional[float] = Field(
+        None, description="Raw or normalized dense cosine similarity score"
+    )
     dense_rank: Optional[int] = Field(None, description="Rank from pure dense vector search")
     bm25_score: Optional[float] = Field(None, description="Raw or normalized BM25 sparse score")
     bm25_rank: Optional[int] = Field(None, description="Rank from pure BM25 sparse search")
@@ -62,11 +65,24 @@ class RAGQueryRequest(BaseModel):
     top_k: int = Field(3, ge=1, le=20, description="Maximum number of chunks to return")
     min_score: float = Field(0.0, description="Minimum score cutoff")
     mode: str = Field("hybrid", description="Retrieval mode: 'hybrid', 'dense', or 'bm25'")
-    alpha: float = Field(0.5, ge=0.0, le=1.0, description="Weight for dense search in score fusion (0=BM25 only, 1=Dense only)")
-    use_rrf: bool = Field(True, description="Whether to use Reciprocal Rank Fusion instead of linear score fusion")
-    use_reranking: bool = Field(True, description="Whether to apply secondary multi-factor re-ranking")
-    use_deduplication: bool = Field(True, description="Whether to filter near-duplicate redundant chunks")
-    rrf_k: int = Field(60, ge=1, le=200, description="RRF rank smoothing constant (standard default is 60)")
+    alpha: float = Field(
+        0.5,
+        ge=0.0,
+        le=1.0,
+        description="Weight for dense search in score fusion (0=BM25 only, 1=Dense only)",
+    )
+    use_rrf: bool = Field(
+        True, description="Whether to use Reciprocal Rank Fusion instead of linear score fusion"
+    )
+    use_reranking: bool = Field(
+        True, description="Whether to apply secondary multi-factor re-ranking"
+    )
+    use_deduplication: bool = Field(
+        True, description="Whether to filter near-duplicate redundant chunks"
+    )
+    rrf_k: int = Field(
+        60, ge=1, le=200, description="RRF rank smoothing constant (standard default is 60)"
+    )
 
 
 class RAGQueryResponse(BaseModel):
@@ -76,7 +92,9 @@ class RAGQueryResponse(BaseModel):
     mode: str = Field("hybrid", description="Retrieval mode employed")
     results: list[SearchResult] = Field(default_factory=list, description="Top-k matching chunks")
     augmented_prompt: str = Field(..., description="Grounding prompt with injected context")
-    total_candidates: int = Field(0, description="Total candidates evaluated before ranking/deduplication")
+    total_candidates: int = Field(
+        0, description="Total candidates evaluated before ranking/deduplication"
+    )
 
 
 class IngestDocumentRequest(BaseModel):
@@ -85,4 +103,3 @@ class IngestDocumentRequest(BaseModel):
     title: str = Field(..., min_length=1, description="Title of the document")
     content: str = Field(..., min_length=1, description="Text body of the document")
     metadata: Optional[dict[str, Any]] = Field(None, description="Optional metadata tags")
-

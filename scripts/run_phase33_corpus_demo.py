@@ -8,20 +8,20 @@ Demonstrates:
 4. Domain corpus inspection (Systems, Coding, Math)
 """
 
-import sys
 import os
+import sys
 
 # Ensure project root is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from packages.training.chat_formatter import (
+    IGNORE_INDEX,
     ChatMessage,
     ChatMLFormatter,
     tokenize_with_loss_masking,
-    IGNORE_INDEX,
 )
-from packages.training.sft_dataset import InstructionDataset, pack_sequences, default_tokenizer
 from packages.training.domain_corpora import get_educational_instruction_corpus
+from packages.training.sft_dataset import default_tokenizer, pack_sequences
 
 
 def main():
@@ -32,9 +32,15 @@ def main():
     # 1. ChatML Formatting
     print("\n[1] ChatML Delimiter Formatting & Role Serialization:")
     messages = [
-        ChatMessage(role="system", content="You are Libra, an educational AI assistant built from first principles."),
+        ChatMessage(
+            role="system",
+            content="You are Libra, an educational AI assistant built from first principles.",
+        ),
         ChatMessage(role="user", content="Explain how Rotary Position Embedding (RoPE) works."),
-        ChatMessage(role="assistant", content="RoPE encodes relative token position by applying a 2D rotation matrix to query and key vector slices."),
+        ChatMessage(
+            role="assistant",
+            content="RoPE encodes relative token position by applying a 2D rotation matrix to query and key vector slices.",
+        ),
     ]
     formatter = ChatMLFormatter()
     raw_chatml = formatter.format_conversation(messages)
@@ -57,7 +63,9 @@ def main():
     trainable_pct = (trainable_tokens / total_tokens) * 100 if total_tokens else 0.0
 
     print(f"Total tokens in dialogue: {total_tokens}")
-    print(f"Masked prompt tokens (loss = -100): {masked_tokens} ({(masked_tokens / total_tokens) * 100:.1f}%)")
+    print(
+        f"Masked prompt tokens (loss = -100): {masked_tokens} ({(masked_tokens / total_tokens) * 100:.1f}%)"
+    )
     print(f"Active assistant tokens (loss != -100): {trainable_tokens} ({trainable_pct:.1f}%)")
     print("\nFirst 40 tokens comparison:")
     print("Idx | TokenID | Char | Label")

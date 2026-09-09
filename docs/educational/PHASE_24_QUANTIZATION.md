@@ -76,7 +76,7 @@ high = unsigned_nibbles[..., 1::2]
 packed = (high << 4) | low  # 1 byte stores 2 weights
 
 # Unpacking:
-low = (packed & 0x0F)
+low = packed & 0x0F
 high = (packed >> 4) & 0x0F
 # Restore signed 2's complement:
 low = torch.where(low >= 8, low - 16, low)

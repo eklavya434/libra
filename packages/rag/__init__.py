@@ -7,6 +7,12 @@ First-principles vector retrieval, document chunking, and context grounding.
 from packages.rag.bm25 import BM25Index, tokenize_bm25
 from packages.rag.chunking import RecursiveCharacterChunker
 from packages.rag.deduplication import ChunkDeduplicator, jaccard_similarity
+from packages.rag.deep_research import (
+    DeepResearchAgent,
+    DeepResearchReport,
+    ResearchSection,
+    ResearchSource,
+)
 from packages.rag.embeddings import (
     BaseEmbeddingProvider,
     EducationalDenseEmbedder,
@@ -22,12 +28,6 @@ from packages.rag.models import (
     RAGQueryRequest,
     RAGQueryResponse,
     SearchResult,
-)
-from packages.rag.deep_research import (
-    DeepResearchAgent,
-    DeepResearchReport,
-    ResearchSection,
-    ResearchSource,
 )
 from packages.rag.reranker import BaseReRanker, HeuristicReRanker
 from packages.rag.synthesizer import RAGPromptSynthesizer

@@ -2,8 +2,6 @@
 Unit Tests for Needle-In-A-Haystack (NIAH) Retrieval Benchmark
 """
 
-import pytest
-
 from packages.evaluation.needle_haystack import NeedleInHaystackEvaluator, NeedleResult
 
 

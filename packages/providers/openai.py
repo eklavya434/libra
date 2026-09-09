@@ -1,4 +1,4 @@
-﻿"""
+"""
 Libra Providers - OpenAI REST & Streaming Adapter
 
 Connects to the official OpenAI API or any compatible gateway (Groq, DeepSeek, OpenRouter).
@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import json
 import os
-import time
 from collections.abc import AsyncIterator
 from typing import Any, Optional
 
@@ -36,7 +35,9 @@ class OpenAIProvider(BaseProvider):
         http_client: Optional[httpx.AsyncClient] = None,
     ):
         self._provider_name = provider_name
-        self.api_key = api_key or os.getenv(f"{provider_name.upper()}_API_KEY") or os.getenv("OPENAI_API_KEY")
+        self.api_key = (
+            api_key or os.getenv(f"{provider_name.upper()}_API_KEY") or os.getenv("OPENAI_API_KEY")
+        )
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self._custom_client = http_client
@@ -90,9 +91,19 @@ class OpenAIProvider(BaseProvider):
             if resp.status_code == 200:
                 return {"status": "online", "provider": self.name, "configured": True}
             err = normalize_http_error(resp.status_code, resp.text, self.name)
-            return {"status": "error", "provider": self.name, "configured": False, "error": err.message}
+            return {
+                "status": "error",
+                "provider": self.name,
+                "configured": False,
+                "error": err.message,
+            }
         except Exception as e:
-            return {"status": "offline", "provider": self.name, "configured": False, "error": str(e)}
+            return {
+                "status": "offline",
+                "provider": self.name,
+                "configured": False,
+                "error": str(e),
+            }
 
     async def list_models(self) -> list[ModelMetadata]:
         return [
@@ -147,7 +158,13 @@ class OpenAIProvider(BaseProvider):
         client = self._get_client()
         resp = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
         if resp.status_code != 200:
-            raise normalize_http_error(resp.status_code, resp.json() if resp.headers.get("content-type", "").startswith("application/json") else resp.text, self.name)
+            raise normalize_http_error(
+                resp.status_code,
+                resp.json()
+                if resp.headers.get("content-type", "").startswith("application/json")
+                else resp.text,
+                self.name,
+            )
 
         data = resp.json()
         usage = data.get("usage", {})
@@ -181,10 +198,14 @@ class OpenAIProvider(BaseProvider):
             payload["stop"] = stop
 
         client = self._get_client()
-        async with client.stream("POST", f"{self.base_url}/chat/completions", headers=headers, json=payload) as resp:
+        async with client.stream(
+            "POST", f"{self.base_url}/chat/completions", headers=headers, json=payload
+        ) as resp:
             if resp.status_code != 200:
                 err_text = await resp.aread()
-                raise normalize_http_error(resp.status_code, err_text.decode("utf-8", errors="ignore"), self.name)
+                raise normalize_http_error(
+                    resp.status_code, err_text.decode("utf-8", errors="ignore"), self.name
+                )
 
             async for line in resp.aiter_lines():
                 if not line or not line.strip():
@@ -202,7 +223,9 @@ class OpenAIProvider(BaseProvider):
                     except json.JSONDecodeError:
                         continue
 
-    async def embeddings(self, texts: list[str], model: str = "text-embedding-3-small") -> list[list[float]]:
+    async def embeddings(
+        self, texts: list[str], model: str = "text-embedding-3-small"
+    ) -> list[list[float]]:
         headers = self._get_headers()
         client = self._get_client()
         resp = await client.post(

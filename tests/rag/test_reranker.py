@@ -2,7 +2,6 @@
 Tests for Multi-Factor Heuristic Re-Ranker
 """
 
-import pytest
 from packages.rag.models import DocumentChunk, SearchResult
 from packages.rag.reranker import HeuristicReRanker
 

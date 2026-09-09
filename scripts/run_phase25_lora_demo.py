@@ -12,6 +12,7 @@ Demonstrates:
 import sys
 import time
 from pathlib import Path
+
 import torch
 
 # Ensure repository root is on sys.path
@@ -22,14 +23,13 @@ if str(repo_root) not in sys.path:
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
 
-from packages.models.modern_config import ModernTransformerConfig
-from packages.models.modern_transformer import ModernTransformerLM
 from packages.models.lora import (
     apply_lora,
     get_lora_parameter_summary,
     merge_lora_weights,
-    unmerge_lora_weights,
 )
+from packages.models.modern_config import ModernTransformerConfig
+from packages.models.modern_transformer import ModernTransformerLM
 from packages.training.lora_trainer import LoRATrainer
 
 
@@ -53,7 +53,7 @@ def demo_lora_parameter_efficiency() -> None:
     base_model = ModernTransformerLM(cfg)
     base_params = sum(p.numel() for p in base_model.parameters())
 
-    print(f"Base Transformer Configuration:")
+    print("Base Transformer Configuration:")
     print(f"  - Layers: {cfg.n_layers} | d_model: {cfg.d_model} | Heads: {cfg.n_heads}")
     print(f"  - Full Parameters: {base_params:,}")
 
@@ -66,7 +66,9 @@ def demo_lora_parameter_efficiency() -> None:
     reduction = base_params / max(summary["trainable_parameters"], 1)
 
     print(f"\nAfter Applying LoRA (r={rank}, alpha={alpha}):")
-    print(f"  - Trainable Parameters: {summary['trainable_parameters']:,} ({summary['trainable_percentage']}%)")
+    print(
+        f"  - Trainable Parameters: {summary['trainable_parameters']:,} ({summary['trainable_percentage']}%)"
+    )
     print(f"  - Frozen Parameters:    {summary['frozen_parameters']:,}")
     print(f"  - Parameter Reduction:  {reduction:.1f}x fewer trainable weights!")
 
@@ -123,7 +125,9 @@ def demo_lora_zero_overhead_merge() -> None:
     print(f"Pre-Merge Output Logits (Slice):  {out_unmerged[0, 0, :5].tolist()}")
     print(f"Post-Merge Output Logits (Slice): {out_merged[0, 0, :5].tolist()}")
     print(f"Max Absolute Discrepancy:         {max_diff:.8e}")
-    print(f"Mathematical Equivalence:         {'SUCCESS (Zero Divergence)' if max_diff < 1e-5 else 'FAILED'}")
+    print(
+        f"Mathematical Equivalence:         {'SUCCESS (Zero Divergence)' if max_diff < 1e-5 else 'FAILED'}"
+    )
 
 
 if __name__ == "__main__":

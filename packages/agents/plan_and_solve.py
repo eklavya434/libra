@@ -10,7 +10,8 @@ Implements a two-stage deliberate agent:
 from __future__ import annotations
 
 import time
-from typing import Any, List, Optional
+from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 from packages.agents.base import AgentStatus, AgentStep, AgentTrajectory, BaseAgent
@@ -25,7 +26,9 @@ class ExecutionPlan(BaseModel):
     """Structured plan composed of discrete sequential tasks."""
 
     problem_summary: str = Field(..., description="Brief restatement of the problem")
-    steps: List[str] = Field(..., min_length=1, description="Sequential steps required to solve the problem")
+    steps: List[str] = Field(
+        ..., min_length=1, description="Sequential steps required to solve the problem"
+    )
 
 
 class PlanAndSolveAgent(BaseAgent):
@@ -104,9 +107,11 @@ class PlanAndSolveAgent(BaseAgent):
 
             m_start = time.perf_counter()
             milestone_prompt = (
-                f"You are executing milestone {idx-1} of {len(plan.steps)}: '{milestone}'.\n"
+                f"You are executing milestone {idx - 1} of {len(plan.steps)}: '{milestone}'.\n"
                 f"Original Goal: '{prompt}'\n"
-                f"Prior Findings:\n" + ("\n".join(context_notes) if context_notes else "None") + "\n\n"
+                f"Prior Findings:\n"
+                + ("\n".join(context_notes) if context_notes else "None")
+                + "\n\n"
                 "If you need a tool, emit a <tool_call> block. Otherwise, summarize your finding for this step."
             )
 
@@ -117,7 +122,11 @@ class PlanAndSolveAgent(BaseAgent):
                         model=self.model_id,
                         temperature=self.temperature,
                     )
-                    raw_out = res["choices"][0]["message"]["content"] if isinstance(res, dict) else str(res)
+                    raw_out = (
+                        res["choices"][0]["message"]["content"]
+                        if isinstance(res, dict)
+                        else str(res)
+                    )
                 else:
                     raw_out = f"Completed milestone: {milestone}"
             except Exception as e:
@@ -165,11 +174,15 @@ class PlanAndSolveAgent(BaseAgent):
                     model=self.model_id,
                     temperature=self.temperature,
                 )
-                final_answer = synth_res["choices"][0]["message"]["content"] if isinstance(synth_res, dict) else str(synth_res)
+                final_answer = (
+                    synth_res["choices"][0]["message"]["content"]
+                    if isinstance(synth_res, dict)
+                    else str(synth_res)
+                )
             else:
                 final_answer = "\n".join(context_notes)
-        except Exception as ex:
-            final_answer = f"Completed plan execution:\n" + "\n".join(context_notes)
+        except Exception:
+            final_answer = "Completed plan execution:\n" + "\n".join(context_notes)
 
         final_step = AgentStep(
             step_number=len(agent_steps) + 1,

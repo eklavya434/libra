@@ -1,4 +1,4 @@
-﻿"""
+"""
 Libra Phase 8 - Local Inference & Provider Router Demonstration
 
 Demonstrates:
@@ -39,12 +39,16 @@ async def main() -> None:
     for p_name in providers:
         p = router.get_provider(p_name)
         h = await p.health()
-        status_icon = "🟢 ONLINE" if h.get("status") == "online" else ("🟡 DISABLED (GPU-only)" if p_name == "vllm" else "🔴 OFFLINE")
+        status_icon = (
+            "🟢 ONLINE"
+            if h.get("status") == "online"
+            else ("🟡 DISABLED (GPU-only)" if p_name == "vllm" else "🔴 OFFLINE")
+        )
         print(f"   • [{p_name:<13}] -> {status_icon}")
         if p_name == "ollama" and h.get("status") == "offline":
             print(f"     Note: {h.get('guidance')}")
         elif p_name == "vllm":
-            print(f"     Status: Documented for future GPU hardware (CPU setup bypassed)")
+            print("     Status: Documented for future GPU hardware (CPU setup bypassed)")
 
     # 2. Prompt Templating Demonstration
     print("\n" + "-" * 85)
@@ -66,9 +70,7 @@ async def main() -> None:
     print("-" * 85)
 
     lab_provider = router.get_provider("libra_lab")
-    messages = [
-        {"role": "user", "content": "Gravity is the fundamental force that"}
-    ]
+    messages = [{"role": "user", "content": "Gravity is the fundamental force that"}]
 
     start_t = time.perf_counter()
     response = await lab_provider.chat(
@@ -81,18 +83,20 @@ async def main() -> None:
     elapsed = time.perf_counter() - start_t
 
     content = response["choices"][0]["message"]["content"]
-    print(f"User Prompt: 'Gravity is the fundamental force that'")
-    print(f"Model Generated:\n\"{content}\"")
-    print(f"\n[Generation Telemetry]")
+    print("User Prompt: 'Gravity is the fundamental force that'")
+    print(f'Model Generated:\n"{content}"')
+    print("\n[Generation Telemetry]")
     print(f"• Tokens Generated: {response['usage']['completion_tokens']}")
     print(f"• Latency:          {elapsed:.3f}s")
-    print(f"• Throughput:       {response['usage']['completion_tokens'] / max(0.001, elapsed):.1f} tok/s on CPU")
+    print(
+        f"• Throughput:       {response['usage']['completion_tokens'] / max(0.001, elapsed):.1f} tok/s on CPU"
+    )
 
     # 4. Real-time Streaming Simulation
     print("\n" + "-" * 85)
     print("4. Real-time Token Streaming Demonstration (Local Model):")
     print("-" * 85)
-    sys.stdout.write("Streaming response: \"")
+    sys.stdout.write('Streaming response: "')
     sys.stdout.flush()
 
     async for token in lab_provider.stream(
@@ -104,7 +108,7 @@ async def main() -> None:
         sys.stdout.flush()
         await asyncio.sleep(0.02)  # Smooth terminal typewriter effect
 
-    sys.stdout.write("\"\n")
+    sys.stdout.write('"\n')
     print("\n" + "=" * 85)
     print("Phase 8 Inference Verification: SUCCESS (Local runtime active & responsive!)")
     print("=" * 85)

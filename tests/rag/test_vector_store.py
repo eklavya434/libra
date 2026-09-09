@@ -3,6 +3,7 @@ Tests for In-Memory Vector Store (packages/rag/vector_store.py)
 """
 
 import pytest
+
 from packages.rag.chunking import RecursiveCharacterChunker
 from packages.rag.embeddings import EducationalDenseEmbedder
 from packages.rag.vector_store import InMemoryVectorStore

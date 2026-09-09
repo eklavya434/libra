@@ -3,7 +3,9 @@ Tests for Dense Embedding Providers (packages/rag/embeddings.py)
 """
 
 import math
+
 import numpy as np
+
 from packages.rag.embeddings import EducationalDenseEmbedder, OllamaEmbeddingProvider
 
 

@@ -7,26 +7,23 @@ Runs a live demonstration on consumer CPU:
 4. Live Needle-In-A-Haystack retrieval benchmark across document depths
 """
 
-import sys
-import os
-import time
 import math
+import os
+import sys
+import time
+
 import torch
 
 # Ensure repository root is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from packages.evaluation.needle_haystack import NeedleInHaystackEvaluator
 from packages.models.components.rope_scaling import (
-    ScalingType,
     compute_base_freqs,
-    compute_freqs_dynamic_ntk,
-    compute_freqs_linear,
     compute_freqs_yarn,
-    ScaledRotaryEmbedding,
 )
 from packages.models.modern_config import ModernTransformerConfig
 from packages.models.modern_transformer import ModernTransformerLM
-from packages.evaluation.needle_haystack import NeedleInHaystackEvaluator
 
 
 def print_banner(text: str) -> None:
@@ -52,7 +49,9 @@ def demo_frequency_analysis():
     print(f"Extended Target Context  : {target_seq_len} tokens (Scale s = {scale:.1f}x)")
     print(f"YaRN Attention Temp Scale: {yarn_attn_scale:.4f} (Prevents attention entropy loss)")
     print("-" * 75)
-    print(f"{'Dim':<6} | {'Base Freq':<14} | {'Wavelength (Base)':<20} | {'YaRN Ratio r_i':<16} | {'Band'}")
+    print(
+        f"{'Dim':<6} | {'Base Freq':<14} | {'Wavelength (Base)':<20} | {'YaRN Ratio r_i':<16} | {'Band'}"
+    )
     print("-" * 75)
 
     for i in range(len(base_freqs)):
@@ -65,7 +64,7 @@ def demo_frequency_analysis():
             band = "Low-Freq (Interpolate)"
         else:
             band = "Mid-Freq (Ramp Blend)"
-        print(f"{i*2:<6} | {freq:<14.6f} | {wavelength:<20.2f} | {ratio:<16.3f} | {band}")
+        print(f"{i * 2:<6} | {freq:<14.6f} | {wavelength:<20.2f} | {ratio:<16.3f} | {band}")
 
 
 def demo_transformer_long_context():
@@ -85,7 +84,9 @@ def demo_transformer_long_context():
         rope_scale=4.0,
     )
 
-    print(f"Instantiating ModernTransformerLM (Trained on {orig_train_len} tok, Evaluated on {extended_test_len} tok)...")
+    print(
+        f"Instantiating ModernTransformerLM (Trained on {orig_train_len} tok, Evaluated on {extended_test_len} tok)..."
+    )
     model = ModernTransformerLM(config)
 
     input_ids = torch.randint(0, 256, (1, extended_test_len))
@@ -119,9 +120,13 @@ def demo_needle_in_haystack():
         return "I could not find the clearance code."
 
     print(f"Needle: '{needle}' (Target Key: '{key}')")
-    print(f"Testing {len(context_lengths)} lengths x {len(depths)} depths = {len(context_lengths) * len(depths)} total trials...\n")
+    print(
+        f"Testing {len(context_lengths)} lengths x {len(depths)} depths = {len(context_lengths) * len(depths)} total trials...\n"
+    )
 
-    print(f"{'Context Length':<16} | {'Depth %':<10} | {'Result':<10} | {'Latency':<12} | {'Retrieved Answer'}")
+    print(
+        f"{'Context Length':<16} | {'Depth %':<10} | {'Result':<10} | {'Latency':<12} | {'Retrieved Answer'}"
+    )
     print("-" * 75)
 
     results = evaluator.run_grid(
@@ -132,7 +137,9 @@ def demo_needle_in_haystack():
 
     for r in results:
         status = "PASSED" if r.is_correct else "FAILED"
-        print(f"{r.context_length:<16} | {r.depth_percent:<10.1f} | {status:<10} | {r.latency_ms:<8.2f} ms | {r.retrieved_text}")
+        print(
+            f"{r.context_length:<16} | {r.depth_percent:<10.1f} | {status:<10} | {r.latency_ms:<8.2f} ms | {r.retrieved_text}"
+        )
 
     accuracy = (sum(1 for r in results if r.is_correct) / len(results)) * 100.0
     print("-" * 75)

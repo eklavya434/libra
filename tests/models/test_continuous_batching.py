@@ -2,12 +2,9 @@
 Unit Tests for Phase 31: Continuous (Iteration-Level) Batching Engine
 """
 
-import pytest
-
 from packages.models.components.paged_cache import PagedKVCache
 from packages.models.inference.continuous_batching import (
     ContinuousBatchingEngine,
-    SequenceRequest,
     SequenceStatus,
 )
 
@@ -23,8 +20,12 @@ def test_continuous_batching_interleaved_lifecycle():
     engine = ContinuousBatchingEngine(paged_cache=cache)
 
     # Add two requests with different lengths
-    req1 = engine.add_request("req-1", prompt="Short prompt", prompt_token_ids=[1, 2], max_new_tokens=3)
-    req2 = engine.add_request("req-2", prompt="Long prompt example", prompt_token_ids=[1, 2, 3, 4], max_new_tokens=6)
+    req1 = engine.add_request(
+        "req-1", prompt="Short prompt", prompt_token_ids=[1, 2], max_new_tokens=3
+    )
+    req2 = engine.add_request(
+        "req-2", prompt="Long prompt example", prompt_token_ids=[1, 2, 3, 4], max_new_tokens=6
+    )
 
     assert len(engine.waiting_queue) == 2
     assert len(engine.running_batch) == 0

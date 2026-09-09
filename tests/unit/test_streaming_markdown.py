@@ -2,16 +2,15 @@
 Tests for Streaming Markdown & Code Fence Extraction Logic
 """
 
-import re
-import pytest
-
 
 def parse_think_block(content: str) -> tuple[str | None, str, bool]:
     """Simulates StreamingMarkdown think block extraction."""
     if not content.startswith("<think>"):
         return None, content, False
 
-    think_end = content.indexOf("</think>") if hasattr(content, "indexOf") else content.find("</think>")
+    think_end = (
+        content.indexOf("</think>") if hasattr(content, "indexOf") else content.find("</think>")
+    )
     if think_end != -1:
         think = content[7:think_end].strip()
         body = content[think_end + 8 :].strip()
@@ -40,12 +39,14 @@ def extract_code_segments(text: str) -> list[dict]:
                 current_lang = line.strip()[3:].strip() or "text"
                 current_code = []
             else:
-                segments.append({
-                    "type": "code",
-                    "language": current_lang,
-                    "code": "\n".join(current_code),
-                    "is_complete": True,
-                })
+                segments.append(
+                    {
+                        "type": "code",
+                        "language": current_lang,
+                        "code": "\n".join(current_code),
+                        "is_complete": True,
+                    }
+                )
                 in_code = False
                 current_lang = ""
                 current_code = []
@@ -56,12 +57,14 @@ def extract_code_segments(text: str) -> list[dict]:
                 current_md.append(line)
 
     if in_code:
-        segments.append({
-            "type": "code",
-            "language": current_lang,
-            "code": "\n".join(current_code),
-            "is_complete": False,
-        })
+        segments.append(
+            {
+                "type": "code",
+                "language": current_lang,
+                "code": "\n".join(current_code),
+                "is_complete": False,
+            }
+        )
     elif current_md:
         segments.append({"type": "markdown", "content": "\n".join(current_md)})
 

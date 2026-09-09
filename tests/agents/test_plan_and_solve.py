@@ -3,7 +3,8 @@ Tests for PlanAndSolveAgent (packages/agents/plan_and_solve.py)
 """
 
 import pytest
-from packages.agents import AgentStatus, ExecutionPlan, PlanAndSolveAgent
+
+from packages.agents import AgentStatus, PlanAndSolveAgent
 from packages.providers.base import BaseProvider, ModelMetadata
 from packages.providers.router import ProviderRouter
 from packages.tools.builtin import CalculatorTool
@@ -48,7 +49,7 @@ class PlanSolveMockProvider(BaseProvider):
                     {
                         "message": {
                             "content": (
-                                'Thought: Calculating 3^2 + 4^2 = 9 + 16 = 25.\n'
+                                "Thought: Calculating 3^2 + 4^2 = 9 + 16 = 25.\n"
                                 '<tool_call>{"name": "calculator", "arguments": {"expression": "3**2 + 4**2"}}</tool_call>'
                             )
                         }
@@ -62,7 +63,7 @@ class PlanSolveMockProvider(BaseProvider):
                     {
                         "message": {
                             "content": (
-                                'Thought: Taking sqrt of 25.\n'
+                                "Thought: Taking sqrt of 25.\n"
                                 '<tool_call>{"name": "calculator", "arguments": {"expression": "sqrt(25)"}}</tool_call>'
                             )
                         }

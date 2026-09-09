@@ -4,13 +4,13 @@ Demonstrates all 11 model providers, cost calculations, and fallback routing.
 """
 
 import asyncio
+
 from packages.providers import (
-    ProviderRouter,
-    get_router,
-    calculate_cost,
-    get_model_pricing,
     MockProvider,
+    calculate_cost,
+    get_router,
 )
+
 
 async def main():
     print("=" * 60)
@@ -23,7 +23,9 @@ async def main():
         health = await prov.health()
         caps = prov.capabilities()
         status = health.get("status", "unknown")
-        print(f"  * {name:<16} | Status: {status:<12} | Vision: {str(caps.get('supports_vision', False)):<5} | Stream: {str(caps.get('supports_streaming', False)):<5}")
+        print(
+            f"  * {name:<16} | Status: {status:<12} | Vision: {str(caps.get('supports_vision', False)):<5} | Stream: {str(caps.get('supports_streaming', False)):<5}"
+        )
 
     print("\n[+] Token Economics & Cost Calculation:")
     sample_queries = [
@@ -36,11 +38,19 @@ async def main():
 
     for model, p_tok, c_tok in sample_queries:
         res = calculate_cost(model, p_tok, c_tok)
-        cost_str = "$0.000000 (Zero-Cost Local)" if res["is_free"] else f"${res['total_cost_usd']:.6f} USD"
+        cost_str = (
+            "$0.000000 (Zero-Cost Local)" if res["is_free"] else f"${res['total_cost_usd']:.6f} USD"
+        )
         print(f"  * Model: {model:<26} | Tokens: {res['total_tokens']:^6} | Cost: {cost_str}")
 
     print("\n[+] Dynamic Provider Resolution & Zero-Cost Routing:")
-    test_models = ["gpt-4o", "gemini-1.5-flash", "claude-3-5-sonnet", "hf/gpt2", "unknown-custom-model"]
+    test_models = [
+        "gpt-4o",
+        "gemini-1.5-flash",
+        "claude-3-5-sonnet",
+        "hf/gpt2",
+        "unknown-custom-model",
+    ]
     for m in test_models:
         resolved = await router.resolve_provider_for_model(m)
         print(f"  * Target: {m:<22} -> Routed Provider: {resolved.name}")
@@ -54,6 +64,6 @@ async def main():
     print("  PHASE 9 VERIFICATION COMPLETE - ALL PROVIDERS OPERATIONAL")
     print("=" * 60)
 
+
 if __name__ == "__main__":
     asyncio.run(main())
-

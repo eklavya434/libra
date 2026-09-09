@@ -7,8 +7,6 @@ Interleaves Thought -> Action -> Observation cycles until task completion or bud
 
 from __future__ import annotations
 
-import asyncio
-import re
 import time
 from collections.abc import AsyncIterator
 from typing import Any, Optional
@@ -37,7 +35,9 @@ class ReActAgent(BaseAgent):
         max_tool_failures: int = 3,
         temperature: float = 0.0,
     ) -> None:
-        super().__init__(max_steps=max_steps, timeout_sec=timeout_sec, max_tool_failures=max_tool_failures)
+        super().__init__(
+            max_steps=max_steps, timeout_sec=timeout_sec, max_tool_failures=max_tool_failures
+        )
         self.model_id = model_id
         self.provider_name = provider_name
         self.router = router or get_router()
@@ -134,7 +134,11 @@ class ReActAgent(BaseAgent):
                         model=self.model_id,
                         temperature=self.temperature,
                     )
-                    raw_output = res["choices"][0]["message"]["content"] if isinstance(res, dict) else str(res)
+                    raw_output = (
+                        res["choices"][0]["message"]["content"]
+                        if isinstance(res, dict)
+                        else str(res)
+                    )
                 elif hasattr(provider, "complete"):
                     res = await provider.complete(
                         messages=messages,
@@ -188,10 +192,20 @@ class ReActAgent(BaseAgent):
 
             if tool_calls:
                 call = tool_calls[0]
-                thought = ToolCallParser.strip_tool_calls(raw_output).replace("Thought:", "").replace("Action:", "").strip()
+                thought = (
+                    ToolCallParser.strip_tool_calls(raw_output)
+                    .replace("Thought:", "")
+                    .replace("Action:", "")
+                    .strip()
+                )
 
                 yield {"type": "thought", "step": step_idx, "content": thought}
-                yield {"type": "action", "step": step_idx, "tool": call.name, "arguments": call.arguments}
+                yield {
+                    "type": "action",
+                    "step": step_idx,
+                    "tool": call.name,
+                    "arguments": call.arguments,
+                }
 
                 # Execute tool via Registry
                 tool_res = await self.registry.execute_tool_async(call.name, call.arguments)

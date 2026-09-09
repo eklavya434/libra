@@ -11,7 +11,6 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter
-from typing import Optional
 
 from packages.rag.models import DocumentChunk, SearchResult
 
@@ -96,9 +95,7 @@ class BM25Index:
 
     def remove_document(self, doc_id: str) -> int:
         """Removes all chunks belonging to a parent document ID."""
-        chunk_ids_to_remove = [
-            cid for cid, chunk in self.chunks.items() if chunk.doc_id == doc_id
-        ]
+        chunk_ids_to_remove = [cid for cid, chunk in self.chunks.items() if chunk.doc_id == doc_id]
         for cid in chunk_ids_to_remove:
             self._remove_chunk(cid)
 
@@ -195,8 +192,10 @@ class BM25Index:
                 term_idf = self.idf(term)
 
                 # Okapi BM25 term weighting
-                tf_norm = f * (self.k1 + 1.0) / (
-                    f + self.k1 * (1.0 - self.b + self.b * (chunk_len / avgdl))
+                tf_norm = (
+                    f
+                    * (self.k1 + 1.0)
+                    / (f + self.k1 * (1.0 - self.b + self.b * (chunk_len / avgdl)))
                 )
                 doc_score += term_idf * tf_norm
 

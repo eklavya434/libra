@@ -13,7 +13,9 @@ from typing import Any, Optional
 class LibraProviderError(Exception):
     """Base exception for all model provider failures."""
 
-    def __init__(self, message: str, provider: str, status_code: Optional[int] = None, details: Any = None):
+    def __init__(
+        self, message: str, provider: str, status_code: Optional[int] = None, details: Any = None
+    ):
         super().__init__(message)
         self.message = message
         self.provider = provider
@@ -31,7 +33,6 @@ class LibraProviderError(Exception):
 
 
 ProviderError = LibraProviderError
-
 
 
 class ProviderAuthenticationError(LibraProviderError):

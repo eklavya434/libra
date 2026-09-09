@@ -4,6 +4,7 @@ Tests for ConstrainedLogitsProcessor (packages/core/grammar/logits_processor.py)
 
 import pytest
 import torch
+
 from packages.core.grammar.logits_processor import ConstrainedLogitsProcessor
 
 
@@ -11,14 +12,14 @@ from packages.core.grammar.logits_processor import ConstrainedLogitsProcessor
 def mock_vocab():
     # Miniature test vocabulary
     vocab = [
-        "<eos>",      # 0
-        " ",          # 1
-        "{",          # 2
-        "}",          # 3
-        '"',          # 4
-        "key",        # 5
-        ":",          # 6
-        "100",        # 7
+        "<eos>",  # 0
+        " ",  # 1
+        "{",  # 2
+        "}",  # 3
+        '"',  # 4
+        "key",  # 5
+        ":",  # 6
+        "100",  # 7
         "bad_token",  # 8
     ]
     decode_fn = lambda ids: "".join(vocab[i] for i in ids)

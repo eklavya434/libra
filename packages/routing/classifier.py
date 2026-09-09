@@ -197,7 +197,12 @@ class QueryClassifier:
             return IntentType.CODE_GENERATION, "software_engineering", 0.88
 
         # 3. Mathematical & Scientific Reasoning
-        math_terms = len(re.findall(r"\b(prove|proof|derive|derivation|calculate|integral|derivative|theorem|lemma|gradient|loss|softmax|matrix|eigen|probability)\b", p_clean))
+        math_terms = len(
+            re.findall(
+                r"\b(prove|proof|derive|derivation|calculate|integral|derivative|theorem|lemma|gradient|loss|softmax|matrix|eigen|probability)\b",
+                p_clean,
+            )
+        )
         has_math = has_math or (math_terms >= 2)
         if has_math:
             return IntentType.REASONING_MATH, "mathematics_and_logic", 0.85

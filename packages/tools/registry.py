@@ -92,9 +92,7 @@ class ToolRegistry:
 
         return tool.execute(**parsed_args)
 
-    async def execute_tool_async(
-        self, name: str, arguments: dict[str, Any] | str
-    ) -> ToolResult:
+    async def execute_tool_async(self, name: str, arguments: dict[str, Any] | str) -> ToolResult:
         """
         Executes a registered tool asynchronously.
         """

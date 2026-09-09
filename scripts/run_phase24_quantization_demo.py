@@ -12,6 +12,7 @@ Demonstrates:
 import sys
 import time
 from pathlib import Path
+
 import torch
 
 # Ensure repository root is on sys.path
@@ -32,8 +33,8 @@ from packages.models.quantization import (
     dequantize_symmetric,
     pack_int4,
     quantize_asymmetric,
-    quantize_symmetric,
     quantize_model,
+    quantize_symmetric,
     unpack_int4,
 )
 
@@ -68,11 +69,19 @@ def demo_tensor_quantization() -> None:
     x_rec_asym = dequantize_asymmetric(x_q_asym, scale_asym, zp)
     m_asym = compute_quantization_metrics(x_asym, x_rec_asym)
 
-    print(f"{'Quantization Scheme':<28} | {'Bits':<5} | {'Packed Shape':<14} | {'SQNR (dB)':<10} | {'Cosine Sim':<10}")
+    print(
+        f"{'Quantization Scheme':<28} | {'Bits':<5} | {'Packed Shape':<14} | {'SQNR (dB)':<10} | {'Cosine Sim':<10}"
+    )
     print("-" * 75)
-    print(f"{'Symmetric INT8':<28} | 8-bit | {str(tuple(x_q8.shape)):<14} | {m8['sqnr_db']:<10.2f} | {m8['cosine_similarity']:<10.6f}")
-    print(f"{'Symmetric INT4 (Packed)':<28} | 4-bit | {str(tuple(packed.shape)):<14} | {m4['sqnr_db']:<10.2f} | {m4['cosine_similarity']:<10.6f}")
-    print(f"{'Asymmetric INT8':<28} | 8-bit | {str(tuple(x_q_asym.shape)):<14} | {m_asym['sqnr_db']:<10.2f} | {m_asym['cosine_similarity']:<10.6f}")
+    print(
+        f"{'Symmetric INT8':<28} | 8-bit | {str(tuple(x_q8.shape)):<14} | {m8['sqnr_db']:<10.2f} | {m8['cosine_similarity']:<10.6f}"
+    )
+    print(
+        f"{'Symmetric INT4 (Packed)':<28} | 4-bit | {str(tuple(packed.shape)):<14} | {m4['sqnr_db']:<10.2f} | {m4['cosine_similarity']:<10.6f}"
+    )
+    print(
+        f"{'Asymmetric INT8':<28} | 8-bit | {str(tuple(x_q_asym.shape)):<14} | {m_asym['sqnr_db']:<10.2f} | {m_asym['cosine_similarity']:<10.6f}"
+    )
 
 
 def demo_model_quantization() -> None:
@@ -118,11 +127,19 @@ def demo_model_quantization() -> None:
         _ = q4_model(sample_input)
     q4_lat = (time.perf_counter() - t0) * 1000
 
-    print(f"{'Precision Tier':<16} | {'Memory (MB)':<12} | {'Savings':<10} | {'Cosine Sim':<11} | {'Top-1 Match':<11} | {'Latency':<9}")
+    print(
+        f"{'Precision Tier':<16} | {'Memory (MB)':<12} | {'Savings':<10} | {'Cosine Sim':<11} | {'Top-1 Match':<11} | {'Latency':<9}"
+    )
     print("-" * 80)
-    print(f"{'FP32 Baseline':<16} | {fp32_mem['total_mb']:<12.3f} | {'Baseline':<10} | {'1.000000':<11} | {'100.0%':<11} | {fp32_lat:<6.2f} ms")
-    print(f"{'INT8 Quantized':<16} | {q8_mem['total_mb']:<12.3f} | {audit8['memory']['savings_pct']:<10} | {audit8['fidelity']['cosine_similarity']:<11.6f} | {audit8['fidelity']['top1_agreement_pct']:<10.1f}% | {q8_lat:<6.2f} ms")
-    print(f"{'INT4 Quantized':<16} | {q4_mem['total_mb']:<12.3f} | {audit4['memory']['savings_pct']:<10} | {audit4['fidelity']['cosine_similarity']:<11.6f} | {audit4['fidelity']['top1_agreement_pct']:<10.1f}% | {q4_lat:<6.2f} ms")
+    print(
+        f"{'FP32 Baseline':<16} | {fp32_mem['total_mb']:<12.3f} | {'Baseline':<10} | {'1.000000':<11} | {'100.0%':<11} | {fp32_lat:<6.2f} ms"
+    )
+    print(
+        f"{'INT8 Quantized':<16} | {q8_mem['total_mb']:<12.3f} | {audit8['memory']['savings_pct']:<10} | {audit8['fidelity']['cosine_similarity']:<11.6f} | {audit8['fidelity']['top1_agreement_pct']:<10.1f}% | {q8_lat:<6.2f} ms"
+    )
+    print(
+        f"{'INT4 Quantized':<16} | {q4_mem['total_mb']:<12.3f} | {audit4['memory']['savings_pct']:<10} | {audit4['fidelity']['cosine_similarity']:<11.6f} | {audit4['fidelity']['top1_agreement_pct']:<10.1f}% | {q4_lat:<6.2f} ms"
+    )
 
 
 if __name__ == "__main__":

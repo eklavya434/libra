@@ -8,6 +8,7 @@ and validating raw generation outputs against JSON Schemas.
 from __future__ import annotations
 
 from typing import Any, Optional
+
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
@@ -44,7 +45,9 @@ class ValidateStructuredResponse(BaseModel):
     parsed_data: Optional[Any] = None
 
 
-@router.post("/generate", response_model=StructuredResult[Any], summary="Generate schema-constrained output")
+@router.post(
+    "/generate", response_model=StructuredResult[Any], summary="Generate schema-constrained output"
+)
 async def generate_structured(request: StructuredGenerateRequest) -> StructuredResult[Any]:
     """Generate structured response guaranteed to parse against schema_dict with self-healing fallback."""
     generator = StructuredOutputGenerator()
@@ -60,7 +63,11 @@ async def generate_structured(request: StructuredGenerateRequest) -> StructuredR
     return result
 
 
-@router.post("/validate", response_model=ValidateStructuredResponse, summary="Validate text against JSON schema")
+@router.post(
+    "/validate",
+    response_model=ValidateStructuredResponse,
+    summary="Validate text against JSON schema",
+)
 async def validate_structured(request: ValidateStructuredRequest) -> ValidateStructuredResponse:
     """Check whether a text string satisfies a target JSON schema."""
     constraint = SchemaCompiler.compile(request.schema_dict)

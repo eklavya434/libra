@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import math
 from enum import Enum
+
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -78,8 +79,8 @@ class VisionLanguageAdapter(nn.Module):
 
         # Cross-attention Perceiver Resampler
         q = self.latents.expand(B, -1, -1)  # (B, num_latents, llm_dim)
-        k = self.k_proj(visual_features)     # (B, N, llm_dim)
-        v = self.v_proj(visual_features)     # (B, N, llm_dim)
+        k = self.k_proj(visual_features)  # (B, N, llm_dim)
+        v = self.v_proj(visual_features)  # (B, N, llm_dim)
 
         scale = 1.0 / math.sqrt(self.llm_dim)
         scores = torch.bmm(q, k.transpose(1, 2)) * scale  # (B, num_latents, N)

@@ -4,7 +4,6 @@ Tests for Builtin Tools (packages/tools/builtin.py)
 Validates CalculatorTool, PythonInterpreterTool, WebSearchTool, and KnowledgeBaseTool.
 """
 
-import pytest
 import packages.rag.web_search as web_search_module
 from packages.rag.hybrid import get_hybrid_retriever
 from packages.rag.web_search import MockSearchProvider

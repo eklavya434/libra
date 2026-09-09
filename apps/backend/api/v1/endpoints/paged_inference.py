@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import time
 from typing import Any
+
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
@@ -71,7 +72,9 @@ class BatchRunResponse(BaseModel):
 async def simulate_memory_savings(req: SimulationRequest) -> SimulationResponse:
     """Simulates memory footprint and fragmentation comparing standard contiguous vs PagedAttention."""
     bytes_per_element = 4  # FP32
-    kv_state_bytes_per_token = req.num_layers * req.num_kv_heads * req.head_dim * 2 * bytes_per_element
+    kv_state_bytes_per_token = (
+        req.num_layers * req.num_kv_heads * req.head_dim * 2 * bytes_per_element
+    )
 
     # In contiguous allocation, every sequence reserves (avg_prompt + max_output) tokens upfront
     max_tokens_per_seq = req.avg_prompt_tokens + req.max_output_tokens
@@ -80,15 +83,17 @@ async def simulate_memory_savings(req: SimulationRequest) -> SimulationResponse:
     # Real tokens actually used if sequence generates on average 50% of max_output_tokens
     actual_tokens_used = req.batch_size * (req.avg_prompt_tokens + (req.max_output_tokens // 2))
     contiguous_used_bytes = actual_tokens_used * kv_state_bytes_per_token
-    contiguous_waste_percent = ((contiguous_bytes - contiguous_used_bytes) / contiguous_bytes) * 100.0
+    contiguous_waste_percent = (
+        (contiguous_bytes - contiguous_used_bytes) / contiguous_bytes
+    ) * 100.0
 
     # In PagedAttention, memory is allocated in blocks of size B dynamically
     # Average internal fragmentation per sequence is at most (block_size / 2) tokens
-    tokens_per_seq_paged = (req.avg_prompt_tokens + (req.max_output_tokens // 2))
+    tokens_per_seq_paged = req.avg_prompt_tokens + (req.max_output_tokens // 2)
     blocks_per_seq = (tokens_per_seq_paged + req.block_size - 1) // req.block_size
     allocated_tokens_paged = req.batch_size * blocks_per_seq * req.block_size
     paged_bytes = allocated_tokens_paged * kv_state_bytes_per_token
-    internal_frag_tokens = (allocated_tokens_paged - actual_tokens_used)
+    internal_frag_tokens = allocated_tokens_paged - actual_tokens_used
     paged_frag_percent = (internal_frag_tokens / allocated_tokens_paged) * 100.0
 
     savings_percent = ((contiguous_bytes - paged_bytes) / contiguous_bytes) * 100.0
@@ -123,7 +128,7 @@ async def run_continuous_batch(req: BatchRunRequest) -> BatchRunResponse:
     for idx, prompt_text in enumerate(req.prompts):
         tokens = [hash(w) % 1000 for w in prompt_text.split()] or [1, 2, 3]
         engine.add_request(
-            request_id=f"req-{idx+1}",
+            request_id=f"req-{idx + 1}",
             prompt=prompt_text,
             prompt_token_ids=tokens,
             max_new_tokens=req.max_tokens,

@@ -106,16 +106,12 @@ class HybridRetriever:
                 query=query, top_k=pool_size, min_score=min_score
             )
         elif mode == "bm25":
-            candidates = self.bm25_index.search(
-                query=query, top_k=pool_size, min_score=min_score
-            )
+            candidates = self.bm25_index.search(query=query, top_k=pool_size, min_score=min_score)
         else:  # hybrid
             dense_candidates = self.vector_store.similarity_search(
                 query=query, top_k=pool_size, min_score=-1.0
             )
-            bm25_candidates = self.bm25_index.search(
-                query=query, top_k=pool_size, min_score=0.0
-            )
+            bm25_candidates = self.bm25_index.search(query=query, top_k=pool_size, min_score=0.0)
 
             if not dense_candidates and not bm25_candidates:
                 return []
@@ -139,15 +135,11 @@ class HybridRetriever:
 
         # Optional Stage 2: Re-ranking
         if use_reranking and self.reranker is not None:
-            candidates = self.reranker.rerank(
-                query=query, results=candidates, top_k=pool_size
-            )
+            candidates = self.reranker.rerank(query=query, results=candidates, top_k=pool_size)
 
         # Optional Stage 3: Deduplication
         if use_deduplication and self.deduplicator is not None:
-            candidates = self.deduplicator.deduplicate(
-                results=candidates, top_k=top_k
-            )
+            candidates = self.deduplicator.deduplicate(results=candidates, top_k=top_k)
         else:
             candidates = candidates[:top_k]
 

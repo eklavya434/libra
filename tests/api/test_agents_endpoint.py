@@ -2,11 +2,11 @@
 Tests for Autonomous Agent Endpoints (apps/backend/api/v1/endpoints/agents.py)
 """
 
-import json
 import pytest
 from fastapi.testclient import TestClient
+
 from apps.backend.main import app
-from packages.providers.base import BaseProvider, ModelMetadata
+from packages.providers.base import BaseProvider
 from packages.providers.router import get_router
 
 

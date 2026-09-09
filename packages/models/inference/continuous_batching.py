@@ -11,8 +11,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Callable, Any
-import torch
+from typing import Callable
 
 from packages.models.components.paged_cache import PagedKVCache
 
@@ -97,7 +96,9 @@ class ContinuousBatchingEngine:
 
     def can_admit_request(self, req: SequenceRequest) -> bool:
         """Checks if the paged allocator has enough free blocks to admit the prompt."""
-        needed_blocks = (len(req.prompt_token_ids) + self.paged_cache.block_size - 1) // self.paged_cache.block_size
+        needed_blocks = (
+            len(req.prompt_token_ids) + self.paged_cache.block_size - 1
+        ) // self.paged_cache.block_size
         return self.paged_cache.allocator.num_free_blocks >= needed_blocks
 
     def step(self) -> BatchIterationRecord:
@@ -179,6 +180,8 @@ class ContinuousBatchingEngine:
 
     def run_until_complete(self, max_iterations: int = 500) -> list[BatchIterationRecord]:
         """Runs the batching loop until all queued and running requests are finished."""
-        while (self.waiting_queue or self.running_batch) and len(self.iteration_history) < max_iterations:
+        while (self.waiting_queue or self.running_batch) and len(
+            self.iteration_history
+        ) < max_iterations:
             self.step()
         return self.iteration_history

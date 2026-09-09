@@ -77,7 +77,9 @@ class ModelComparisonArena:
 
             end_time = time.perf_counter()
             total_latency_ms = (end_time - start_time) * 1000.0
-            ttft_ms = (first_token_time - start_time) * 1000.0 if first_token_time else total_latency_ms
+            ttft_ms = (
+                (first_token_time - start_time) * 1000.0 if first_token_time else total_latency_ms
+            )
 
             output_text = "".join(collected_tokens)
             # Estimate token counts: approx 1 token per 4 characters if not provided
@@ -105,7 +107,7 @@ class ModelComparisonArena:
                 is_free=cost_info["is_free"],
                 error=None,
             )
-        except Exception as stream_err:
+        except Exception:
             # Fallback to non-streaming chat() if streaming failed or unsupported
             try:
                 chat_start = time.perf_counter()
@@ -131,7 +133,9 @@ class ModelComparisonArena:
                 elapsed_sec = max(0.001, (chat_end - chat_start))
                 tok_per_sec = completion_tokens / elapsed_sec
 
-                cost_info = resp.get("cost") or calculate_cost(model, prompt_tokens, completion_tokens)
+                cost_info = resp.get("cost") or calculate_cost(
+                    model, prompt_tokens, completion_tokens
+                )
 
                 return ArenaModelMetric(
                     model=model,
@@ -165,7 +169,6 @@ class ModelComparisonArena:
                     error=str(final_err),
                 )
 
-
     async def compare(
         self,
         prompt: str,
@@ -195,8 +198,14 @@ class ModelComparisonArena:
 
         # Determine winner metrics among successful runs
         successful = [r for r in results if r.success]
-        fastest_ttft = min(successful, key=lambda x: x.ttft_ms or float("inf")).model if successful and any(x.ttft_ms is not None for x in successful) else None
-        highest_throughput = max(successful, key=lambda x: x.tokens_per_second).model if successful else None
+        fastest_ttft = (
+            min(successful, key=lambda x: x.ttft_ms or float("inf")).model
+            if successful and any(x.ttft_ms is not None for x in successful)
+            else None
+        )
+        highest_throughput = (
+            max(successful, key=lambda x: x.tokens_per_second).model if successful else None
+        )
         lowest_cost = min(successful, key=lambda x: x.cost_usd).model if successful else None
 
         return {
@@ -210,4 +219,3 @@ class ModelComparisonArena:
                 "lowest_cost": lowest_cost,
             },
         }
-

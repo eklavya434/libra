@@ -1,4 +1,4 @@
-﻿"""Domain task probes for systematic language model benchmarking.
+"""Domain task probes for systematic language model benchmarking.
 
 Includes standardized probes for:
 - Reasoning
@@ -118,8 +118,8 @@ def get_standard_probes() -> list[ProbeExample]:
         ),
         # --- INSTRUCTION FOLLOWING & FORMATTING ---
         ProbeExample(
-            prompt="Output strictly in JSON format: {\"status\": ",
-            choices=[" \"ok\"}", " status is ok", " error happened", " true"],
+            prompt='Output strictly in JSON format: {"status": ',
+            choices=[' "ok"}', " status is ok", " error happened", " true"],
             correct_index=0,
             category="instruction_following",
             description="JSON object closure adherence",

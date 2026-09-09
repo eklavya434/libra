@@ -1,0 +1,9 @@
+#!/bin/sh
+# Libra Git Pre-Commit Hook
+if [ -f "./.venv/Scripts/python.exe" ]; then
+    "./.venv/Scripts/python.exe" scripts/pre_commit_check.py
+elif [ -f "./.venv/bin/python" ]; then
+    "./.venv/bin/python" scripts/pre_commit_check.py
+else
+    python3 scripts/pre_commit_check.py || python scripts/pre_commit_check.py
+fi

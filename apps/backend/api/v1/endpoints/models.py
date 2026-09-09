@@ -15,9 +15,15 @@ registry = get_default_registry()
 
 @router.get("/models", summary="List all available models across providers")
 async def list_models(
-    provider: str | None = Query(None, description="Filter by provider (e.g. ollama, libra_lab, mock-provider)"),
-    tier: str | None = Query(None, description="Filter by hardware tier (CPU-friendly, large, etc.)"),
-    cpu_friendly_only: bool = Query(False, description="Return only models verified to run on your CPU"),
+    provider: str | None = Query(
+        None, description="Filter by provider (e.g. ollama, libra_lab, mock-provider)"
+    ),
+    tier: str | None = Query(
+        None, description="Filter by hardware tier (CPU-friendly, large, etc.)"
+    ),
+    cpu_friendly_only: bool = Query(
+        False, description="Return only models verified to run on your CPU"
+    ),
 ) -> dict[str, Any]:
     # Discover models from local Ollama runtime if reachable
     try:
@@ -54,7 +60,9 @@ async def list_models(
         except ValueError:
             pass
 
-    models = registry.list_models(provider=provider, tier=hw_tier, cpu_friendly_only=cpu_friendly_only)
+    models = registry.list_models(
+        provider=provider, tier=hw_tier, cpu_friendly_only=cpu_friendly_only
+    )
     return {
         "count": len(models),
         "models": [m.to_dict() for m in models],

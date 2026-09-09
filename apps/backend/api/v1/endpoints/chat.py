@@ -32,8 +32,12 @@ class ChatMessage(BaseModel):
 class ChatCompletionRequest(BaseModel):
     messages: list[ChatMessage] = Field(..., min_length=1, description="Conversation history")
     model: str = Field("libra-llama-tied", description="Target model ID")
-    provider: Optional[str] = Field(None, description="Optional explicit provider: ollama, libra_lab, mock-provider")
-    conversation_id: Optional[str] = Field(None, description="Optional persistent conversation session ID")
+    provider: Optional[str] = Field(
+        None, description="Optional explicit provider: ollama, libra_lab, mock-provider"
+    )
+    conversation_id: Optional[str] = Field(
+        None, description="Optional persistent conversation session ID"
+    )
     system_prompt: Optional[str] = Field(None, description="Optional system prompt override")
     temperature: float = Field(0.7, ge=0.0, le=2.0, description="Sampling randomness")
     max_tokens: int = Field(512, ge=1, le=4096, description="Max generated tokens")
@@ -41,8 +45,12 @@ class ChatCompletionRequest(BaseModel):
     top_k: int = Field(40, ge=1, description="Top-k tokens consideration")
     stop: Optional[list[str]] = Field(None, description="Optional stop sequences")
     stream: bool = Field(False, description="Whether to stream back response tokens via SSE")
-    use_rag: bool = Field(False, description="Whether to ground the user prompt with RAG knowledge base search")
-    rag_top_k: int = Field(3, ge=1, le=10, description="Top-k chunks to retrieve if use_rag is True")
+    use_rag: bool = Field(
+        False, description="Whether to ground the user prompt with RAG knowledge base search"
+    )
+    rag_top_k: int = Field(
+        3, ge=1, le=10, description="Top-k chunks to retrieve if use_rag is True"
+    )
 
 
 @router.post("/chat/completions", summary="Create chat completion (streaming or standard)")
@@ -78,7 +86,11 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
         if last_req_msg.role == "user":
             db_messages = store.get_messages(request.conversation_id)
             # Avoid duplicate insertion if user passed full history
-            if not db_messages or db_messages[-1].content != last_req_msg.content or db_messages[-1].role != "user":
+            if (
+                not db_messages
+                or db_messages[-1].content != last_req_msg.content
+                or db_messages[-1].role != "user"
+            ):
                 store.add_message(
                     conversation_id=request.conversation_id,
                     role=last_req_msg.role,
@@ -183,4 +195,3 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
             yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
-

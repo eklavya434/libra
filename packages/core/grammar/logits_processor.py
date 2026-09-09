@@ -7,7 +7,8 @@ at each step of autoregressive generation using the IncrementalJSONStateMachine.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
+
 import torch
 
 from packages.core.grammar.json_state_machine import IncrementalJSONStateMachine
@@ -65,12 +66,18 @@ class ConstrainedLogitsProcessor:
         output_scores = scores.clone()
 
         for b in range(batch_size):
-            tokens = input_ids[b, prefix_offset:].tolist() if input_ids.dim() == 2 else input_ids[prefix_offset:].tolist()
+            tokens = (
+                input_ids[b, prefix_offset:].tolist()
+                if input_ids.dim() == 2
+                else input_ids[prefix_offset:].tolist()
+            )
             output_scores[b] = self._process_single(tokens, scores[b])
 
         return output_scores
 
-    def _process_single(self, generated_tokens: list[int], single_scores: torch.FloatTensor) -> torch.FloatTensor:
+    def _process_single(
+        self, generated_tokens: list[int], single_scores: torch.FloatTensor
+    ) -> torch.FloatTensor:
         """Processes logits for a single sequence."""
         # Decode current generated string
         prefix_text = self.decode_fn(generated_tokens) if generated_tokens else ""

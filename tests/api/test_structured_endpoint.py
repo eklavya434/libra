@@ -4,8 +4,9 @@ Tests for Structured Output Endpoints (apps/backend/api/v1/endpoints/structured.
 
 import pytest
 from fastapi.testclient import TestClient
+
 from apps.backend.main import app
-from packages.providers.base import BaseProvider, ModelMetadata
+from packages.providers.base import BaseProvider
 from packages.providers.router import get_router
 
 
@@ -20,13 +21,7 @@ class MockJSONProvider(BaseProvider):
     async def chat(self, messages, model=None, **kwargs):
         # Return valid JSON conforming to schema
         return {
-            "choices": [
-                {
-                    "message": {
-                        "content": '{"sentiment": "positive", "confidence": 0.98}'
-                    }
-                }
-            ]
+            "choices": [{"message": {"content": '{"sentiment": "positive", "confidence": 0.98}'}}]
         }
 
     async def stream(self, messages, model=None, **kwargs):

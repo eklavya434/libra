@@ -1,4 +1,4 @@
-﻿"""
+"""
 Libra Providers - Hugging Face Transformers Local Inference Adapter
 
 Loads and generates from Hugging Face models using PyTorch on CPU.
@@ -11,13 +11,12 @@ Supports:
 
 from __future__ import annotations
 
-import os
 import time
 from collections.abc import AsyncIterator
 from typing import Any, Optional
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from packages.providers.base import BaseProvider, ModelMetadata
 from packages.providers.prompt_template import PromptTemplate

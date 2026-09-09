@@ -29,7 +29,6 @@ async def main() -> None:
     test_prompt = "Explain why transformers use multi-head attention instead of a single head."
     models = [
         {"model": "libra-educational-tiny", "provider": "libra_lab"},
-
         {"model": "libra-mock-v1", "provider": "mock-provider"},
         {"model": "gpt-4o-mini", "provider": "mock-provider"},
         {"model": "claude-3-5-haiku-20241022", "provider": "mock-provider"},
@@ -49,7 +48,9 @@ async def main() -> None:
     )
 
     print("\n" + "-" * 80)
-    print(f"{'MODEL':<28} | {'PROVIDER':<14} | {'TTFT':<10} | {'LATENCY':<10} | {'TOK/S':<8} | {'COST'}")
+    print(
+        f"{'MODEL':<28} | {'PROVIDER':<14} | {'TTFT':<10} | {'LATENCY':<10} | {'TOK/S':<8} | {'COST'}"
+    )
     print("-" * 80)
 
     for r in result["results"]:
@@ -59,7 +60,9 @@ async def main() -> None:
         latency = f"{r['total_latency_ms']:.1f} ms"
         tps = f"{r['tokens_per_second']:.1f}"
         cost = "$0.000000" if r["is_free"] else f"${r['cost_usd']:.6f}"
-        print(f"{model_name:<28} | {prov_name:<14} | {ttft:<10} | {latency:<10} | {tps:<8} | {cost}")
+        print(
+            f"{model_name:<28} | {prov_name:<14} | {ttft:<10} | {latency:<10} | {tps:<8} | {cost}"
+        )
 
     print("-" * 80)
     print("\n[+] Arena Winners and Leaderboard:")
@@ -70,7 +73,7 @@ async def main() -> None:
     print("\n[+] Sample Output Inspection:")
     for r in result["results"][:2]:
         print(f"\n[{r['model']}]:")
-        print(f"  \"{r['output_text'].strip()}\"")
+        print(f'  "{r["output_text"].strip()}"')
 
     print("\n" + "=" * 80)
     print("  PHASE 10 ARENA BENCHMARK COMPLETE")
@@ -79,4 +82,3 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
-

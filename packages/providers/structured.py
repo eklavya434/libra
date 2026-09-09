@@ -8,10 +8,10 @@ iterative self-healing repair loops across local and cloud providers.
 from __future__ import annotations
 
 import asyncio
-import json
 import re
 import time
 from typing import Any, Generic, Optional, Type, TypeVar
+
 from pydantic import BaseModel, Field
 
 from packages.core.grammar.schema_compiler import SchemaCompiler, SchemaConstraint
@@ -27,7 +27,9 @@ class StructuredResult(BaseModel, Generic[T]):
     success: bool = Field(..., description="Whether generation produced a valid schema instance")
     data: Optional[Any] = Field(None, description="Parsed Pydantic instance or JSON dict")
     raw_text: str = Field("", description="Raw response text emitted by the model")
-    attempts: int = Field(1, description="Number of attempts taken (including self-healing retries)")
+    attempts: int = Field(
+        1, description="Number of attempts taken (including self-healing retries)"
+    )
     error: Optional[str] = Field(None, description="Validation error message if generation failed")
     latency_ms: float = Field(0.0, description="Total duration in milliseconds")
 
@@ -36,7 +38,9 @@ def extract_json_from_text(text: str) -> str:
     """Extracts JSON object substring if model wrapped it in markdown code fences or commentary."""
     text_clean = text.strip()
     # Check for ```json ... ``` codeblocks
-    fence_match = re.search(r"```(?:json)?\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```", text_clean, re.DOTALL)
+    fence_match = re.search(
+        r"```(?:json)?\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```", text_clean, re.DOTALL
+    )
     if fence_match:
         return fence_match.group(1).strip()
 
@@ -85,7 +89,9 @@ class StructuredOutputGenerator:
         )
 
         system_instruction = constraint.generate_system_instruction()
-        combined_system = f"{system_prompt}\n\n{system_instruction}" if system_prompt else system_instruction
+        combined_system = (
+            f"{system_prompt}\n\n{system_instruction}" if system_prompt else system_instruction
+        )
         response_format = constraint.to_openai_response_format()
 
         # Multi-turn repair history
@@ -122,7 +128,9 @@ class StructuredOutputGenerator:
                     )
                     raw_content = res.content if hasattr(res, "content") else str(res)
                 else:
-                    raise AttributeError(f"Provider {provider.name} does not implement chat or complete")
+                    raise AttributeError(
+                        f"Provider {provider.name} does not implement chat or complete"
+                    )
 
                 last_raw = raw_content
 
@@ -148,13 +156,15 @@ class StructuredOutputGenerator:
             # Self-healing feedback step if retries remain
             if attempt <= max_retries:
                 messages.append({"role": "assistant", "content": last_raw})
-                messages.append({
-                    "role": "user",
-                    "content": (
-                        f"Your previous response produced a schema validation error:\n{last_error}\n\n"
-                        "Please correct the error and reply with ONLY the corrected, valid JSON object."
-                    ),
-                })
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Your previous response produced a schema validation error:\n{last_error}\n\n"
+                            "Please correct the error and reply with ONLY the corrected, valid JSON object."
+                        ),
+                    }
+                )
 
         duration_ms = (time.perf_counter() - t0) * 1000
         return StructuredResult(
@@ -193,6 +203,7 @@ class StructuredOutputGenerator:
             )
 
         import concurrent.futures
+
         with concurrent.futures.ThreadPoolExecutor() as pool:
             return pool.submit(
                 asyncio.run,

@@ -2,7 +2,6 @@
 Tests for Chunk Deduplication and MMR Diversity Filtering
 """
 
-import pytest
 from packages.rag.deduplication import ChunkDeduplicator, jaccard_similarity
 from packages.rag.models import DocumentChunk, SearchResult
 
@@ -59,9 +58,21 @@ def test_chunk_deduplication():
 
 def test_mmr_selection():
     dedup = ChunkDeduplicator(mmr_lambda=0.5)
-    c1 = DocumentChunk(id="c1", doc_id="d1", doc_title="D1", text="Machine learning algorithms and deep neural nets.")
-    c2 = DocumentChunk(id="c2", doc_id="d1", doc_title="D1", text="Deep neural nets and machine learning algorithms.")
-    c3 = DocumentChunk(id="c3", doc_id="d2", doc_title="D2", text="Database transactions use ACID properties.")
+    c1 = DocumentChunk(
+        id="c1",
+        doc_id="d1",
+        doc_title="D1",
+        text="Machine learning algorithms and deep neural nets.",
+    )
+    c2 = DocumentChunk(
+        id="c2",
+        doc_id="d1",
+        doc_title="D1",
+        text="Deep neural nets and machine learning algorithms.",
+    )
+    c3 = DocumentChunk(
+        id="c3", doc_id="d2", doc_title="D2", text="Database transactions use ACID properties."
+    )
 
     results = [
         SearchResult(chunk=c1, score=0.95, rank=1),

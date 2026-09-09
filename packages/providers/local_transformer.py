@@ -1,4 +1,4 @@
-﻿"""
+"""
 Libra Providers - Local Educational Transformer Provider
 
 Enables chatting with the neural networks built in our LLM Laboratory

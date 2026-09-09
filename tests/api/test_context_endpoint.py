@@ -2,7 +2,6 @@
 API Tests for Phase 30: Context & RoPE Scaling Endpoints
 """
 
-import pytest
 from fastapi.testclient import TestClient
 
 from apps.backend.main import app

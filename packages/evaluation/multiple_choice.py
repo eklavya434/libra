@@ -1,4 +1,4 @@
-﻿"""Multiple-choice and log-likelihood evaluation engine.
+"""Multiple-choice and log-likelihood evaluation engine.
 
 Implements standard likelihood-based ranking (as used in MMLU, ARC, HellaSwag)
 to rigorously evaluate language models without open-ended generation artifacts.
@@ -6,7 +6,6 @@ to rigorously evaluate language models without open-ended generation artifacts.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from typing import Any, Optional, Sequence
 
@@ -120,7 +119,9 @@ class MultipleChoiceEvaluator:
         choice_logits = logits[0, start_logit_idx:end_logit_idx, :]  # (choice_len, vocab_size)
         log_probs = F.log_softmax(choice_logits, dim=-1)
 
-        target_ids = torch.tensor(choice_tokens, dtype=torch.long, device=self.device)  # (choice_len,)
+        target_ids = torch.tensor(
+            choice_tokens, dtype=torch.long, device=self.device
+        )  # (choice_len,)
         token_log_probs = log_probs.gather(dim=-1, index=target_ids.unsqueeze(-1)).squeeze(-1)
 
         total_ll = token_log_probs.sum().item()
@@ -155,7 +156,11 @@ class MultipleChoiceEvaluator:
             score.choice_text = choice
             scores.append(score)
 
-            metric = score.length_normalized_log_likelihood if normalize_length else score.total_log_likelihood
+            metric = (
+                score.length_normalized_log_likelihood
+                if normalize_length
+                else score.total_log_likelihood
+            )
             if metric > best_score:
                 best_score = metric
                 best_idx = idx

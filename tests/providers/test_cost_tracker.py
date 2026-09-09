@@ -8,8 +8,6 @@ from __future__ import annotations
 import pytest
 
 from packages.providers.cost import (
-    MODEL_PRICING_TABLE,
-    ModelPricing,
     calculate_cost,
     get_model_pricing,
 )
@@ -61,4 +59,3 @@ def test_prefix_matching_for_versions():
     """Models with date stamps or versions should match base model pricing."""
     pricing = get_model_pricing("gpt-4o-2024-08-06")
     assert pricing.prompt_cost_per_1m == 2.50
-

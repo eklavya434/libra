@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 from typing import Any, Optional
+
 from pydantic import BaseModel, Field
 
 from packages.core.memory.models import Message
@@ -18,7 +19,9 @@ from packages.core.memory.models import Message
 class TruncatedContext(BaseModel):
     """Result of context window formatting and truncation."""
 
-    messages: list[dict[str, str]] = Field(..., description="Processed message dicts ready for provider")
+    messages: list[dict[str, str]] = Field(
+        ..., description="Processed message dicts ready for provider"
+    )
     total_tokens: int = Field(..., description="Total tokens consumed by processed messages")
     truncated_count: int = Field(0, description="Number of older messages dropped from context")
     max_context_tokens: int = Field(..., description="Upper limit of model context window")
@@ -78,7 +81,9 @@ class ContextWindowManager:
             if isinstance(m, Message):
                 normalized.append({"role": m.role, "content": m.content})
             elif isinstance(m, dict):
-                normalized.append({"role": str(m.get("role", "user")), "content": str(m.get("content", ""))})
+                normalized.append(
+                    {"role": str(m.get("role", "user")), "content": str(m.get("content", ""))}
+                )
 
         # Separate system messages and dialog turns
         system_msgs: list[dict[str, str]] = []

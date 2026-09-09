@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import re
 from typing import Any, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -20,7 +21,9 @@ class ParsedToolCall(BaseModel):
     """Represents a validated tool call extracted from model text."""
 
     name: str = Field(..., description="Name of the tool to execute")
-    arguments: dict[str, Any] = Field(default_factory=dict, description="Parsed dictionary of arguments")
+    arguments: dict[str, Any] = Field(
+        default_factory=dict, description="Parsed dictionary of arguments"
+    )
     call_id: Optional[str] = Field(None, description="Optional unique tool call identifier")
     raw_text: str = Field("", description="The raw segment from which this call was extracted")
 
@@ -79,9 +82,7 @@ class ToolCallParser:
         return calls
 
     @classmethod
-    def _try_parse_json_or_dict(
-        cls, json_str: str, raw_segment: str
-    ) -> list[ParsedToolCall]:
+    def _try_parse_json_or_dict(cls, json_str: str, raw_segment: str) -> list[ParsedToolCall]:
         """Attempts to parse a JSON segment into one or more ParsedToolCall objects."""
         try:
             data = json.loads(json_str)
@@ -108,9 +109,7 @@ class ToolCallParser:
         return results
 
     @classmethod
-    def _dict_to_tool_call(
-        cls, d: dict[str, Any], raw_segment: str
-    ) -> Optional[ParsedToolCall]:
+    def _dict_to_tool_call(cls, d: dict[str, Any], raw_segment: str) -> Optional[ParsedToolCall]:
         """Normalizes various LLM tool invocation dictionary keys."""
         # Detect tool name key: 'name', 'tool', 'tool_name', 'function'
         name = d.get("name") or d.get("tool") or d.get("tool_name")

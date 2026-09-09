@@ -1,4 +1,4 @@
-﻿"""Evaluation module for loss, perplexity, and compression metrics."""
+"""Evaluation module for loss, perplexity, and compression metrics."""
 
 from __future__ import annotations
 
