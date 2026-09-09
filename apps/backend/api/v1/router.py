@@ -9,6 +9,7 @@ from apps.backend.api.v1.endpoints import (
     alignment,
     arena,
     attention,
+    batch,
     capstone,
     chat,
     coder,
@@ -60,3 +61,4 @@ api_v1_router.include_router(corpus.router, tags=["Instruction Corpus & Fine-Tun
 api_v1_router.include_router(capstone.router, tags=["Capstone & Release"])
 api_v1_router.include_router(security.router, tags=["Security & Defense"])
 api_v1_router.include_router(observability.router, tags=["Observability & Tracing"])
+api_v1_router.include_router(batch.router, tags=["Batch Inference & Async Workers"])

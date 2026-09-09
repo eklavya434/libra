@@ -6,9 +6,9 @@ import { ConversationSummary } from '@/lib/api';
 
 interface SidebarProps {
   currentSessionId: string;
-  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability';
+  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch';
   conversations?: ConversationSummary[];
-  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability') => void;
+  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch') => void;
   onSelectConversation?: (id: string) => void;
   onNewConversation?: () => void;
   onDeleteConversation?: (id: string) => void;
@@ -133,6 +133,18 @@ export default function Sidebar({
             >
               <Activity className={`w-4 h-4 ${activeTab === 'observability' ? 'text-indigo-400' : 'text-slate-400'}`} />
               <span>Observability & Traces</span>
+            </button>
+
+            <button
+              onClick={() => onSelectTab && onSelectTab('batch')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${
+                activeTab === 'batch'
+                  ? 'bg-amber-600/20 border border-amber-500/40 text-amber-300 font-medium'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+              }`}
+            >
+              <Layers className={`w-4 h-4 ${activeTab === 'batch' ? 'text-amber-400' : 'text-slate-400'}`} />
+              <span>Batch Inference</span>
             </button>
           </div>
         </div>

@@ -8,6 +8,7 @@ import KnowledgeBaseView from '@/components/KnowledgeBaseView';
 import CorpusViewer from '@/components/CorpusViewer';
 import SecurityInspector from '@/components/SecurityInspector';
 import ObservabilityView from '@/components/ObservabilityView';
+import BatchInferenceView from '@/components/BatchInferenceView';
 import {
   ConversationSummary,
   fetchConversations,
@@ -16,7 +17,7 @@ import {
 } from '@/lib/api';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch'>('chat');
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
@@ -82,6 +83,7 @@ export default function Home() {
         {activeTab === 'corpus' && <CorpusViewer />}
         {activeTab === 'security' && <SecurityInspector />}
         {activeTab === 'observability' && <ObservabilityView />}
+        {activeTab === 'batch' && <BatchInferenceView />}
       </main>
     </div>
   );

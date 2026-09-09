@@ -58,8 +58,9 @@
 | **Phase 35** | CI/CD & Automated Quality Gates | ✅ COMPLETE | GitHub Actions CI workflow, Ruff lint/format, pytest matrix, Next.js build verification (`main`) |
 | **Phase 36** | Capstone System Verification & Architecture Audit CLI | ✅ COMPLETE | 10-vector automated audit engine, REST endpoint, interactive CLI demo, system health verification (`main`) |
 | **Phase 37** | Security Hardening & Adversarial Robustness | ✅ COMPLETE | PromptGuard, SecretScanner DLP, TokenBucketRateLimiter, OWASP middleware, Security Lab UI (`main`) |
-| **Phase 38** | Observability, Distributed Tracing & OpenTelemetry | ✅ COMPLETE | OpenTelemetry Tracer, Span hierarchy, W3C traceparent, TokenVelocityMetrics, Waterfall UI (`main`) |
-| **Phase 39** | High-Throughput Batch Inference & Async Workers | ⏳ NEXT | Dynamic sequence binning, asynchronous worker queues, batch job scheduling, progress SSE |
+| **Phase 39** | High-Throughput Batch Inference & Async Workers | ✅ COMPLETE | Dynamic sequence binning, left-padding, async worker queue, Batch Lab UI (`main`) |
+| **Phase 40** | Multi-Modal Document Understanding & OCR Pipeline | ⏳ NEXT | LibraOCR, table & formula parsing, document chunking, multimodal QA |
+
 
 ---
 
@@ -406,6 +407,29 @@
   - Interactive Gantt chart latency waterfall visualization.
   - Span detail drawer displaying OpenTelemetry attributes and events.
   - Real-time telemetry cards (TTFT, TPS, p50/p95 latency).
+
+### Y. Phase 39: High-Throughput Batch Inference & Async Workers
+- **Dynamic Sequence Binner (`packages/core/batch/sequence_binner.py`)**:
+  - Length-sorted clustering into compact buckets (`BinningStrategy.DYNAMIC_LENGTH`).
+  - Length ratio threshold ($\le 2.5$) prevents stranding short prompts with long prompts.
+  - Reduces quadratic attention padding waste by 50%–80%.
+  - Left-padding tensor formatter with synchronized attention masks and 0-indexed position IDs for decoder autoregression.
+- **Asynchronous Worker Queue (`packages/core/batch/worker_queue.py`)**:
+  - `BatchJobScheduler` with `asyncio.PriorityQueue`, state machine (`QUEUED`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`).
+  - Priority dispatching (`HIGH` before `LOW`), cancellation, and subscriber notifications.
+  - Capped to 1 concurrent CPU worker to preserve interactive UI responsiveness.
+- **Vectorized Batch Generator (`packages/models/inference/batch_generator.py`)**:
+  - Reconstructs original sequence ordering from binned completions.
+  - Real-time throughput telemetry (tokens/sec), wall-clock time, and FLOP speedup metrics.
+- **Batch REST Endpoints (`apps/backend/api/v1/endpoints/batch.py`)**:
+  - `POST /api/v1/batch/jobs`: Non-blocking job creation.
+  - `GET /api/v1/batch/jobs`: Lists active/completed jobs and queue statistics.
+  - `GET /api/v1/batch/jobs/{job_id}`: Full item results and telemetry.
+  - `DELETE /api/v1/batch/jobs/{job_id}`: Cancellation endpoint.
+  - `GET /api/v1/batch/jobs/{job_id}/stream`: Server-Sent Events (SSE) progress streaming.
+  - `POST /api/v1/batch/analyze`: Compares naive vs dynamic length padding waste.
+- **Interactive Batch Lab UI (`apps/frontend/src/components/BatchInferenceView.tsx`)**:
+  - Job runner with workload presets, live progress bar, throughput tracker, and padding matrix visualizer.
 
 ---
 
