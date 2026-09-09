@@ -19,6 +19,7 @@ from apps.backend.api.v1.endpoints import (
     document_ocr,
     grammar,
     health,
+    long_context,
     models,
     multimodal,
     notebook,
@@ -68,3 +69,4 @@ api_v1_router.include_router(document_ocr.router, tags=["Document Understanding 
 api_v1_router.include_router(
     notebook.router, prefix="/notebook", tags=["Code Interpreter & Notebook"]
 )
+api_v1_router.include_router(long_context.router, tags=["Long-Context & Attention Compaction"])

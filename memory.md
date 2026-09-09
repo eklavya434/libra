@@ -485,6 +485,26 @@
   - Rich output renderer supporting stdout, stderr, rich HTML data tables, and embedded SVG charts.
   - Live Variable Explorer sidebar inspecting active variable types, shapes, and values.
 
+### BB. Phase 42: Long-Context Needle-in-a-Haystack (NIAH) & Dynamic Attention Compaction
+- **Dynamic Compacted KV Cache (`packages/models/components/compacted_kv_cache.py`)**:
+  - Fixed-budget attention memory management: $B = N_{\text{sink}} + N_{\text{recent}} + N_{\text{heavy}}$.
+  - StreamingLLM Attention Sinks: Preserves initial $N_{\text{sink}}$ tokens to prevent Softmax normalization drift.
+  - Rolling Recent Window: Preserves trailing $N_{\text{recent}}$ tokens for local syntax and grammar fluency.
+  - Heavy-Hitter Oracle (H2O): Accumulates attention scores across layers, retaining top-$k$ influential positions while dropping transient tokens.
+  - Memory savings: 60%–85% reduction in KV cache RAM on CPU.
+- **Multi-Needle Associative Recall Benchmark (`packages/evaluation/multi_needle.py`)**:
+  - Synthesizes complex background distractors and places multiple needles across varying document depths without collision.
+  - Evaluates multi-key joint associative recall, relational synthesis, and partial/exact retrieval scoring.
+- **Long-Context REST Endpoints (`apps/backend/api/v1/endpoints/long_context.py`)**:
+  - `POST /api/v1/long_context/evaluate/needle`: 2D NIAH grid evaluation across context lengths and depths.
+  - `POST /api/v1/long_context/evaluate/multi_needle`: Multi-key joint associative recall benchmark.
+  - `POST /api/v1/long_context/compaction/simulate`: Autoregressive KV cache compaction simulation over long sequences.
+  - `GET /api/v1/long_context/presets`: Pre-configured educational benchmark workloads.
+- **Interactive Long-Context UI (`apps/frontend/src/components/LongContextView.tsx`)**:
+  - 2D NIAH Heatmap: Interactive accuracy grid with modal trial inspection.
+  - KV Cache Compaction Visualizer: Color-coded token tape (Sinks, Heavy Hitters, Recent Window, Evicted).
+  - Multi-Needle Recall Console: Interactive test runner with found/missing badges.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit

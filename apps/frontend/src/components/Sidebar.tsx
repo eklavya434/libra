@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText, ShieldAlert, Activity, FileSearch } from 'lucide-react';
+import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText, ShieldAlert, Activity, FileSearch, Compass } from 'lucide-react';
 import { ConversationSummary } from '@/lib/api';
 
 interface SidebarProps {
   currentSessionId: string;
-  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook';
+  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context';
   conversations?: ConversationSummary[];
-  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook') => void;
+  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context') => void;
   onSelectConversation?: (id: string) => void;
   onNewConversation?: () => void;
   onDeleteConversation?: (id: string) => void;
@@ -169,6 +169,18 @@ export default function Sidebar({
             >
               <Terminal className={`w-4 h-4 ${activeTab === 'notebook' ? 'text-violet-400' : 'text-slate-400'}`} />
               <span>Code Notebook</span>
+            </button>
+
+            <button
+              onClick={() => onSelectTab && onSelectTab('long_context')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${
+                activeTab === 'long_context'
+                  ? 'bg-teal-600/20 border border-teal-500/40 text-teal-300 font-medium'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+              }`}
+            >
+              <Compass className={`w-4 h-4 ${activeTab === 'long_context' ? 'text-teal-400' : 'text-slate-400'}`} />
+              <span>Long Context & NIAH</span>
             </button>
           </div>
         </div>

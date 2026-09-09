@@ -11,6 +11,7 @@ import ObservabilityView from '@/components/ObservabilityView';
 import BatchInferenceView from '@/components/BatchInferenceView';
 import DocumentOCRView from '@/components/DocumentOCRView';
 import NotebookView from '@/components/NotebookView';
+import LongContextView from '@/components/LongContextView';
 import {
   ConversationSummary,
   fetchConversations,
@@ -19,7 +20,7 @@ import {
 } from '@/lib/api';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context'>('chat');
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
@@ -88,6 +89,7 @@ export default function Home() {
         {activeTab === 'batch' && <BatchInferenceView />}
         {activeTab === 'document' && <DocumentOCRView />}
         {activeTab === 'notebook' && <NotebookView />}
+        {activeTab === 'long_context' && <LongContextView />}
       </main>
     </div>
   );
