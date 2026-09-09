@@ -39,6 +39,12 @@ This file establishes strict operational protocols for autonomous AI agents (pri
 | `packages/rag/` | Vector retrieval, document chunking | RAG pipeline (Phase 13+) |
 | `packages/tools/` | Tool definitions and execution sandbox | Safe tool execution (Phase 16+) |
 | `packages/agents/` | Autonomous agent loops | Multi-step agent orchestrator (Phase 18+) |
+| `packages/routing/` | Dynamic tier router & speculative engine | Query classification and speculative drafting (Phase 21+) |
+| `packages/security/` | Security hardening & prompt injection guard | Rate limiting, secret scanning, OWASP filters (Phase 37+) |
+| `packages/observability/` | OpenTelemetry tracing & token telemetry | Distributed tracing, velocity & latency metrics (Phase 38+) |
+| `packages/batch/` | High-throughput batch inference | Sequence binning and asynchronous worker queues (Phase 39+) |
+| `packages/document/` | Multi-modal OCR & document understanding | Layout-aware chunking, visual QA, formula extraction (Phase 40+) |
+| `packages/notebook/` | Stateful code interpreter & analytics sandbox | Multi-cell state, SVG plotting, data analysis (Phase 41+) |
 | `docs/` | Architecture decision records & educational guides | Must be kept up to date after every phase |
 | `tests/` | Pytest & frontend test suites | Every feature requires tests before merging |
 
