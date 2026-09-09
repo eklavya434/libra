@@ -65,7 +65,8 @@
 | **Phase 42** | Long-Context NIAH & Attention Compaction | ✅ COMPLETE | StreamingLLM sinks, H2O heavy hitters, multi-needle benchmark, 2D heatmap UI (`main`) |
 | **Phase 43** | RL via Self-Play & Monte Carlo Tree Search (MCTS) | ✅ COMPLETE | Process Reward Model (PRM), PUCT tree search, self-play DPO generator, MCTSTreeView UI (`main`) |
 | **Phase 44** | Knowledge Distillation & Model Shrinking | ✅ COMPLETE | Teacher-student logit transfer, tau^2-scaled KL divergence, layer dropping, Distillation Lab UI (`main`) |
-| **Phase 45** | Mixture of Experts Architecture (Sparse MoE) | ⏳ NEXT | Top-k noisy gating, expert routing, load-balancing auxiliary loss, MoE visualizer |
+| **Phase 45** | Mixture of Experts Architecture (Sparse MoE) | ✅ COMPLETE | Top-k noisy gating, expert routing, load-balancing auxiliary loss, MoE Lab UI (`main`) |
+| **Phase 46** | Speculative Verification & Medusa Multi-Head Drafting | ⏳ NEXT | Multiple simultaneous speculative heads, tree attention verification, multi-token speedup |
 
 
 ---
@@ -554,6 +555,28 @@
   - Live Distillation Trainer dashboard with loss convergence table and top-1 agreement progress.
   - Speed & Compression CPU benchmark panel with side-by-side prompt predictions.
 
+### EE. Phase 45: Mixture of Experts (MoE) Architecture (Sparse Routing & Top-K Gating)
+- **Sparse MoE Components (`packages/models/components/moe.py`)**:
+  - `ExpertLayer`: SwiGLU-based feed-forward expert module.
+  - `MoERouter`: Top-$k$ gating router with optional training noise and Switch/Shazeer load-balancing loss: $\mathcal{L}_{\text{aux}} = \alpha \cdot E \sum_{i=1}^E f_i \cdot P_i$.
+  - `SparseMoEBlock`: Dispatches tokens to selected top-$k$ experts and sums weighted activations with zero CUDA kernel dependency.
+- **MoE Transformer LM (`packages/models/moe_transformer.py`)**:
+  - `MoETransformerLM`: Autoregressive transformer integrating SparseMoEBlocks across layers.
+  - Returns `logits`, `total_loss = task_loss + aux_loss`, and per-layer routing traces.
+  - `count_parameters`: Calculates total capacity vs active parameters per token, demonstrating 50%–75% active compute savings.
+- **MoE Evaluator & Routing Telemetry (`packages/evaluation/moe_eval.py`)**:
+  - `MoEEvaluator`: Traces token-level expert selection, computes load distribution entropy ($H(f)$), calculates the Coefficient of Variation (CV), and flags starved experts ($f_i < 0.05$).
+- **MoE REST Endpoints (`apps/backend/api/v1/endpoints/moe.py`)**:
+  - `POST /api/v1/moe/forward`: Traces token routing and expert weights for arbitrary text prompts.
+  - `POST /api/v1/moe/train`: Educational training step demonstrating load balancing auxiliary loss reducing imbalance CV.
+  - `GET /api/v1/moe/utilization`: Evaluates expert balance and parameter efficiency across validation benchmarks.
+  - `GET /api/v1/moe/presets`: Educational presets (Mixtral 2-of-4, Switch 1-of-4, Starvation Ablation).
+- **Interactive MoE Lab UI (`apps/frontend/src/components/MoEView.tsx`)**:
+  - Parameter Decoupling Cards (Total vs Active parameters, compute savings %, sparsity ratio).
+  - Token Stream Tape with color-coded expert badges and per-layer weight inspector.
+  - Expert Load Distribution Heatmap and Starvation detector.
+  - Auxiliary Loss Optimizer dashboard.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -563,14 +586,15 @@
 - **Next.js Production Build (`.next`)**: ~104 MB
 - **Python & Pytest Caches**: ~199 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Source Code & Data**: 4.52 MB
-- **Total Workspace Footprint**: **1,466.05 MB** (~1.43 GB)
+- **Source Code & Data**: 4.58 MB
+- **Total Workspace Footprint**: **1,466.12 MB** (~1.43 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **13,893.95 MB** (90.5% free)
+- **Remaining Storage Quota**: **13,893.88 MB** (90.5% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **505 passed, 0 failed** across all 44 phases
+- **Pytest Status**: **517 passed, 0 failed** across all 45 phases
 - **Frontend Status**: Next.js 14 production build clean (0 errors, 4/4 static pages)
+
 
 
 

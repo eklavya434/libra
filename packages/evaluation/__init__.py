@@ -21,6 +21,7 @@ from packages.evaluation.loss_eval import (
     evaluate_tokens_loss,
 )
 from packages.evaluation.metrics import ArenaModelMetric
+from packages.evaluation.moe_eval import MoEEvaluator
 from packages.evaluation.multiple_choice import (
     ChoiceScore,
     MultipleChoiceEvaluator,
@@ -49,6 +50,7 @@ __all__ = [
     "JudgeVerdict",
     "LossMetrics",
     "MatchRecord",
+    "MoEEvaluator",
     "ModelComparisonArena",
     "ModelEloRecord",
     "MultipleChoiceEvaluator",

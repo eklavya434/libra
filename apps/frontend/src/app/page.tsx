@@ -14,6 +14,7 @@ import NotebookView from '@/components/NotebookView';
 import LongContextView from '@/components/LongContextView';
 import MCTSTreeView from '@/components/MCTSTreeView';
 import DistillationView from '@/components/DistillationView';
+import MoEView from '@/components/MoEView';
 import {
   ConversationSummary,
   fetchConversations,
@@ -22,7 +23,7 @@ import {
 } from '@/lib/api';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe'>('chat');
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
@@ -94,6 +95,7 @@ export default function Home() {
         {activeTab === 'long_context' && <LongContextView />}
         {activeTab === 'mcts' && <MCTSTreeView />}
         {activeTab === 'distillation' && <DistillationView />}
+        {activeTab === 'moe' && <MoEView />}
       </main>
     </div>
   );

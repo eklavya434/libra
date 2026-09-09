@@ -23,6 +23,7 @@ from apps.backend.api.v1.endpoints import (
     long_context,
     mcts_reasoning,
     models,
+    moe,
     multimodal,
     notebook,
     observability,
@@ -74,3 +75,4 @@ api_v1_router.include_router(
 api_v1_router.include_router(long_context.router, tags=["Long-Context & Attention Compaction"])
 api_v1_router.include_router(mcts_reasoning.router, tags=["MCTS Reasoning & PRMs"])
 api_v1_router.include_router(distillation.router, tags=["Knowledge Distillation & Model Shrinking"])
+api_v1_router.include_router(moe.router, tags=["Mixture of Experts & Sparse Routing"])
