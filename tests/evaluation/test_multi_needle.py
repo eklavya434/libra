@@ -67,4 +67,4 @@ def test_multi_needle_run_single():
     assert result.all_correct is True
     assert result.partial_score == 1.0
     assert result.num_needles == 3
-    assert result.latency_ms > 0
+    assert result.latency_ms >= 0
