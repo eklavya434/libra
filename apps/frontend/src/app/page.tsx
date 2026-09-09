@@ -6,6 +6,7 @@ import ChatArea from '@/components/ChatArea';
 import ArenaView from '@/components/ArenaView';
 import KnowledgeBaseView from '@/components/KnowledgeBaseView';
 import CorpusViewer from '@/components/CorpusViewer';
+import SecurityInspector from '@/components/SecurityInspector';
 import {
   ConversationSummary,
   fetchConversations,
@@ -14,7 +15,7 @@ import {
 } from '@/lib/api';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag' | 'corpus'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'arena' | 'rag' | 'corpus' | 'security'>('chat');
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
@@ -78,6 +79,7 @@ export default function Home() {
         {activeTab === 'arena' && <ArenaView />}
         {activeTab === 'rag' && <KnowledgeBaseView />}
         {activeTab === 'corpus' && <CorpusViewer />}
+        {activeTab === 'security' && <SecurityInspector />}
       </main>
     </div>
   );

@@ -11,6 +11,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from apps.backend.api.v1.router import api_v1_router
 from apps.backend.core.config import settings
 from apps.backend.core.logging import logger
+from apps.backend.middleware.security import (
+    RateLimitingMiddleware,
+    RequestSizeLimiterMiddleware,
+    SecurityHeadersMiddleware,
+)
 from packages.core.hardware import detect_hardware
 
 
@@ -46,6 +51,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestSizeLimiterMiddleware, max_bytes=10 * 1024 * 1024)
+app.add_middleware(RateLimitingMiddleware)
 
 # Mount API routes
 app.include_router(api_v1_router)

@@ -1102,4 +1102,80 @@ export async function packCorpusSequences(maxLength = 256): Promise<PackResponse
   return await res.json();
 }
 
+// ==========================================
+// Phase 37: Security & Adversarial Defense
+// ==========================================
+
+export interface DetectedSecretItem {
+  secret_type: string;
+  matched_value_masked: string;
+  start_index: number;
+  end_index: number;
+  entropy: number;
+  redacted_replacement: string;
+}
+
+export interface PromptAuditItem {
+  is_safe: boolean;
+  risk_score: number;
+  matched_types: string[];
+  reasons: string[];
+  remediation: string;
+  sanitized_prompt: string | null;
+}
+
+export interface SecurityScanResponse {
+  is_safe: boolean;
+  overall_risk_score: number;
+  prompt_audit: PromptAuditItem;
+  secrets_detected: DetectedSecretItem[];
+  sanitized_text: string;
+}
+
+export interface SecurityStatsResponse {
+  status: string;
+  counters: {
+    scans_performed: number;
+    injections_blocked: number;
+    secrets_intercepted: number;
+  };
+  rate_limiter: {
+    requests_per_minute_limit: number;
+    burst_capacity: number;
+    active_clients: number;
+  };
+  capabilities: string[];
+}
+
+export async function scanSecurityText(text: string): Promise<SecurityScanResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/security/scan`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) throw new Error("Failed to scan text for security threats");
+  return await res.json();
+}
+
+export async function redactSecurityText(text: string): Promise<{
+  original_length: number;
+  redacted_length: number;
+  secrets_found: number;
+  redacted_text: string;
+}> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/security/redact`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) throw new Error("Failed to redact secrets");
+  return await res.json();
+}
+
+export async function fetchSecurityStats(): Promise<SecurityStatsResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/security/stats`);
+  if (!res.ok) throw new Error("Failed to fetch security stats");
+  return await res.json();
+}
+
 

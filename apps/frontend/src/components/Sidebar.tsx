@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText } from 'lucide-react';
+import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText, ShieldAlert } from 'lucide-react';
 import { ConversationSummary } from '@/lib/api';
 
 interface SidebarProps {
   currentSessionId: string;
-  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus';
+  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security';
   conversations?: ConversationSummary[];
-  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus') => void;
+  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security') => void;
   onSelectConversation?: (id: string) => void;
   onNewConversation?: () => void;
   onDeleteConversation?: (id: string) => void;
@@ -109,6 +109,18 @@ export default function Sidebar({
             >
               <FileText className={`w-4 h-4 ${activeTab === 'corpus' ? 'text-indigo-400' : 'text-slate-400'}`} />
               <span>Corpus & SFT Lab</span>
+            </button>
+
+            <button
+              onClick={() => onSelectTab && onSelectTab('security')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${
+                activeTab === 'security'
+                  ? 'bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 font-medium'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+              }`}
+            >
+              <ShieldAlert className={`w-4 h-4 ${activeTab === 'security' ? 'text-emerald-400' : 'text-slate-400'}`} />
+              <span>Security Lab</span>
             </button>
           </div>
         </div>

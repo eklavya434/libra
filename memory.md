@@ -57,7 +57,8 @@
 | **Phase 34** | Production Packaging & Containerization | ✅ COMPLETE | Multi-stage Dockerfiles, docker-compose orchestration, non-root security, health checks (`main`) |
 | **Phase 35** | CI/CD & Automated Quality Gates | ✅ COMPLETE | GitHub Actions CI workflow, Ruff lint/format, pytest matrix, Next.js build verification (`main`) |
 | **Phase 36** | Capstone System Verification & Architecture Audit CLI | ✅ COMPLETE | 10-vector automated audit engine, REST endpoint, interactive CLI demo, system health verification (`main`) |
-| **Phase 37** | Security Hardening & Adversarial Robustness | ⏳ NEXT | Prompt injection defense, secret scanner, rate-limiter middleware, secure sandboxing |
+| **Phase 37** | Security Hardening & Adversarial Robustness | ✅ COMPLETE | PromptGuard, SecretScanner DLP, TokenBucketRateLimiter, OWASP middleware, Security Lab UI (`main`) |
+| **Phase 38** | Observability, Distributed Tracing & OpenTelemetry | ⏳ NEXT | End-to-end request tracing, token velocity metrics, OpenTelemetry spans, latency waterfalls |
 
 ---
 
@@ -358,6 +359,28 @@
   - Interactive CLI verification tool (`scripts/capstone_audit_cli.py`).
   - REST endpoint: `POST /api/v1/capstone/audit`.
 
+### W. Phase 37: Security Hardening & Adversarial Robustness
+- **Prompt Injection & Adversarial Guard (`packages/core/security/prompt_guard.py`)**:
+  - Heuristic and regex detector for direct instruction suppression ("ignore previous instructions", system prompt override).
+  - Jailbreak persona detection (DAN, Developer Mode, hypothetical evil twin bypasses).
+  - Delimiter spoofing prevention (ChatML `<|im_start|>`, Llama `[INST]`, `<<SYS>>`).
+  - GCG adversarial suffix noise anomaly detection via non-alphanumeric token density and repetitive punctuation.
+  - Canary token generator and leak detection (`CANARY-UUID`).
+  - Untrusted context framing for RAG pipelines (`<untrusted_context>`).
+- **Sensitive Credential & Secret Scanner DLP (`packages/core/security/secret_scanner.py`)**:
+  - Pattern-based detection for Google Gemini, OpenAI, Anthropic, AWS, GitHub, JWT, and SSH private keys.
+  - Shannon entropy calculator $H(s) = -\sum p_i \log_2 p_i$ flagging unstructured high-entropy credentials ($H \ge 3.8$).
+  - In-place redaction engine preventing sensitive leaks in responses, logs, and tracebacks.
+- **Rate Limiting & OWASP Middleware (`packages/core/security/rate_limiter.py` & `apps/backend/middleware/security.py`)**:
+  - In-memory thread-safe `TokenBucketRateLimiter` per client IP.
+  - OWASP headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block`, `Referrer-Policy`).
+  - Payload size limiter blocking payloads $> 10$ MB.
+- **REST Endpoints & Frontend UX (`apps/backend/api/v1/endpoints/security.py` & `apps/frontend/src/components/SecurityInspector.tsx`)**:
+  - `POST /api/v1/security/scan`: Full security evaluation returning risk score, reasons, and sanitized text.
+  - `POST /api/v1/security/redact`: Sanitizes text by replacing secrets with redacted placeholders.
+  - `GET /api/v1/security/stats`: Telemetry on security events, blocked attacks, and active rate limits.
+  - `SecurityInspector.tsx`: Interactive Security Lab with attack bench, secret DLP tester, and telemetry monitor.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -367,13 +390,13 @@
 - **Next.js Production Build (`.next`)**: ~104 MB
 - **Python & Pytest Caches**: ~199 MB
 - **Models & Checkpoints**: 20.08 MB
-- **Source Code & Data**: 4.19 MB
-- **Total Workspace Footprint**: **1,464.73 MB** (~1.43 GB)
+- **Source Code & Data**: 4.35 MB
+- **Total Workspace Footprint**: **1,465.43 MB** (~1.43 GB)
 - **15 GB Quota Limit**: 15,360.00 MB
-- **Remaining Storage Quota**: **13,895.27 MB** (90.5% free)
+- **Remaining Storage Quota**: **13,894.57 MB** (90.5% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **394 passed, 0 failed** across all 36 phases
+- **Pytest Status**: **420 passed, 0 failed** across all 37 phases
 - **Frontend Status**: Next.js 14 production build clean (0 errors, 4/4 static pages)
 
 

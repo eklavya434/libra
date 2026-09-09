@@ -25,6 +25,7 @@ from apps.backend.api.v1.endpoints import (
     rag,
     reasoning,
     routing,
+    security,
     structured,
     teams,
     telemetry,
@@ -56,3 +57,4 @@ api_v1_router.include_router(paged_inference.router, tags=["PagedAttention & Con
 api_v1_router.include_router(multimodal.router, tags=["Multi-Modal & Vision-Language"])
 api_v1_router.include_router(corpus.router, tags=["Instruction Corpus & Fine-Tuning"])
 api_v1_router.include_router(capstone.router, tags=["Capstone & Release"])
+api_v1_router.include_router(security.router, tags=["Security & Defense"])
