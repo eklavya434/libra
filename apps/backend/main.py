@@ -18,6 +18,9 @@ from apps.backend.middleware.security import (
 )
 from apps.backend.middleware.tracing import TracingMiddleware
 from packages.core.hardware import detect_hardware
+from packages.core.network import enable_ipv4_preference
+
+enable_ipv4_preference()
 
 
 @asynccontextmanager

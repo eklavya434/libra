@@ -59,6 +59,15 @@ def test_get_conversation_detail(client):
     assert detail["messages"][0]["content"] == "Hello testing"
 
 
+def test_append_message_requires_existing_conversation(client):
+    response = client.post(
+        "/api/v1/conversations/does-not-exist/messages",
+        json={"role": "user", "content": "This must not create a conversation."},
+    )
+
+    assert response.status_code == 404
+
+
 def test_update_and_delete_conversation(client):
     res = client.post("/api/v1/conversations", json={"title": "Old Name"})
     conv_id = res.json()["id"]

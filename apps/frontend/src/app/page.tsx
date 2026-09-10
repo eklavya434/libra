@@ -45,7 +45,7 @@ export default function Home() {
   }, [loadConversations]);
 
   const handleNewConversation = async () => {
-    const newConv = await createConversation('New Conversation', 'libra-llama-tied');
+    const newConv = await createConversation('New Conversation', 'libra-mock-v1');
     if (newConv) {
       setConversations((prev) => [newConv, ...prev]);
       setCurrentSessionId(newConv.id);
@@ -87,6 +87,7 @@ export default function Home() {
           <ChatArea
             conversationId={currentSessionId}
             onConversationUpdated={loadConversations}
+            onSelectConversation={setCurrentSessionId}
           />
         )}
         {activeTab === 'arena' && <ArenaView />}

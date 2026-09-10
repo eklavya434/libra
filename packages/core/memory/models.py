@@ -8,9 +8,11 @@ and context parameters for stateful multi-turn chat.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
+
+MessageRole = Literal["system", "user", "assistant"]
 
 
 def utc_now_iso() -> str:
@@ -23,7 +25,7 @@ class Message(BaseModel):
 
     id: str = Field(..., description="Unique message ID")
     conversation_id: str = Field(..., description="Parent conversation session ID")
-    role: str = Field(..., description="Role of the sender: system, user, or assistant")
+    role: MessageRole = Field(..., description="Role of the sender: system, user, or assistant")
     content: str = Field(..., description="Text content of the message")
     token_count: int = Field(0, description="Estimated or exact token count")
     created_at: str = Field(default_factory=utc_now_iso, description="ISO timestamp when created")
@@ -70,6 +72,6 @@ class UpdateConversationRequest(BaseModel):
 class AddMessageRequest(BaseModel):
     """Payload to add a new message to a conversation."""
 
-    role: str = Field(..., description="Role: system, user, or assistant")
-    content: str = Field(..., description="Message text content")
+    role: MessageRole = Field(..., description="Role: system, user, or assistant")
+    content: str = Field(..., min_length=1, description="Message text content")
     token_count: Optional[int] = Field(None, description="Optional precomputed token count")

@@ -1,5 +1,9 @@
 """Libra Providers Package."""
 
+from packages.core.network import enable_ipv4_preference
+
+enable_ipv4_preference()
+
 from packages.providers.anthropic import AnthropicProvider
 from packages.providers.base import BaseProvider, ModelMetadata
 from packages.providers.cost import ModelPricing, calculate_cost, get_model_pricing

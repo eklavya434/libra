@@ -20,3 +20,13 @@ def test_frontend_key_components_present():
     assert (components_dir / "Sidebar.tsx").exists()
     assert (components_dir / "TokenSurprisalHeatmap.tsx").exists()
     assert (components_dir / "ReasoningTraceAccordion.tsx").exists()
+
+
+def test_chat_defaults_to_offline_mock_provider():
+    """A configured cloud key must not silently route new chats off-device."""
+    chat_area = (Path("apps/frontend/src/components") / "ChatArea.tsx").read_text(encoding="utf-8")
+    page = (Path("apps/frontend/src/app") / "page.tsx").read_text(encoding="utf-8")
+
+    assert "useState('libra-mock-v1')" in chat_area
+    assert "m.id === 'gemini-2.5-flash'" not in chat_area
+    assert "createConversation('New Conversation', 'libra-mock-v1')" in page

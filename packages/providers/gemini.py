@@ -13,9 +13,12 @@ from typing import Any, Optional
 
 import httpx
 
+from packages.core.network import enable_ipv4_preference
 from packages.providers.base import BaseProvider, ModelMetadata
 from packages.providers.cost import calculate_cost
 from packages.providers.errors import ProviderAuthenticationError, normalize_http_error
+
+enable_ipv4_preference()
 
 
 class GeminiProvider(BaseProvider):
@@ -60,9 +63,9 @@ class GeminiProvider(BaseProvider):
         clean = model.strip()
         if clean.startswith("models/"):
             clean = clean[7:]
-        if clean in ("gemini-1.5-flash", "gemini-flash"):
+        if clean in ("gemini-1.5-flash", "gemini-flash", "gemini-flash-1.5", "gemini"):
             return "gemini-2.5-flash"
-        if clean in ("gemini-1.5-pro", "gemini-pro"):
+        if clean in ("gemini-1.5-pro", "gemini-pro", "gemini-pro-1.5"):
             return "gemini-2.5-pro"
         return clean
 
@@ -160,6 +163,10 @@ class GeminiProvider(BaseProvider):
                             "parts": [{"text": clean_text}],
                         }
                     )
+
+        # Gemini requires that the first content turn has role 'user'
+        while gemini_contents and gemini_contents[0]["role"] == "model":
+            gemini_contents.pop(0)
 
         # Gemini requires the final message to be 'user' to generate the next 'model' turn
         while gemini_contents and gemini_contents[-1]["role"] == "model":
@@ -293,9 +300,8 @@ class GeminiProvider(BaseProvider):
 
         primary_model = self._normalize_model(model)
         candidate_models = [primary_model]
-        for fb in ["gemini-3.5-flash", "gemini-flash-latest"]:
-            if fb not in candidate_models:
-                candidate_models.append(fb)
+        if primary_model == "gemini-2.5-flash" and "gemini-2.5-pro" not in candidate_models:
+            candidate_models.append("gemini-2.5-pro")
 
         contents, system_instruction = self._convert_messages(messages)
         payload: dict[str, Any] = {

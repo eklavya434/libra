@@ -86,21 +86,55 @@ class ProviderRouter:
             prov = self._providers["openai"]
             if getattr(prov, "api_key", None):
                 return prov
+            raise ValueError(
+                f"OpenAI model '{model_id}' requested, but OPENAI_API_KEY is not configured in .env. "
+                "Please configure OPENAI_API_KEY or select a local/mock model."
+            )
 
         if "gemini" in model_lower:
             prov = self._providers["gemini"]
             if getattr(prov, "api_key", None):
                 return prov
+            raise ValueError(
+                f"Google Gemini model '{model_id}' requested, but GEMINI_API_KEY is not configured in .env. "
+                "Please configure GEMINI_API_KEY or select a local/mock model."
+            )
 
         if "claude" in model_lower:
             prov = self._providers["anthropic"]
             if getattr(prov, "api_key", None):
                 return prov
+            raise ValueError(
+                f"Anthropic Claude model '{model_id}' requested, but ANTHROPIC_API_KEY is not configured in .env. "
+                "Please configure ANTHROPIC_API_KEY or select a local/mock model."
+            )
+
+        if "deepseek" in model_lower and not model_lower.startswith("deepseek-r1:"):
+            prov = self._providers["deepseek"]
+            if getattr(prov, "api_key", None):
+                return prov
+            raise ValueError(
+                f"DeepSeek model '{model_id}' requested, but DEEPSEEK_API_KEY is not configured in .env. "
+                "Please configure DEEPSEEK_API_KEY or select a local/mock model."
+            )
 
         if "groq" in model_lower:
             prov = self._providers["groq"]
             if getattr(prov, "api_key", None):
                 return prov
+            raise ValueError(
+                f"Groq model '{model_id}' requested, but GROQ_API_KEY is not configured in .env. "
+                "Please configure GROQ_API_KEY or select a local/mock model."
+            )
+
+        if "openrouter" in model_lower:
+            prov = self._providers["openrouter"]
+            if getattr(prov, "api_key", None):
+                return prov
+            raise ValueError(
+                f"OpenRouter model '{model_id}' requested, but OPENROUTER_API_KEY is not configured in .env. "
+                "Please configure OPENROUTER_API_KEY or select a local/mock model."
+            )
 
         # 2. Local routing
         if model_lower.startswith("hf/") or "gpt2" in model_lower:

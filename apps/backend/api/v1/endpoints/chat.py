@@ -9,7 +9,8 @@ with optional conversation memory persistence and context window management.
 from __future__ import annotations
 
 import json
-from typing import Any, Optional
+import uuid
+from typing import Any, Literal, Optional
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -25,8 +26,10 @@ router = APIRouter()
 
 
 class ChatMessage(BaseModel):
-    role: str = Field(..., description="Role of the author: system, user, or assistant")
-    content: str = Field(..., description="Message text content")
+    role: Literal["system", "user", "assistant"] = Field(
+        ..., description="Role of the author: system, user, or assistant"
+    )
+    content: str = Field(..., min_length=1, description="Message text content")
 
 
 class ChatCompletionRequest(BaseModel):
@@ -69,58 +72,60 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
         reserved_completion_tokens=request.max_tokens,
     )
 
-    store = get_conversation_store() if request.conversation_id else None
+    store = get_conversation_store()
+    active_conv_id = request.conversation_id or f"conv-{uuid.uuid4().hex[:12]}"
 
     # Handle persistent conversation memory
-    if store and request.conversation_id:
-        conv = store.get_conversation(request.conversation_id)
-        if not conv:
-            store.create_conversation(
-                conv_id=request.conversation_id,
-                model=request.model,
-                system_prompt=request.system_prompt,
+    conv = store.get_conversation(active_conv_id)
+    if not conv:
+        # Determine title from the first non-empty user message
+        title = "New Conversation"
+        for m in request.messages:
+            if m.role == "user" and m.content.strip():
+                clean_t = m.content.strip().split("\n")[0][:40]
+                if clean_t:
+                    title = clean_t
+                break
+        store.create_conversation(
+            conv_id=active_conv_id,
+            title=title,
+            model=request.model,
+            system_prompt=request.system_prompt,
+        )
+
+    # Append incoming user turn if present
+    last_req_msg = request.messages[-1]
+    if last_req_msg.role == "user":
+        db_messages = store.get_messages(active_conv_id)
+        # Avoid duplicate insertion if caller passed full history
+        if (
+            not db_messages
+            or db_messages[-1].content != last_req_msg.content
+            or db_messages[-1].role != "user"
+        ):
+            store.add_message(
+                conversation_id=active_conv_id,
+                role=last_req_msg.role,
+                content=last_req_msg.content,
             )
 
-        # Append incoming user turn if present
-        last_req_msg = request.messages[-1]
-        if last_req_msg.role == "user":
-            db_messages = store.get_messages(request.conversation_id)
-            # Avoid duplicate insertion if user passed full history
-            if (
-                not db_messages
-                or db_messages[-1].content != last_req_msg.content
-                or db_messages[-1].role != "user"
-            ):
-                store.add_message(
-                    conversation_id=request.conversation_id,
-                    role=last_req_msg.role,
-                    content=last_req_msg.content,
-                )
+    # Sync conversation model if user switched models in UI
+    conv = store.get_conversation(active_conv_id)
+    if conv and conv.model != request.model:
+        store.update_conversation(active_conv_id, model=request.model)
 
-        # Sync conversation model if user switched models in UI
-        if conv and conv.model != request.model:
-            store.update_conversation(request.conversation_id, model=request.model)
-
-        # Retrieve full conversation history from persistent store
-        history = store.get_messages(request.conversation_id)
-        active_system_prompt = (
-            request.system_prompt
-            or (conv.system_prompt if conv else None)
-            or "You are Libra, an intelligent, helpful, and friendly AI assistant. Answer conversationally in Markdown."
-        )
-        processed_context = context_manager.prepare_context(
-            messages=history,
-            override_system_prompt=active_system_prompt,
-        )
-        messages_to_send = processed_context.messages
-    else:
-        # Ephemeral context budgeting
-        messages_raw = [{"role": m.role, "content": m.content} for m in request.messages]
-        processed_context = context_manager.prepare_context(
-            messages=messages_raw,
-            override_system_prompt=request.system_prompt,
-        )
-        messages_to_send = processed_context.messages
+    # Retrieve full conversation history from persistent store
+    history = store.get_messages(active_conv_id)
+    active_system_prompt = (
+        request.system_prompt
+        or (conv.system_prompt if conv else None)
+        or "You are Libra, an intelligent, helpful, and friendly AI assistant. Answer conversationally in Markdown."
+    )
+    processed_context = context_manager.prepare_context(
+        messages=history,
+        override_system_prompt=active_system_prompt,
+    )
+    messages_to_send = processed_context.messages
 
     # Apply RAG knowledge base context grounding if requested
     if request.use_rag and request.messages and request.messages[-1].role == "user":
@@ -145,17 +150,16 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
                 top_k=request.top_k,
                 stop=request.stop,
             )
-            # If persistent, store the assistant response
-            if store and request.conversation_id:
-                assistant_text = ""
-                if isinstance(response, dict) and "choices" in response:
+            if isinstance(response, dict):
+                response["conversation_id"] = active_conv_id
+                if "choices" in response:
                     assistant_text = response["choices"][0].get("message", {}).get("content", "")
-                if assistant_text:
-                    store.add_message(
-                        conversation_id=request.conversation_id,
-                        role="assistant",
-                        content=assistant_text,
-                    )
+                    if assistant_text:
+                        store.add_message(
+                            conversation_id=active_conv_id,
+                            role="assistant",
+                            content=assistant_text,
+                        )
             return response
         except ConnectionError as e:
             raise HTTPException(status_code=503, detail=str(e))
@@ -166,6 +170,13 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
     async def event_generator():
         accumulated_chunks = []
         try:
+            # Yield conversation session metadata chunk
+            meta_chunk = {
+                "conversation_id": active_conv_id,
+                "model": request.model,
+            }
+            yield f"data: {json.dumps(meta_chunk)}\n\n"
+
             async for token in provider.stream(
                 messages=messages_to_send,
                 model=request.model,
@@ -188,10 +199,10 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
                 yield f"data: {json.dumps(chunk)}\n\n"
 
             # Stream finished successfully: persist assistant output
-            if store and request.conversation_id and accumulated_chunks:
+            if accumulated_chunks:
                 full_text = "".join(accumulated_chunks)
                 store.add_message(
-                    conversation_id=request.conversation_id,
+                    conversation_id=active_conv_id,
                     role="assistant",
                     content=full_text,
                 )
@@ -212,4 +223,5 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
             yield f"data: {json.dumps(err_chunk)}\n\n"
             yield "data: [DONE]\n\n"
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    headers = {"X-Conversation-Id": active_conv_id}
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers=headers)

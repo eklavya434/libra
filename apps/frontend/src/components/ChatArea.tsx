@@ -13,7 +13,6 @@ import {
   ChatTelemetry,
   fetchConversation,
   clearConversationMessages,
-  fetchModels,
   API_BASE_URL,
 } from '@/lib/api';
 
@@ -27,21 +26,30 @@ interface ExtendedMessage extends ChatMessage {
 interface ChatAreaProps {
   conversationId?: string;
   onConversationUpdated?: () => void;
+  onSelectConversation?: (id: string) => void;
 }
 
-export default function ChatArea({ conversationId, onConversationUpdated }: ChatAreaProps) {
+export default function ChatArea({
+  conversationId,
+  onConversationUpdated,
+  onSelectConversation,
+}: ChatAreaProps) {
   const [messages, setMessages] = useState<ExtendedMessage[]>([
     {
       id: 'welcome',
       role: 'assistant',
       content:
         '👋 Welcome to **Libra**!\n\nThis is your personal AI Assistant and educational Large Language Model laboratory, built from first principles.\n\n### Core System Capabilities:\n- **First-Principles Engine**: Modern decoder-only transformer with RoPE, RMSNorm, SwiGLU, and weight tying.\n- **Multi-Turn Persistent Memory**: Powered by SQLite WAL with dynamic sliding-window context management.\n- **Advanced Hybrid RAG**: Okapi BM25 sparse search + Dense vector embeddings fused via Reciprocal Rank Fusion (RRF $k=60$), multi-factor re-ranking, and chunk deduplication.\n- **Real-Time Streaming UX**: Live token-by-token Markdown parsing, code syntax highlighting, one-click code copy, and abortable generation.\n\n```python\n# Example: Grounded RAG Query in Libra\nresponse = await libra.chat(\n    query="Explain Rotary Position Embeddings",\n    mode="hybrid",\n    use_rrf=True\n)\nprint(response.content)\n```\n\nAsk any question or test your knowledge base to begin!',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      // Keep the server and client initial render identical; live timestamps are
+      // only created in client-side event handlers or effects below.
+      timestamp: 'Ready',
     },
   ]);
 
   const [input, setInput] = useState('');
-  const [selectedModel, setSelectedModel] = useState('libra-llama-tied');
+  // The mock provider is intentionally the initial model: it is always available,
+  // costs nothing, and never sends conversation content to a cloud provider.
+  const [selectedModel, setSelectedModel] = useState('libra-mock-v1');
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(512);
   const [topP, setTopP] = useState(0.9);
@@ -133,25 +141,6 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
     loadConv();
   }, [conversationId]);
 
-  // Prefer Gemini for intelligent chat responses if configured
-  useEffect(() => {
-    async function checkAvailableModels() {
-      if (conversationId) return;
-      try {
-        const available = await fetchModels();
-        const preferred = available.find(
-          (m) => m.id === 'gemini-2.5-flash' || m.id.includes('gemini')
-        );
-        if (preferred) {
-          setSelectedModel(preferred.id);
-        }
-      } catch (e) {
-        // keep default
-      }
-    }
-    checkAvailableModels();
-  }, [conversationId]);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -179,6 +168,11 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
       temperature,
       maxTokens,
       signal: controller.signal,
+      onConversationId: (newConvId) => {
+        if (onSelectConversation && (!conversationId || conversationId !== newConvId)) {
+          onSelectConversation(newConvId);
+        }
+      },
       onToken: (token) => {
         setMessages((prev) =>
           prev.map((msg) =>
@@ -204,8 +198,9 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
               ? {
                   ...msg,
                   content:
-                    msg.content ||
-                    `⚠️ Inference Error: ${err.message}\nEnsure the Libra backend is running on :8000 or select a local mock model.`,
+                    msg.content
+                      ? `${msg.content}\n\n⚠️ Streaming Error: ${err.message}`
+                      : `⚠️ Inference Error: ${err.message}\nEnsure the Libra backend is running on :8000. For offline use, select Libra Mock v1. Cloud models require a working provider connection.`,
                   error: true,
                 }
               : msg
@@ -242,7 +237,11 @@ export default function ChatArea({ conversationId, onConversationUpdated }: Chat
     setMessages(nextMessages);
     setInput('');
 
-    const historyForApi: ChatMessage[] = [...messages, userMsg].map((m) => ({
+    // Filter out client-only welcome banners and prior error cards from LLM dialog history
+    const historyForApi: ChatMessage[] = [
+      ...messages.filter((m) => m.id !== 'welcome' && !m.error),
+      userMsg,
+    ].map((m) => ({
       role: m.role,
       content: m.content,
     }));

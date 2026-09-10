@@ -90,6 +90,8 @@ async def delete_conversation(conv_id: str) -> dict[str, Any]:
 async def append_message(conv_id: str, request: AddMessageRequest) -> Message:
     """Directly append a message to an existing conversation."""
     store = get_conversation_store()
+    if not store.get_conversation(conv_id):
+        raise HTTPException(status_code=404, detail=f"Conversation '{conv_id}' not found")
     return store.add_message(
         conversation_id=conv_id,
         role=request.role,
