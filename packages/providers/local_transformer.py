@@ -144,7 +144,7 @@ class LocalTransformerProvider(BaseProvider):
             top_k=top_k,
         )
 
-        new_tokens = generated_ids[0, len(prompt_ids) :].tolist()
+        new_tokens = [t % 256 for t in generated_ids[0, len(prompt_ids) :].tolist()]
         output_text = decode_tokens(new_tokens)
 
         # Stop sequences cleanup

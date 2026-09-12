@@ -75,7 +75,8 @@ def encode_string(text: str) -> list[int]:
 
 def decode_tokens(tokens: list[int]) -> str:
     """Decodes byte/ASCII token IDs back into a human-readable string."""
-    return bytes(tokens).decode("utf-8", errors="replace")
+    valid_bytes = [t % 256 for t in tokens if isinstance(t, int)]
+    return bytes(valid_bytes).decode("utf-8", errors="replace")
 
 
 def generate_with_cache(

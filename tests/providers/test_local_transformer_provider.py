@@ -36,7 +36,14 @@ async def test_local_transformer_output_has_no_control_characters():
     offset by +4) while training used raw byte ids 0..255, so generated text
     decoded into control-char paddling (e.g. '\\x1c'). Output must be plain text.
     """
+    import os
+
     provider = LocalTransformerProvider()
+    if not os.path.exists(provider.checkpoint_path):
+        pytest.skip(
+            f"Trained checkpoint {provider.checkpoint_path} not present (CI runner environment)"
+        )
+
     response = await provider.chat(
         messages=[{"role": "user", "content": "Gravity is a force"}],
         model="libra-llama-tied",
