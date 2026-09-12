@@ -26,3 +26,24 @@ async def test_local_transformer_provider_chat():
     content = response["choices"][0]["message"]["content"]
     assert isinstance(content, str)
     assert response["usage"]["completion_tokens"] > 0
+
+
+@pytest.mark.asyncio
+async def test_local_transformer_output_has_no_control_characters():
+    """Inference must use the same raw-byte encoding as the training pipeline.
+
+    Previously the prompt was encoded with EducationalBPETokenizer (byte ids
+    offset by +4) while training used raw byte ids 0..255, so generated text
+    decoded into control-char paddling (e.g. '\\x1c'). Output must be plain text.
+    """
+    provider = LocalTransformerProvider()
+    response = await provider.chat(
+        messages=[{"role": "user", "content": "Gravity is a force"}],
+        model="libra-llama-tied",
+        max_tokens=20,
+        temperature=0.8,
+    )
+    content = response["choices"][0]["message"]["content"]
+    assert content, "expected non-empty local model output"
+    control_chars = [c for c in content if ord(c) < 32 and c not in "\n\r\t"]
+    assert not control_chars, f"garbage control chars in output: {content!r}"

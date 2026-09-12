@@ -2,10 +2,12 @@
 Libra API v1 - Models & Registry Endpoint
 """
 
+import os
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
+from apps.backend.core.config import settings
 from packages.models.catalog import get_default_registry
 from packages.models.registry import HardwareTier
 
@@ -66,9 +68,42 @@ async def list_models(
     models = registry.list_models(
         provider=filter_provider, tier=hw_tier, cpu_friendly_only=filter_cpu_friendly
     )
+    def_model_id = get_system_default_model()
     return {
         "count": len(models),
+        "default_model": def_model_id,
         "models": [m.to_dict() for m in models],
+    }
+
+
+def get_system_default_model() -> str:
+    """Resolve the highest quality available model based on active configuration."""
+    # 1. Prefer Gemini 2.5 Flash if GEMINI_API_KEY is configured
+    if settings.gemini_api_key or os.getenv("GEMINI_API_KEY"):
+        return "gemini-2.5-flash"
+
+    # 2. Check registered local Ollama models
+    for mid in ["llama3.2:1b", "llama3.2:3b", "qwen2.5:0.5b", "gemma2:2b"]:
+        if mid in registry._models:
+            return mid
+
+    # 3. Check OpenAI if configured
+    if settings.openai_api_key or os.getenv("OPENAI_API_KEY"):
+        return "gpt-4o-mini"
+
+    # 4. Fallback to mock
+    return "libra-mock-v1"
+
+
+@router.get(
+    "/models/default", summary="Get the recommended default model based on active configuration"
+)
+async def get_default_model() -> dict[str, Any]:
+    def_id = get_system_default_model()
+    model = registry.get(def_id)
+    return {
+        "default_model": def_id,
+        "model": model.to_dict() if model else None,
     }
 
 

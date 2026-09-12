@@ -97,11 +97,31 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
     last_req_msg = request.messages[-1]
     if last_req_msg.role == "user":
         db_messages = store.get_messages(active_conv_id)
-        # Avoid duplicate insertion if caller passed full history
+        # Check if this request is a "Regenerate" action from the frontend.
+        # A regenerate occurs when the client re-sends the last user message, but
+        # intentionally strips the trailing assistant answer that was stored in the DB.
+        if (
+            db_messages
+            and db_messages[-1].role == "assistant"
+            and len(db_messages) >= 2
+            and db_messages[-2].role == "user"
+            and db_messages[-2].content == last_req_msg.content
+            and not any(
+                m.role == "assistant" and m.content == db_messages[-1].content
+                for m in request.messages
+            )
+        ):
+            # Remove the superseded assistant message so the new generation replaces it cleanly
+            store.delete_message(db_messages[-1].id)
+            db_messages = store.get_messages(active_conv_id)
+
+        # Only append the user turn if it is not ALREADY the most recent message in the DB.
+        # If the last message in DB was an assistant message, this incoming user turn is
+        # unequivocally a NEW conversational turn (even if the user repeated the same text, e.g. "hii").
         if (
             not db_messages
-            or db_messages[-1].content != last_req_msg.content
             or db_messages[-1].role != "user"
+            or db_messages[-1].content != last_req_msg.content
         ):
             store.add_message(
                 conversation_id=active_conv_id,

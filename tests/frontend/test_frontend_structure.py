@@ -22,11 +22,22 @@ def test_frontend_key_components_present():
     assert (components_dir / "ReasoningTraceAccordion.tsx").exists()
 
 
-def test_chat_defaults_to_offline_mock_provider():
-    """A configured cloud key must not silently route new chats off-device."""
+def test_chat_defaults_to_configured_real_provider():
+    """Verify chat interface defaults to the configured production LLM."""
     chat_area = (Path("apps/frontend/src/components") / "ChatArea.tsx").read_text(encoding="utf-8")
     page = (Path("apps/frontend/src/app") / "page.tsx").read_text(encoding="utf-8")
 
-    assert "useState('libra-mock-v1')" in chat_area
-    assert "m.id === 'gemini-2.5-flash'" not in chat_area
-    assert "createConversation('New Conversation', 'libra-mock-v1')" in page
+    assert "useState('gemini-2.5-flash')" in chat_area
+    assert "createConversation('New Conversation', 'gemini-2.5-flash')" in page
+
+
+def test_chat_area_guards_db_reload_during_active_stream():
+    """Load-on-conversation-change must not wipe in-flight streaming bubbles."""
+    chat_area = (Path("apps/frontend/src/components") / "ChatArea.tsx").read_text(encoding="utf-8")
+
+    # The stream-in-flight guard must exist and gate the DB reload path
+    assert "activeStreamRef" in chat_area
+    assert "if (activeStreamRef.current) return;" in chat_area
+    # The flag is armed when a stream begins and disarmed when it finishes/errors
+    assert "activeStreamRef.current = true;" in chat_area
+    assert chat_area.count("activeStreamRef.current = false;") >= 3

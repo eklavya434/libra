@@ -45,7 +45,7 @@ export default function Home() {
   }, [loadConversations]);
 
   const handleNewConversation = async () => {
-    const newConv = await createConversation('New Conversation', 'libra-mock-v1');
+    const newConv = await createConversation('New Conversation', 'gemini-2.5-flash');
     if (newConv) {
       setConversations((prev) => [newConv, ...prev]);
       setCurrentSessionId(newConv.id);

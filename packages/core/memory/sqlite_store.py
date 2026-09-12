@@ -227,6 +227,13 @@ class SQLiteConversationStore:
             conn.commit()
             return cursor.rowcount > 0
 
+    def delete_message(self, message_id: str) -> bool:
+        """Delete a single message by ID."""
+        with self._get_connection() as conn:
+            cursor = conn.execute("DELETE FROM messages WHERE id = ?;", (message_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
     def add_message(
         self,
         conversation_id: str,

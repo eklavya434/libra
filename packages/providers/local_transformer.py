@@ -15,7 +15,7 @@ from typing import Any, Optional
 import torch
 
 from packages.core.tokenizer.educational_bpe import EducationalBPETokenizer
-from packages.models.generation import generate
+from packages.models.generation import decode_tokens, encode_string, generate
 from packages.models.modern_config import ModernTransformerConfig
 from packages.models.modern_transformer import ModernTransformerLM
 from packages.providers.base import BaseProvider, ModelMetadata
@@ -129,9 +129,11 @@ class LocalTransformerProvider(BaseProvider):
         top_k: int = 40,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        model_obj, tokenizer = self._ensure_loaded()
+        model_obj, _ = self._ensure_loaded()
         prompt_text = PromptTemplate.format_plain(messages)
-        prompt_ids = tokenizer.encode(prompt_text)
+        # The training pipeline (TextDataset) encodes raw UTF-8 bytes as ids 0..255
+        # (no BPE). Encode the prompt the same way so inference ids match training.
+        prompt_ids = encode_string(prompt_text)
 
         input_tensor = torch.tensor([prompt_ids], dtype=torch.long, device=self.device)
         generated_ids = generate(
@@ -143,7 +145,7 @@ class LocalTransformerProvider(BaseProvider):
         )
 
         new_tokens = generated_ids[0, len(prompt_ids) :].tolist()
-        output_text = tokenizer.decode(new_tokens)
+        output_text = decode_tokens(new_tokens)
 
         # Stop sequences cleanup
         for stop_seq in PromptTemplate.get_stop_sequences("plain"):

@@ -207,9 +207,8 @@ class GeminiProvider(BaseProvider):
 
         primary_model = self._normalize_model(model)
         candidate_models = [primary_model]
-        for fb in ["gemini-3.5-flash", "gemini-flash-latest"]:
-            if fb not in candidate_models:
-                candidate_models.append(fb)
+        if primary_model == "gemini-2.5-flash" and "gemini-2.5-pro" not in candidate_models:
+            candidate_models.append("gemini-2.5-pro")
 
         contents, system_instruction = self._convert_messages(messages)
         payload: dict[str, Any] = {

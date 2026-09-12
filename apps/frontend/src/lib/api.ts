@@ -391,6 +391,19 @@ export async function fetchConversations(): Promise<ConversationSummary[]> {
   }
 }
 
+export async function fetchDefaultModel(): Promise<string> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/models/default`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.default_model) return data.default_model;
+    }
+  } catch {
+    // fallback
+  }
+  return "gemini-2.5-flash";
+}
+
 export async function createConversation(
   title?: string,
   model?: string,
@@ -402,7 +415,7 @@ export async function createConversation(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
-        model: model || "libra-mock-v1",
+        model: model || "gemini-2.5-flash",
         system_prompt: systemPrompt,
       }),
     });

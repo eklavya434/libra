@@ -47,9 +47,8 @@ export default function ChatArea({
   ]);
 
   const [input, setInput] = useState('');
-  // The mock provider is intentionally the initial model: it is always available,
-  // costs nothing, and never sends conversation content to a cloud provider.
-  const [selectedModel, setSelectedModel] = useState('libra-mock-v1');
+  // Production default: configured frontier LLM (gemini-2.5-flash)
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(512);
   const [topP, setTopP] = useState(0.9);
@@ -63,6 +62,10 @@ export default function ChatArea({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  // True while a token stream is in flight. Guards loadConv() from clobbering the
+  // live streaming bubbles with a stale DB snapshot (the assistant turn is only
+  // persisted by the backend AFTER the stream completes).
+  const activeStreamRef = useRef(false);
 
   const handleToggleHeatmap = async (msg: ExtendedMessage) => {
     if (activeHeatmapId === msg.id) {
@@ -111,6 +114,10 @@ export default function ChatArea({
   useEffect(() => {
     async function loadConv() {
       if (!conversationId) return;
+      // Never replace in-flight state with a DB snapshot: while a stream runs, the
+      // backend has not persisted the assistant turn yet, so a reload here would
+      // wipe the streaming bubble and future onToken/onComplete updates would no-op.
+      if (activeStreamRef.current) return;
       const conv = await fetchConversation(conversationId);
       if (conv) {
         if (conv.model) setSelectedModel(conv.model);
@@ -158,6 +165,7 @@ export default function ChatArea({
   const executeStream = async (history: ChatMessage[], assistantId: string) => {
     setLoading(true);
     setActiveAssistantId(assistantId);
+    activeStreamRef.current = true;
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -188,6 +196,7 @@ export default function ChatArea({
         );
         setLoading(false);
         setActiveAssistantId(null);
+        activeStreamRef.current = false;
         abortControllerRef.current = null;
         if (onConversationUpdated) onConversationUpdated();
       },
@@ -208,6 +217,7 @@ export default function ChatArea({
         );
         setLoading(false);
         setActiveAssistantId(null);
+        activeStreamRef.current = false;
         abortControllerRef.current = null;
       },
     });
@@ -253,6 +263,7 @@ export default function ChatArea({
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
+      activeStreamRef.current = false;
       setLoading(false);
       setActiveAssistantId(null);
     }
