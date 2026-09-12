@@ -495,6 +495,21 @@ export default function ChatArea({
 
       {/* Composer Input Area */}
       <footer className="p-4 sm:px-8 border-t border-slate-850 bg-slate-950/80 backdrop-blur-md">
+        {selectedModel === 'libra-mock-v1' && (
+          <div className="max-w-3xl mx-auto mb-2.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-between text-xs text-amber-300/90">
+            <span className="flex items-center gap-1.5">
+              <span>⚠️</span>
+              <span>Currently in <strong>Offline Mock Mode</strong> (echoes messages for $0 testing).</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedModel('gemini-2.5-flash')}
+              className="text-[11px] font-medium text-amber-200 hover:text-white bg-amber-500/20 hover:bg-amber-500/30 px-2.5 py-1 rounded-md transition-colors"
+            >
+              Switch to Gemini 2.5 Flash →
+            </button>
+          </div>
+        )}
         <form onSubmit={handleSend} className="max-w-3xl mx-auto relative">
           <input
             type="text"
