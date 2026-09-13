@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   FileSearch,
-  Table,
-  Sigma,
-  Key,
+  UploadCloud,
+  FileText,
+  X,
   Layers,
   Sparkles,
   Send,
@@ -88,6 +88,13 @@ export default function DocumentOCRView() {
   const [customText, setCustomText] = useState<string>('');
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
 
+  // Uploaded file state
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [uploadedText, setUploadedText] = useState<string>('');
+  const [uploadingDoc, setUploadingDoc] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
+
   const [documentData, setDocumentData] = useState<ParsedDocumentData | null>(null);
   const [activeElementId, setActiveElementId] = useState<string | null>(null);
   const [highlightedElementIds, setHighlightedElementIds] = useState<string[]>([]);
@@ -142,9 +149,50 @@ export default function DocumentOCRView() {
     }
   };
 
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    try {
+      setUploadingDoc(true);
+      setUploadError(null);
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/v1/document/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDocumentData(data.document);
+        setUploadedFileName(file.name);
+        setUploadedText(data.text || '');
+        setIsCustomMode(false);
+        setActiveElementId(null);
+        setHighlightedElementIds([]);
+        setQaResult(null);
+      } else {
+        setUploadError(data.detail || `Upload failed (${res.status})`);
+      }
+    } catch (err) {
+      console.error('Failed to upload document:', err);
+      setUploadError('Upload failed. Check that the backend is running.');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleClearUpload = () => {
+    setUploadedFileName(null);
+    setUploadedText('');
+    setUploadError(null);
+  };
+
   const handleSelectPreset = (preset: DocumentPreset) => {
     setSelectedPresetId(preset.id);
     setIsCustomMode(false);
+    handleClearUpload();
     parsePresetText(preset.text, preset.title);
     if (preset.id === 'financial_quarterly_report') {
       setQuestion('What was the Total Cloud Revenue in Q3 2026?');
@@ -163,7 +211,9 @@ export default function DocumentOCRView() {
       setLoadingQA(true);
       const activeText = isCustomMode
         ? customText
-        : presets.find((p) => p.id === selectedPresetId)?.text || '';
+        : uploadedFileName
+          ? uploadedText
+          : presets.find((p) => p.id === selectedPresetId)?.text || '';
 
       const res = await fetch('/api/v1/document/qa', {
         method: 'POST',
@@ -244,7 +294,10 @@ export default function DocumentOCRView() {
             </button>
           ))}
           <button
-            onClick={() => setIsCustomMode(true)}
+            onClick={() => {
+              setIsCustomMode(true);
+              handleClearUpload();
+            }}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               isCustomMode
                 ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30'
@@ -253,8 +306,38 @@ export default function DocumentOCRView() {
           >
             Custom Text
           </button>
+
+          {/* Upload Control */}
+          <input
+            ref={uploadInputRef}
+            type="file"
+            accept=".txt,.md,.markdown,.csv,.tsv,.log,.json,.html,.xml,.tex,.pdf"
+            className="hidden"
+            onChange={handleUploadFile}
+          />
+          <button
+            onClick={() => uploadInputRef.current?.click()}
+            disabled={uploadingDoc}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-60 ${
+              uploadedFileName
+                ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30'
+                : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+            }`}
+          >
+            <UploadCloud className="w-3.5 h-3.5" />
+            {uploadingDoc ? 'Uploading...' : 'Upload Document'}
+          </button>
         </div>
       </div>
+
+      {uploadError && (
+        <div className="px-6 py-2.5 bg-rose-950/50 border-b border-rose-800/60 text-xs text-rose-300 flex items-center justify-between">
+          <span>{uploadError}</span>
+          <button onClick={() => setUploadError(null)} className="text-rose-400 hover:text-rose-200">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Main Split Body */}
       <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-0">
@@ -295,7 +378,7 @@ export default function DocumentOCRView() {
                 className="flex-1 w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs font-mono text-slate-200 resize-none focus:outline-none focus:border-cyan-500"
               />
               <button
-                onClick={() => parsePresetText(customText, 'Custom Document')}
+                onClick={() => { handleClearUpload(); parsePresetText(customText, 'Custom Document'); }}
                 className="bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-2 px-4 rounded-lg text-xs self-end"
               >
                 Parse Document Layout
@@ -304,6 +387,19 @@ export default function DocumentOCRView() {
           ) : (
             /* 2D Document Page Simulation Canvas */
             <div className="flex-1 relative rounded-2xl bg-slate-900/70 border border-slate-800 shadow-2xl p-4 overflow-y-auto min-h-[620px]">
+              {/* Uploaded file badge */}
+              {uploadedFileName && (
+                <div className="absolute top-3 left-3 z-30 flex items-center gap-2 bg-cyan-900/80 border border-cyan-600/50 rounded-lg px-3 py-1.5 text-xs text-cyan-200 shadow-lg">
+                  <FileText className="w-3.5 h-3.5 text-cyan-300" />
+                  <span className="font-mono font-medium truncate max-w-[180px]">{uploadedFileName}</span>
+                  <button
+                    onClick={handleClearUpload}
+                    className="ml-1 p-0.5 text-cyan-400 hover:text-white transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
               {loadingDoc ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 z-20">
                   <RotateCcw className="w-6 h-6 animate-spin text-cyan-400" />
@@ -440,6 +536,7 @@ export default function DocumentOCRView() {
                 </div>
 
                 {/* Preset Prompt Suggestions */}
+                {!isCustomMode && !uploadedFileName && (
                 <div className="space-y-1.5 pt-1">
                   <span className="text-[10px] text-slate-400 block uppercase tracking-wider font-mono">
                     Suggested Questions
@@ -520,6 +617,7 @@ export default function DocumentOCRView() {
                     </>
                   )}
                 </div>
+                )}
               </div>
 
               {/* Synthesized Answer Card */}

@@ -69,3 +69,50 @@ def test_document_qa_endpoint(client):
     assert "$5,000" in result["answer"]
     assert len(result["citations"]) > 0
     assert result["citations"][0]["element_type"] == "key_value"
+
+
+def test_upload_txt_document_endpoint(client):
+    content = "# Meeting Notes\nDate: 2026-09-13\n\n| Topic | Owner |\n| Sprint plan | Priya |\n"
+    response = client.post(
+        "/api/v1/document/upload",
+        files={"file": ("meeting.md", content.encode("utf-8"), "text/markdown")},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["filename"] == "meeting.md"
+    assert data["source"] == "upload"
+    doc = data["document"]
+    assert doc["title"] == "meeting"
+    assert doc["num_pages"] == 1
+    assert doc["total_elements"] >= 2
+
+
+def test_upload_image_returns_501(client):
+    png_bytes = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
+    response = client.post(
+        "/api/v1/document/upload",
+        files={"file": ("scan.png", png_bytes, "image/png")},
+    )
+    assert response.status_code == 501
+    assert "not supported" in response.json()["detail"]
+
+
+def test_upload_pdf_document_endpoint(client):
+    from pypdf import PdfWriter
+
+    writer = PdfWriter()
+    writer.add_blank_page(width=612, height=792)
+    import io
+
+    buf = io.BytesIO()
+    writer.write(buf)
+    buf.seek(0)
+
+    # TestClient encodes the file through starlette/tempfile multipart handling.
+    response = client.post(
+        "/api/v1/document/upload",
+        files={"file": ("blank.pdf", buf.getvalue(), "application/pdf")},
+    )
+    # A blank page has no text -> should be rejected as unparseable, not crash.
+    assert response.status_code == 422

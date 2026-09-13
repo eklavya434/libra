@@ -6,9 +6,11 @@ and grounded visual question answering with table/cell citations.
 
 from __future__ import annotations
 
+import io
+from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 from packages.core.document.document_qa import DocumentQAEngine
@@ -152,6 +154,140 @@ async def parse_document(req: DocumentParseRequest) -> dict[str, Any]:
     )
     return {
         "status": "success",
+        "document": parsed.to_dict(),
+    }
+
+
+_TXT_EXTENSIONS = {
+    ".txt",
+    ".md",
+    ".markdown",
+    ".mdown",
+    ".log",
+    ".csv",
+    ".tsv",
+    ".json",
+    ".html",
+    ".htm",
+    ".xml",
+    ".yml",
+    ".yaml",
+    ".py",
+    ".ts",
+    ".js",
+    ".rst",
+    ".tex",
+}
+
+_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tiff", ".gif"}
+
+_MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+def _extract_text_from_bytes(filename: str, raw: bytes) -> str:
+    """Extracts plain text from an uploaded file based on its extension.
+
+    Text-like files are decoded as UTF-8. PDFs use pypdf when available (plain
+    text extraction only, no OCR). Images explicitly return a 501 so users are
+    never handed fake OCR results.
+    """
+    suffix = Path(filename).suffix.lower()
+
+    if suffix in _IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=501,
+            detail=(
+                f"Image OCR for '{suffix}' is not supported yet on this CPU-only "
+                "machine. Upload a text, markdown, or PDF document instead."
+            ),
+        )
+
+    if suffix == ".pdf":
+        try:
+            from pypdf import PdfReader  # type: ignore[import-untyped]
+        except ImportError:
+            raise HTTPException(
+                status_code=501,
+                detail="PDF text extraction requires the 'pypdf' package. "
+                "Install it with: pip install pypdf",
+            )
+
+        try:
+            reader = PdfReader(io.BytesIO(raw))
+            pages: list[str] = []
+            for page in reader.pages:
+                pages.append(page.extract_text() or "")
+            text = "\n\n".join(page for page in pages if page.strip())
+        except Exception as exc:  # corrupt / encrypted PDFs
+            raise HTTPException(
+                status_code=422,
+                detail=f"Could not read PDF: {exc}",
+            )
+        if not text.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="PDF contains no extractable text (it may be a scanned image-only PDF).",
+            )
+        return text
+
+    if suffix not in _TXT_EXTENSIONS:
+        raise HTTPException(
+            status_code=501,
+            detail=(
+                f"Unsupported file type '.{suffix}'. Supported: "
+                + ", ".join(sorted(_TXT_EXTENSIONS))
+                + ", .pdf"
+            ),
+        )
+
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        for encoding in ("latin-1", "cp1252"):
+            try:
+                return raw.decode(encoding)
+            except UnicodeDecodeError:
+                continue
+        raise HTTPException(
+            status_code=422,
+            detail="Uploaded file could not be decoded as UTF-8 text.",
+        )
+
+
+@router.post("/upload")
+async def upload_document(
+    file: UploadFile = File(..., description="Text, markdown, CSV, or PDF document"),
+    title: str | None = None,
+) -> dict[str, Any]:
+    """
+    Uploads a document file, extracts its text, and parses it into the same
+    structured layout AST produced by /parse.
+    """
+    raw = await file.read(_MAX_UPLOAD_BYTES + 1)
+    if len(raw) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Uploaded file exceeds the {_MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit.",
+        )
+    if not raw.strip():
+        raise HTTPException(status_code=422, detail="Uploaded file is empty.")
+
+    filename = file.filename or "uploaded.txt"
+    text = _extract_text_from_bytes(filename, raw)
+    if len(text.strip()) < 5:
+        raise HTTPException(
+            status_code=422,
+            detail="Extracted text is too short to parse (minimum 5 characters).",
+        )
+
+    doc_title = title or Path(filename).stem
+    parsed = parser.parse_document_text(raw_text=text, title=doc_title)
+
+    return {
+        "status": "success",
+        "filename": filename,
+        "source": "upload",
+        "text_preview": text[:500],
         "document": parsed.to_dict(),
     }
 

@@ -95,9 +95,9 @@ def normalize_http_error(
             details=response_body,
         )
 
-    if status_code == 404:
+    if status_code in (404, 410):
         return ModelNotFoundError(
-            message=f"[{provider.upper()} Model Not Found] {msg or 'Requested model does not exist.'}",
+            message=f"[{provider.upper()} Model Not Found] {msg or 'Requested model does not exist or has reached end of life.'}",
             provider=provider,
             status_code=status_code,
             details=response_body,

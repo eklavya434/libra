@@ -19,6 +19,7 @@ from packages.providers.huggingface import HuggingFaceProvider
 from packages.providers.kimi import KimiProvider
 from packages.providers.local_transformer import LocalTransformerProvider
 from packages.providers.mock import MockProvider
+from packages.providers.nvidia import NvidiaProvider
 from packages.providers.ollama import OllamaProvider
 from packages.providers.openai import OpenAIProvider
 from packages.providers.vllm_stub import VLLMProvider
@@ -34,6 +35,7 @@ class ProviderRouter:
             "huggingface": HuggingFaceProvider(),
             "mock-provider": MockProvider(),
             "openai": OpenAIProvider(),
+            "nvidia": NvidiaProvider(),
             "gemini": GeminiProvider(),
             "anthropic": AnthropicProvider(),
             "deepseek": DeepSeekProvider(),
@@ -67,6 +69,8 @@ class ProviderRouter:
             return self._providers["huggingface"]
         if "lab" in name_clean or "libra" in name_clean:
             return self._providers["libra_lab"]
+        if "nvidia" in name_clean or "nim" in name_clean:
+            return self._providers["nvidia"]
 
         raise ValueError(f"Unknown provider '{name}'. Available: {list(self._providers.keys())}")
 
@@ -152,6 +156,20 @@ class ProviderRouter:
             raise ValueError(
                 f"OpenRouter model '{model_id}' requested, but OPENROUTER_API_KEY is not configured in .env. "
                 "Please configure OPENROUTER_API_KEY or select a local/mock model."
+            )
+
+        if (
+            model_lower.startswith("nvidia/")
+            or "nemotron" in model_lower
+            or model_lower.startswith("nv-")
+            or "nvidia" in model_lower
+        ):
+            prov = self._providers["nvidia"]
+            if getattr(prov, "api_key", None):
+                return prov
+            raise ValueError(
+                f"NVIDIA NIM model '{model_id}' requested, but NVIDIA_API_KEY is not configured in .env. "
+                "Please configure NVIDIA_API_KEY or select a local/mock model."
             )
 
         # 2. OpenCode / Coder specialist routing

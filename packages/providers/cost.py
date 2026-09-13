@@ -81,6 +81,11 @@ MODEL_PRICING_TABLE: dict[str, ModelPricing] = {
     # --- GROQ CLOUD LPU ---
     "llama-3.3-70b-versatile": ModelPricing(0.59, 0.79),
     "llama-3.1-8b-instant": ModelPricing(0.05, 0.08),
+    # --- NVIDIA NIM CLOUD API ---
+    "nvidia/llama-3.1-nemotron-70b-instruct": ModelPricing(0.70, 0.80),
+    "nvidia/nemotron-4-340b-instruct": ModelPricing(1.50, 3.00),
+    "mistralai/mistral-large-2-instruct": ModelPricing(2.00, 6.00),
+    "deepseek-ai/deepseek-coder-6.7b-instruct": ModelPricing(0.20, 0.20),
 }
 
 

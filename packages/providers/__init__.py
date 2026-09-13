@@ -1,7 +1,8 @@
-"""Libra Providers Package."""
+from dotenv import load_dotenv
 
 from packages.core.network import enable_ipv4_preference
 
+load_dotenv()
 enable_ipv4_preference()
 
 from packages.providers.anthropic import AnthropicProvider
@@ -23,6 +24,7 @@ from packages.providers.huggingface import HuggingFaceProvider
 from packages.providers.kimi import KimiProvider
 from packages.providers.local_transformer import LocalTransformerProvider
 from packages.providers.mock import MockProvider
+from packages.providers.nvidia import NvidiaProvider
 from packages.providers.ollama import OllamaProvider
 from packages.providers.openai import OpenAIProvider
 from packages.providers.prompt_template import PromptTemplate
@@ -36,6 +38,7 @@ __all__ = [
     "StructuredOutputGenerator",
     "StructuredResult",
     "MockProvider",
+    "NvidiaProvider",
     "OllamaProvider",
     "HuggingFaceProvider",
     "LocalTransformerProvider",
