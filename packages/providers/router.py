@@ -71,7 +71,7 @@ class ProviderRouter:
         model_id: str,
         requested_provider: Optional[str] = None,
     ) -> BaseProvider:
-        """Determines the best active provider for a model request with safe fallbacks."""
+        """Determine the active provider for a model request without silently faking output."""
         if requested_provider:
             return self.get_provider(requested_provider)
 
@@ -151,8 +151,15 @@ class ProviderRouter:
         if ollama_health.get("connected"):
             return self._providers["ollama"]
 
-        # 4. Zero-cost fallback to MockProvider
-        return self._providers["mock-provider"]
+        # Never silently route an unknown/unavailable model to MockProvider.
+        # MockProvider remains available only when explicitly requested by model
+        # ID/provider. A production chat request must either use the requested
+        # real provider or fail with an actionable configuration error.
+        raise ValueError(
+            f"No active provider is available for model '{model_id}'. "
+            "Select an installed Ollama/local Libra model, configure a supported cloud provider, "
+            "or explicitly select a mock model for offline testing."
+        )
 
     def list_registered_providers(self) -> list[str]:
         return list(self._providers.keys())
