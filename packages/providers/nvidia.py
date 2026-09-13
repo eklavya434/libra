@@ -69,6 +69,24 @@ class NvidiaProvider(OpenAIProvider):
             "Content-Type": "application/json",
         }
 
+    def _normalize_model_id(self, model: str) -> str:
+        m = model.lower().strip()
+        if "kimi" in m or "moonshot" in m:
+            if "k3" in m:
+                return "moonshotai/kimi-k3"
+            return "moonshotai/kimi-k2.6"
+        if "deepseek" in m:
+            if "pro" in m:
+                return "deepseek-ai/deepseek-v4-pro-0813"
+            return "deepseek-ai/deepseek-v4-flash-0731"
+        if "nemotron" in m and "70b" in m:
+            return "nvidia/llama-3.1-nemotron-70b-instruct"
+        if "nemotron" in m and "340b" in m:
+            return "nvidia/nemotron-4-340b-instruct"
+        if "mistral" in m and "large" in m:
+            return "mistralai/mistral-large-2-instruct"
+        return model
+
     async def chat(
         self,
         messages: list[dict[str, str]],
@@ -99,7 +117,33 @@ class NvidiaProvider(OpenAIProvider):
                 json=payload,
                 headers=headers,
             )
+            # If model-specific key got 403, retry once with primary general key if different
+            if resp.status_code == 403:
+                primary_key = self.api_key or os.getenv("NVIDIA_API_KEY")
+                current_key = self.get_api_key_for_model(model)
+                if primary_key and primary_key != current_key:
+                    fallback_headers = {
+                        "Authorization": f"Bearer {primary_key}",
+                        "Content-Type": "application/json",
+                    }
+                    resp = await client.post(
+                        f"{self.base_url}/chat/completions",
+                        json=payload,
+                        headers=fallback_headers,
+                    )
             if resp.status_code != 200:
+                if resp.status_code == 403:
+                    raise ProviderAuthenticationError(
+                        message=(
+                            f"[NVIDIA NIM 403 Forbidden] Authorization failed for model '{norm_model}'. "
+                            "Your NVIDIA API key authenticated, but NVIDIA NIM denied inference access. "
+                            "Ensure your account at https://build.nvidia.com has active credits and "
+                            "that you have visited the model card and clicked 'Get API Key' to accept its terms."
+                        ),
+                        provider=self.name,
+                        status_code=403,
+                        details=resp.text,
+                    )
                 raise normalize_http_error(resp.status_code, resp.text, self.name)
             data = resp.json()
             usage = data.get("usage", {})
@@ -142,35 +186,69 @@ class NvidiaProvider(OpenAIProvider):
 
         client = self._get_client()
         try:
-            async with client.stream(
-                "POST",
-                f"{self.base_url}/chat/completions",
-                json=payload,
-                headers=headers,
-            ) as response:
-                if response.status_code != 200:
-                    body = await response.aread()
-                    raise normalize_http_error(
-                        response.status_code, body.decode("utf-8"), self.name
+            response = await client.send(
+                client.build_request(
+                    "POST",
+                    f"{self.base_url}/chat/completions",
+                    json=payload,
+                    headers=headers,
+                ),
+                stream=True,
+            )
+            # If 403 with model-specific key, try fallback with primary key
+            if response.status_code == 403:
+                primary_key = self.api_key or os.getenv("NVIDIA_API_KEY")
+                current_key = self.get_api_key_for_model(model)
+                if primary_key and primary_key != current_key:
+                    await response.aclose()
+                    fallback_headers = {
+                        "Authorization": f"Bearer {primary_key}",
+                        "Content-Type": "application/json",
+                    }
+                    response = await client.send(
+                        client.build_request(
+                            "POST",
+                            f"{self.base_url}/chat/completions",
+                            json=payload,
+                            headers=fallback_headers,
+                        ),
+                        stream=True,
                     )
 
-                async for line in response.aiter_lines():
-                    if not line:
+            if response.status_code != 200:
+                body = await response.aread()
+                if response.status_code == 403:
+                    raise ProviderAuthenticationError(
+                        message=(
+                            f"[NVIDIA NIM 403 Forbidden] Authorization failed for model '{norm_model}'. "
+                            "Your NVIDIA API key authenticated, but NVIDIA NIM denied inference access. "
+                            "Ensure your account at https://build.nvidia.com has active credits and "
+                            "that you have visited the model card and clicked 'Get API Key' to accept its terms."
+                        ),
+                        provider=self.name,
+                        status_code=403,
+                        details=body.decode("utf-8"),
+                    )
+                raise normalize_http_error(response.status_code, body.decode("utf-8"), self.name)
+
+            async for line in response.aiter_lines():
+                if not line:
+                    continue
+                if line.startswith("data: "):
+                    data_str = line[6:].strip()
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data_str)
+                        choices = chunk.get("choices", [])
+                        if choices:
+                            delta = choices[0].get("delta", {})
+                            content = delta.get("content")
+                            if content:
+                                yield content
+                    except json.JSONDecodeError:
                         continue
-                    if line.startswith("data: "):
-                        data_str = line[6:].strip()
-                        if data_str == "[DONE]":
-                            break
-                        try:
-                            chunk = json.loads(data_str)
-                            choices = chunk.get("choices", [])
-                            if choices:
-                                delta = choices[0].get("delta", {})
-                                content = delta.get("content")
-                                if content:
-                                    yield content
-                        except json.JSONDecodeError:
-                            continue
+            await response.aclose()
         except httpx.RequestError as exc:
             raise ProviderOfflineError(
                 message=f"Streaming error connecting to {self.name.upper()} API: {exc}",
