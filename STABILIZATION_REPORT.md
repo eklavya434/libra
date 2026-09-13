@@ -6,6 +6,20 @@
 
 ---
 
+## Additional repository audit — September 13, 2026
+
+A source-level audit identified one remaining architectural hazard in the provider router: after checking the local Ollama daemon, an arbitrary/unrecognized model could silently fall through to `MockProvider`. This was inconsistent with the report's stated RCA-05 policy that cloud/unavailable models must not silently produce fake output.
+
+**Fix applied:** `packages/providers/router.py` now raises an actionable `ValueError` when no provider is available for an unrecognized model. `MockProvider` remains available when explicitly requested (for tests/offline development), but it is no longer an implicit fallback for real/unknown model IDs.
+
+This is a repository-level fix. It still requires local runtime verification because the GitHub connector cannot start the user's local stack or inspect the browser.
+
+---
+
+## Existing verification record
+
+The remainder of this document preserves the prior stabilization report and its recorded verification results. These results should be re-run after the latest router change before declaring the repository release-ready.
+
 ## 1. Executive Summary
 
 During Phase 50 capstone validation a critical defect surfaced: **user messages could fail to return an answer**, leaving empty assistant bubbles or no response until a page refresh. A prior report (September 10, 2026) claimed these were all resolved, but independent verification on September 13, 2026 proved this was **not true** — the report's "STABLE & VERIFIED" claim was premature:
@@ -33,7 +47,7 @@ This second pass is fully verified end-to-end (live backend + frontend compilati
 | **RCA-08 (NEW)** | **Regenerate duplicate user turn.** The Regenerate button re-sends the same tail user message; the chat endpoint only deduped against the **last stored message** (the assistant's), so it inserted a second copy of the user message. | Polluted dialog history & provider context (double user turn). | `chat.py` now skips appending the incoming user turn when the **most recent stored user** message already has identical content. Gemini's `_convert_messages` (last turn must be `user`) still yields clean input after a regenerate. |
 | **RCA-09 (NEW)** | **Local lab model garbage output.** Training (`packages/training/dataset.py` → `encode_string`) encodes raw UTF-8 bytes as ids **0..255**, but inference encoded the prompt with `EducationalBPETokenizer` (base bytes at ids **4..259**, plus learned merges). Every input id was offset by +4 from training, so the model's learned distribution decoded into control-char paddling (`_eb\u001clda\u001coan...`). | Garbage, unreadable output from `libra-llama-tied`. | `packages/providers/local_transformer.py` now encodes the prompt with `encode_string()` and decodes new tokens with `decode_tokens()` — byte-identical to the training pipeline. Output is now plain English-like text (the toy checkpoint is 468K params trained ~150 steps, so quality is intentionally limited). |
 | **RCA-10 (NEW)** | `data/tokenized/libra_educational_bpe.json` (untracked demo artifact) had **zero token overlap** with the lab corpus — it was saved by `run_phase2_tokenizer_demo.py` from a small unrelated sample. | Any consumer of the artifact used a mismatched vocabulary. | Regenerated from `data/raw/educational_science_corpus.txt` (`num_merges=30`, the arguments used by phases 3–5). `libra-llama-tied` inference no longer depends on this file (raw-byte encoding). |
-| **RCA-11 (NEW)** | **Default model hardcoded to `libra-mock-v1` across frontend and new session creation.** `ChatArea.tsx` and `page.tsx` initialized `selectedModel = 'libra-mock-v1'`, and `createConversation()` defaulted to `libra-mock-v1`. Any prompt sent by the user immediately routed to `MockProvider`, outputting `[MockStream] Hello from Libra! You said: "hii".` even though a real `GEMINI_API_KEY` was active in `.env`. | Real LLM was never used by default; user was confronted with mock echoes. | Created dynamic backend default model resolution `/api/v1/models/default` (`gemini-2.5-flash` when key is present). Updated `ChatArea.tsx`, `page.tsx`, and `api.ts` to default to `gemini-2.5-flash`, connecting user directly to real LLM. |
+| **RCA-11 (NEW)** | **Default model hardcoded to `libra-mock-v1` across frontend and new session creation.** `ChatArea.tsx` and `page.tsx` initialized `selectedModel = 'libra-mock-v1'`, and `createConversation()` defaulted to `libra-mock-v1`. Any prompt sent by the user immediately routed to `MockProvider`, outputting `[MockStream] Hello from Libra! You said: \"hii\".` even though a real `GEMINI_API_KEY` was active in `.env`. | Real LLM was never used by default; user was confronted with mock echoes. | Created dynamic backend default model resolution `/api/v1/models/default` (`gemini-2.5-flash` when key is present). Updated `ChatArea.tsx`, `page.tsx`, and `api.ts` to default to `gemini-2.5-flash`, connecting user directly to real LLM. |
 | **RCA-12 (NEW)** | **Consecutive duplicate assistant messages in SQLite & UI.** In `chat.py`, checking `last_stored_user.content != last_req_msg.content` globally meant when a user repeated a prompt (e.g. sending "hii" in turn 1 and "hii" in turn 2), the second user prompt was dropped from DB insertion. When the assistant finished streaming, its reply was appended directly after the prior assistant response, creating `[user, assistant, assistant]` in DB. On page reload, the UI rendered two consecutive assistant bubbles. Additionally, "Regenerate" failed to remove superseded assistant responses. | Corrupted conversation history with double assistant bubbles. | Refactored `chat.py` to strict turn validation: an incoming user turn preceded by an assistant message is always recognized and saved as a new turn (even with identical text). On Regenerate, the superseded assistant turn is removed via newly added `delete_message()` in `SQLiteConversationStore` so the new response cleanly replaces it. |
 
 ---
@@ -42,7 +56,7 @@ This second pass is fully verified end-to-end (live backend + frontend compilati
 
 ### A. Frontend — P0 state-wipe fix (`apps/frontend/src/components/ChatArea.tsx`)
 - Added `activeStreamRef` (true while a token stream runs; set in `executeStream`, cleared in `onComplete`, `onError`, and `handleStopGeneration`).
-- `loadConv()` (the `useEffect([conversationId])` DB reload) now returns early while `activeStreamRef.current` is set, so a reload can never replace the live message list mid-stream.
+- `loadConv()` (the `useEffect([conversationId])` DB reload) now returns early while a stream is active, so a reload can never replace the live message list mid-stream.
 - Behavior trade-off: switching conversations during an active generation is deferred until the stream ends (documented, matches typical chat UX).
 
 ### B. Backend — Regenerate dedupe (`apps/backend/api/v1/endpoints/chat.py`)
@@ -73,7 +87,7 @@ This second pass is fully verified end-to-end (live backend + frontend compilati
 - `tests/frontend/test_frontend_structure.py` — **4/4 PASS** (verified: `gemini-2.5-flash` configured production default, `activeStreamRef` guard in `ChatArea.tsx`).
 - **Full suite**: `579 passed, 0 failed, 0 skipped` (69.42s on CPU).
 - TypeScript compile (`npx tsc --noEmit` in `apps/frontend`): **0 errors**.
-- Ruff lint (`ruff check .`): **0 errors (All checks passed!)**.
+- Ruff lint (`ruff check .`): **0 errors (All checks passed!).
 - Live end-to-end verification against running server (`127.0.0.1:8000`):
   - User prompt `hii` returned live genuine response from `gemini-2.5-flash`: `"Hi there! How can I help you today? 😊"`.
   - Second prompt `hii` in same conversation preserved exact conversational turn alternation: `[user: 'hii', assistant: '...', user: 'hii', assistant: '...']` (4 total messages in SQLite DB, exactly 1 assistant per user turn, 0 consecutive assistant bubbles).
