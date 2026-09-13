@@ -126,8 +126,13 @@ export default function MedusaView() {
           temperature: 0.0,
         }),
       });
-      const data = await res.json();
-      setGenResult(data);
+      if (res.ok) {
+        const data = await res.json();
+        setGenResult(data);
+      } else {
+        console.error('Medusa generate failed:', res.status);
+        setGenResult(null);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -143,8 +148,13 @@ export default function MedusaView() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ max_new_tokens: 15 }),
       });
-      const data = await res.json();
-      setBenchData(data);
+      if (res.ok) {
+        const data = await res.json();
+        setBenchData(data);
+      } else {
+        console.error('Medusa benchmark failed:', res.status);
+        setBenchData(null);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -164,8 +174,13 @@ export default function MedusaView() {
           lr: 0.005,
         }),
       });
-      const data = await res.json();
-      setTrainData(data);
+      if (res.ok) {
+        const data = await res.json();
+        setTrainData(data);
+      } else {
+        console.error('Medusa train failed:', res.status);
+        setTrainData(null);
+      }
     } catch (e) {
       console.error(e);
     } finally {

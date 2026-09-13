@@ -122,9 +122,12 @@ class ProviderRouter:
             prov = self._providers["kimi"]
             if getattr(prov, "api_key", None):
                 return prov
+            nv_prov = self._providers["nvidia"]
+            if getattr(nv_prov, "api_key", None):
+                return nv_prov
             raise ValueError(
-                f"Kimi/Moonshot model '{model_id}' requested, but KIMI_API_KEY is not configured in .env. "
-                "Please configure KIMI_API_KEY or select a local/mock model."
+                f"Kimi/Moonshot model '{model_id}' requested, but KIMI_API_KEY (or NVIDIA_KIMI_API_KEY) is not configured in .env. "
+                "Please configure KIMI_API_KEY / NVIDIA_KIMI_API_KEY or select a local/mock model."
             )
 
         if (
@@ -135,9 +138,12 @@ class ProviderRouter:
             prov = self._providers["deepseek"]
             if getattr(prov, "api_key", None):
                 return prov
+            nv_prov = self._providers["nvidia"]
+            if getattr(nv_prov, "api_key", None):
+                return nv_prov
             raise ValueError(
-                f"DeepSeek model '{model_id}' requested, but DEEPSEEK_API_KEY is not configured in .env. "
-                "Please configure DEEPSEEK_API_KEY or select a local/mock model."
+                f"DeepSeek model '{model_id}' requested, but DEEPSEEK_API_KEY (or NVIDIA_DEEPSEEK_API_KEY) is not configured in .env. "
+                "Please configure DEEPSEEK_API_KEY / NVIDIA_DEEPSEEK_API_KEY or select a local/mock model."
             )
 
         if "groq" in model_lower:

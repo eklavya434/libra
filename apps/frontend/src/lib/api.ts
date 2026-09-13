@@ -590,6 +590,7 @@ export async function streamChat(
     conversationId?: string;
     useRag?: boolean;
     temperature?: number;
+    topP?: number;
     maxTokens?: number;
     signal?: AbortSignal;
     onConversationId?: (id: string) => void;
@@ -615,6 +616,7 @@ export async function streamChat(
         conversation_id: options.conversationId,
         use_rag: options.useRag ?? false,
         temperature: options.temperature ?? 0.7,
+        top_p: options.topP ?? 0.9,
         max_tokens: options.maxTokens ?? 512,
         stream: true,
       }),

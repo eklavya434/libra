@@ -208,9 +208,15 @@ export default function NotebookView() {
   // Restart kernel
   const restartKernel = async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/v1/notebook/sessions/${sessionId}/reset`, { method: 'POST' });
-      setCells((prev) => prev.map((c) => ({ ...c, output: null, isRunning: false })));
-      setVariables([]);
+      const res = await fetch(`${API_BASE_URL}/api/v1/notebook/sessions/${sessionId}/reset`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        setCells((prev) => prev.map((c) => ({ ...c, output: null, isRunning: false })));
+        setVariables([]);
+      } else {
+        console.error('Kernel reset failed:', res.status);
+      }
     } catch {
       // Offline fallback
     }

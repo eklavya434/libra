@@ -159,3 +159,36 @@ async def test_router_resolves_nvidia_provider():
 
     resolved_by_nim = router.get_provider("nim")
     assert isinstance(resolved_by_nim, NvidiaProvider)
+
+
+@pytest.mark.asyncio
+async def test_nvidia_model_specific_keys(monkeypatch):
+    monkeypatch.setenv("NVIDIA_API_KEY", "general-key")
+    monkeypatch.setenv("NVIDIA_DEEPSEEK_API_KEY", "deepseek-special-key")
+    monkeypatch.setenv("NVIDIA_KIMI_API_KEY", "kimi-special-key")
+
+    provider = NvidiaProvider()
+
+    assert (
+        provider.get_api_key_for_model("deepseek-ai/deepseek-v4-flash-0731")
+        == "deepseek-special-key"
+    )
+    assert provider.get_api_key_for_model("moonshotai/kimi-k2.6") == "kimi-special-key"
+    assert provider.get_api_key_for_model("nvidia/llama-3.1-nemotron-70b-instruct") == "general-key"
+
+    async def mock_handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["authorization"] == "Bearer deepseek-special-key"
+        payload = {
+            "id": "chatcmpl-test",
+            "choices": [{"message": {"role": "assistant", "content": "DeepSeek NIM output"}}],
+            "usage": {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10},
+        }
+        return httpx.Response(200, json=payload)
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(mock_handler))
+    provider._custom_client = client
+    res = await provider.chat(
+        [{"role": "user", "content": "Hi"}],
+        model="deepseek-ai/deepseek-v4-flash-0731",
+    )
+    assert res["choices"][0]["message"]["content"] == "DeepSeek NIM output"

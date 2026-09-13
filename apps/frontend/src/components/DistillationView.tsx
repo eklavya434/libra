@@ -157,17 +157,21 @@ export default function DistillationView() {
           custom_text: customText,
         }),
       });
-      const data = await res.json();
-      if (data.telemetry) {
-        setTelemetry(data.telemetry);
-        setCompressionStats(data.compression_stats);
-        setTrainSummary({
-          initialLoss: data.initial_total_loss,
-          finalLoss: data.final_total_loss,
-          initialAgree: data.initial_agreement,
-          finalAgree: data.final_agreement,
-          improvementPct: data.agreement_improvement_pct,
-        });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.telemetry) {
+          setTelemetry(data.telemetry);
+          setCompressionStats(data.compression_stats);
+          setTrainSummary({
+            initialLoss: data.initial_total_loss,
+            finalLoss: data.final_total_loss,
+            initialAgree: data.initial_agreement,
+            finalAgree: data.final_agreement,
+            improvementPct: data.agreement_improvement_pct,
+          });
+        }
+      } else {
+        console.error('Distillation train failed:', res.status);
       }
     } catch (e) {
       console.error(e);
@@ -189,9 +193,13 @@ export default function DistillationView() {
           top_k: 5,
         }),
       });
-      const data = await res.json();
-      if (data.temperature_analysis) {
-        setTempAnalyses(data.temperature_analysis);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.temperature_analysis) {
+          setTempAnalyses(data.temperature_analysis);
+        }
+      } else {
+        console.error('Soft labels analysis failed:', res.status);
       }
     } catch (e) {
       console.error(e);
@@ -209,8 +217,13 @@ export default function DistillationView() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ runs: 3 }),
       });
-      const data = await res.json();
-      setBenchmarkData(data);
+      if (res.ok) {
+        const data = await res.json();
+        setBenchmarkData(data);
+      } else {
+        console.error('Benchmark evaluation failed:', res.status);
+        setBenchmarkData(null);
+      }
     } catch (e) {
       console.error(e);
     } finally {

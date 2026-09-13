@@ -88,11 +88,13 @@ def calculate_padding_waste(
     # 1. Naive Batching (All sequences in chunks of max_batch_size, padded to chunk max_len)
     naive_total_tokens = 0
     naive_quadratic_cost = 0
+    naive_chunks: list[dict[str, Any]] = []
     for i in range(0, n, max_batch_size):
         chunk = sequence_lengths[i : i + max_batch_size]
         chunk_max = max(chunk)
         naive_total_tokens += len(chunk) * chunk_max
         naive_quadratic_cost += len(chunk) * (chunk_max**2)
+        naive_chunks.append({"max_length": chunk_max, "lengths": chunk})
 
     naive_padding_tokens = naive_total_tokens - sum_lengths
     naive_waste_pct = (
@@ -143,6 +145,8 @@ def calculate_padding_waste(
             "padding_tokens": naive_padding_tokens,
             "waste_pct": round(naive_waste_pct, 2),
             "quadratic_waste_pct": round(naive_quad_waste_pct, 2),
+            "sequence_lengths": sorted(sequence_lengths),
+            "chunks": naive_chunks,
         },
         "binned": {
             "total_tokens": binned_total_tokens,
@@ -151,6 +155,13 @@ def calculate_padding_waste(
             "waste_pct": round(binned_waste_pct, 2),
             "quadratic_waste_pct": round(binned_quad_waste_pct, 2),
             "num_buckets": len(buckets),
+            "buckets": [
+                {
+                    "max_length": b.max_length,
+                    "lengths": [len(s) for s in b.sequences],
+                }
+                for b in buckets
+            ],
         },
         "efficiency_gain_pct": round(efficiency_gain_pct, 2),
         "estimated_speedup": round(estimated_speedup, 2),

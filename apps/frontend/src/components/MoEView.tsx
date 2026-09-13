@@ -169,8 +169,13 @@ export default function MoEView() {
           lr: 0.005,
         }),
       });
-      const data = await res.json();
-      setTrainData(data);
+      if (res.ok) {
+        const data = await res.json();
+        setTrainData(data);
+      } else {
+        console.error('MoE train failed:', res.status);
+        setTrainData(null);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -182,8 +187,13 @@ export default function MoEView() {
     setIsCheckingUtil(true);
     try {
       const res = await fetch('/api/v1/moe/utilization');
-      const data = await res.json();
-      setUtilizationData(data);
+      if (res.ok) {
+        const data = await res.json();
+        setUtilizationData(data);
+      } else {
+        console.error('MoE utilization failed:', res.status);
+        setUtilizationData(null);
+      }
     } catch (e) {
       console.error(e);
     } finally {

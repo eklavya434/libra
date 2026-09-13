@@ -81,10 +81,15 @@ export default function ChatArea({
     // On-demand sequence analysis via API
     setHeatmapLoadingId(msg.id);
     try {
+      const sampleText = msg.content.slice(0, 500);
+      if (!sampleText.trim() || sampleText.trim().length < 2) {
+        // Telemetry analyzer requires at least 2 characters; skip empty/whitespace
+        return;
+      }
       const res = await fetch(`${API_BASE_URL}/api/v1/telemetry/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: msg.content.slice(0, 500) }),
+        body: JSON.stringify({ text: sampleText }),
       });
       if (res.ok) {
         const seqData = await res.json();
@@ -174,6 +179,7 @@ export default function ChatArea({
       conversationId,
       useRag,
       temperature,
+      topP,
       maxTokens,
       signal: controller.signal,
       onConversationId: (newConvId) => {

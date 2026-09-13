@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Play,
   CheckCircle2,
+  XCircle,
   AlertCircle,
   Sliders,
   TrendingUp,
@@ -533,7 +534,11 @@ export default function GrandCapstoneView() {
                         className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-800/40 transition"
                       >
                         <div className="flex items-center gap-3">
-                          <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                          {pillar.passed ? (
+                            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-rose-400 shrink-0" />
+                          )}
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-bold text-slate-200">
@@ -548,9 +553,15 @@ export default function GrandCapstoneView() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            VERIFIED (PASS)
-                          </span>
+                          {pillar.passed ? (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                              VERIFIED (PASS)
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                              NOT VERIFIED (FAIL)
+                            </span>
+                          )}
                           {isExpanded ? (
                             <ChevronDown className="h-4 w-4 text-slate-400" />
                           ) : (

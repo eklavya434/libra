@@ -46,15 +46,16 @@ export default function ObservabilityView() {
       setTraces(traceData.traces);
       setMetrics(metricData);
 
-      if (traceData.traces.length > 0 && !selectedTraceId) {
-        setSelectedTraceId(traceData.traces[0].trace_id);
+      if (traceData.traces.length > 0) {
+        // Only auto-select once; avoid churn when the user manually picks a trace.
+        setSelectedTraceId((prev) => prev ?? traceData.traces[0].trace_id);
       }
     } catch (e) {
       console.warn('Failed to load observability data:', e);
     } finally {
       setLoading(false);
     }
-  }, [selectedTraceId]);
+  }, []);
 
   useEffect(() => {
     loadData();

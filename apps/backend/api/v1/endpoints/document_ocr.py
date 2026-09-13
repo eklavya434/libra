@@ -287,6 +287,7 @@ async def upload_document(
         "status": "success",
         "filename": filename,
         "source": "upload",
+        "text": text,
         "text_preview": text[:500],
         "document": parsed.to_dict(),
     }

@@ -53,6 +53,8 @@ export default function LongContextView() {
   const [needle, setNeedle] = useState<string>('The secret access code to the vault is 849204.');
   const [targetKey, setTargetKey] = useState<string>('849204');
   const [prompt, setPrompt] = useState<string>('What is the secret access code to the vault?');
+  const [lengthsInput, setLengthsInput] = useState<string>('300, 600, 1000');
+  const [depthsInput, setDepthsInput] = useState<string>('0.1, 0.3, 0.5, 0.7, 0.9');
   const [lengths, setLengths] = useState<number[]>([300, 600, 1000]);
   const [depths, setDepths] = useState<number[]>([0.1, 0.3, 0.5, 0.7, 0.9]);
   const [gridResults, setGridResults] = useState<NeedleGridResult[]>([]);
@@ -78,6 +80,22 @@ export default function LongContextView() {
   // Run NIAH Grid
   const runNiahGrid = async () => {
     setIsEvaluating(true);
+    const parsedLengths = lengthsInput
+      .split(',')
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const parsedDepths = depthsInput
+      .split(',')
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n) && n >= 0 && n <= 1);
+
+    if (parsedLengths.length === 0 || parsedDepths.length === 0) {
+      setIsEvaluating(false);
+      return;
+    }
+    setLengths(parsedLengths);
+    setDepths(parsedDepths);
+
     try {
       const res = await fetch('/api/v1/long_context/evaluate/needle', {
         method: 'POST',
@@ -87,8 +105,8 @@ export default function LongContextView() {
           needle,
           target_key: targetKey,
           retrieval_prompt: prompt,
-          context_lengths: lengths,
-          depth_fractions: depths,
+          context_lengths: parsedLengths,
+          depth_fractions: parsedDepths,
         }),
       });
       if (res.ok) {
@@ -145,7 +163,7 @@ export default function LongContextView() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model,
-          context_length: multiLength,
+          context_length: Number.isFinite(multiLength) && multiLength > 0 ? multiLength : 600,
         }),
       });
       if (res.ok) {
@@ -262,6 +280,77 @@ export default function LongContextView() {
                   {lengths.length} × {depths.length} ({lengths.length * depths.length} cells)
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">Context Lengths × Depth Percentiles</p>
+              </div>
+            </div>
+
+            {/* Test Configuration */}
+            <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/40 space-y-4">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-teal-400" />
+                <h2 className="text-sm font-semibold text-slate-200">Test Configuration</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Model</label>
+                  <input
+                    type="text"
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    placeholder="mock or provider model name"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-teal-500"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Use <span className="font-mono text-teal-400">mock</span> for zero-cost offline trials, or a router
+                    model name.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Needle Fact (hidden in document)</label>
+                  <input
+                    type="text"
+                    value={needle}
+                    onChange={(e) => setNeedle(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Target Key (exact answer)</label>
+                  <input
+                    type="text"
+                    value={targetKey}
+                    onChange={(e) => setTargetKey(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Retrieval Prompt</label>
+                  <input
+                    type="text"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Context Lengths (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={lengthsInput}
+                    onChange={(e) => setLengthsInput(e.target.value)}
+                    placeholder="300, 600, 1000"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Depth Fractions 0–1 (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={depthsInput}
+                    onChange={(e) => setDepthsInput(e.target.value)}
+                    placeholder="0.1, 0.3, 0.5, 0.7, 0.9"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
               </div>
             </div>
 
@@ -619,6 +708,30 @@ export default function LongContextView() {
                   <Play className="w-3.5 h-3.5 fill-current" />
                   <span>{isMultiRunning ? 'Running...' : 'Run Multi-Needle Test'}</span>
                 </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Model</label>
+                  <input
+                    type="text"
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    placeholder="mock or provider model name"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Context Length (words)</label>
+                  <input
+                    type="number"
+                    min={100}
+                    max={2000}
+                    value={multiLength}
+                    onChange={(e) => setMultiLength(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">

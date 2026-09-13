@@ -86,6 +86,8 @@ MODEL_PRICING_TABLE: dict[str, ModelPricing] = {
     "nvidia/nemotron-4-340b-instruct": ModelPricing(1.50, 3.00),
     "mistralai/mistral-large-2-instruct": ModelPricing(2.00, 6.00),
     "deepseek-ai/deepseek-coder-6.7b-instruct": ModelPricing(0.20, 0.20),
+    "deepseek-ai/deepseek-v4-flash-0731": ModelPricing(0.14, 0.28),
+    "moonshotai/kimi-k2.6": ModelPricing(1.70, 1.70),
 }
 
 

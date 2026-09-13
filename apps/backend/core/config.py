@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     kimi_api_key: str = Field(default="", alias="KIMI_API_KEY")
     moonshot_api_key: str = Field(default="", alias="MOONSHOT_API_KEY")
     nvidia_api_key: str = Field(default="", alias="NVIDIA_API_KEY")
+    nvidia_deepseek_api_key: str = Field(default="", alias="NVIDIA_DEEPSEEK_API_KEY")
+    nvidia_kimi_api_key: str = Field(default="", alias="NVIDIA_KIMI_API_KEY")
 
     # Local Engine URLs
     ollama_base_url: str = Field(default="http://localhost:11434", alias="OLLAMA_BASE_URL")

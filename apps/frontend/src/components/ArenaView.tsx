@@ -308,7 +308,10 @@ export default function ArenaView() {
                       min="0.0"
                       max="1.5"
                       value={temperature}
-                      onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        setTemperature(Number.isFinite(v) ? v : 0.7);
+                      }}
                       className="w-16 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-indigo-300"
                     />
                   </div>
@@ -320,7 +323,10 @@ export default function ArenaView() {
                       min="32"
                       max="512"
                       value={maxTokens}
-                      onChange={(e) => setMaxTokens(parseInt(e.target.value, 10))}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        setMaxTokens(Number.isFinite(v) && v > 0 ? v : 128);
+                      }}
                       className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-right text-indigo-300"
                     />
                   </div>

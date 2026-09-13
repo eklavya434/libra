@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Layers,
   Play,
@@ -108,6 +108,7 @@ export default function BatchInferenceView() {
 
   // Analysis state
   const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const analyzeSeqRef = useRef(0);
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -131,6 +132,7 @@ export default function BatchInferenceView() {
   }, [fetchJobs]);
 
   const runAnalysis = useCallback(async () => {
+    const seq = ++analyzeSeqRef.current;
     try {
       const prompts = promptText.split('\n').map((s) => s.trim()).filter(Boolean);
       if (prompts.length === 0) return;
@@ -145,7 +147,10 @@ export default function BatchInferenceView() {
       });
       if (res.ok) {
         const data = await res.json();
-        setAnalysisResult(data);
+        // Only apply the latest response; ignore stale out-of-order results.
+        if (seq === analyzeSeqRef.current) {
+          setAnalysisResult(data);
+        }
       }
     } catch (err) {
       console.error('Failed to run batch analysis:', err);
@@ -153,7 +158,10 @@ export default function BatchInferenceView() {
   }, [promptText]);
 
   useEffect(() => {
-    runAnalysis();
+    const handler = setTimeout(() => {
+      runAnalysis();
+    }, 400);
+    return () => clearTimeout(handler);
   }, [runAnalysis]);
 
   const handleSubmitJob = async () => {
@@ -600,20 +608,49 @@ export default function BatchInferenceView() {
                     </p>
 
                     {/* Naive Visual Matrix */}
-                    <div className="space-y-1.5 p-3 rounded-lg bg-slate-900/80 border border-slate-800">
-                      {[15, 25, 45, 140].map((len, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-[10px] font-mono">
-                          <span className="w-12 text-slate-500">#{idx + 1} ({len}t)</span>
-                          <div className="flex-1 flex h-4 rounded overflow-hidden bg-slate-800">
-                            <div className="bg-blue-600 flex items-center justify-center text-[9px] text-white" style={{ width: `${(len / 140) * 100}%` }}>
-                              Real
+                    <div className="space-y-2 p-3 rounded-lg bg-slate-900/80 border border-slate-800">
+                      {(() => {
+                        const chunks =
+                          analysisResult.naive.chunks?.length > 0
+                            ? analysisResult.naive.chunks
+                            : [
+                                {
+                                  max_length:
+                                    analysisResult.naive.sequence_lengths[
+                                      analysisResult.naive.sequence_lengths.length - 1
+                                    ] || 1,
+                                  lengths: analysisResult.naive.sequence_lengths,
+                                },
+                              ];
+                        return chunks.map((chunk: { max_length: number; lengths: number[] }, ci: number) => (
+                          <React.Fragment key={ci}>
+                            <div className="text-[10px] text-red-400 font-mono">
+                              Chunk #{ci + 1} (max {chunk.max_length}t)
                             </div>
-                            <div className="bg-red-900/60 flex items-center justify-center text-[9px] text-red-300" style={{ width: `${((140 - len) / 140) * 100}%` }}>
-                              Waste ({140 - len} pad)
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                            {chunk.lengths.map((len: number, idx: number) => (
+                              <div key={idx} className="flex items-center gap-2 text-[10px] font-mono">
+                                <span className="w-12 text-slate-500">#{idx + 1} ({len}t)</span>
+                                <div className="flex-1 flex h-4 rounded overflow-hidden bg-slate-800">
+                                  <div
+                                    className="bg-blue-600 flex items-center justify-center text-[9px] text-white"
+                                    style={{ width: `${(len / chunk.max_length) * 100}%` }}
+                                  >
+                                    Real
+                                  </div>
+                                  <div
+                                    className="bg-red-900/60 flex items-center justify-center text-[9px] text-red-300"
+                                    style={{
+                                      width: `${((chunk.max_length - len) / chunk.max_length) * 100}%`,
+                                    }}
+                                  >
+                                    Waste ({chunk.max_length - len} pad)
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </React.Fragment>
+                        ));
+                      })()}
                     </div>
                   </div>
 
@@ -632,39 +669,38 @@ export default function BatchInferenceView() {
 
                     {/* Binned Visual Matrix */}
                     <div className="space-y-2 p-3 rounded-lg bg-slate-900/80 border border-slate-800">
-                      <div className="text-[10px] text-amber-400 font-mono">Bucket #1 (Short Sequences: max 25t)</div>
-                      {[15, 25].map((len, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-[10px] font-mono">
-                          <span className="w-12 text-slate-500">#{idx + 1} ({len}t)</span>
-                          <div className="flex-1 flex h-4 rounded overflow-hidden bg-slate-800">
-                            <div className="bg-blue-600 flex items-center justify-center text-[9px] text-white" style={{ width: `${(len / 25) * 100}%` }}>
-                              Real
+                      {(analysisResult.binned.buckets || []).map(
+                        (bucket: { max_length: number; lengths: number[] }, bi: number) => (
+                          <React.Fragment key={bi}>
+                            <div className="text-[10px] text-amber-400 font-mono">
+                              Bucket #{bi + 1} (max {bucket.max_length}t)
                             </div>
-                            {len < 25 && (
-                              <div className="bg-emerald-900/60 flex items-center justify-center text-[9px] text-emerald-300" style={{ width: `${((25 - len) / 25) * 100}%` }}>
-                                Pad ({25 - len})
+                            {bucket.lengths.map((len: number, idx: number) => (
+                              <div key={idx} className="flex items-center gap-2 text-[10px] font-mono">
+                                <span className="w-12 text-slate-500">#{idx + 1} ({len}t)</span>
+                                <div className="flex-1 flex h-4 rounded overflow-hidden bg-slate-800">
+                                  <div
+                                    className="bg-blue-600 flex items-center justify-center text-[9px] text-white"
+                                    style={{ width: `${(len / bucket.max_length) * 100}%` }}
+                                  >
+                                    Real
+                                  </div>
+                                  {len < bucket.max_length && (
+                                    <div
+                                      className="bg-emerald-900/60 flex items-center justify-center text-[9px] text-emerald-300"
+                                      style={{
+                                        width: `${((bucket.max_length - len) / bucket.max_length) * 100}%`,
+                                      }}
+                                    >
+                                      Pad ({bucket.max_length - len})
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-
-                      <div className="text-[10px] text-amber-400 font-mono mt-2">Bucket #2 (Long Sequences: max 140t)</div>
-                      {[45, 140].map((len, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-[10px] font-mono">
-                          <span className="w-12 text-slate-500">#{idx + 3} ({len}t)</span>
-                          <div className="flex-1 flex h-4 rounded overflow-hidden bg-slate-800">
-                            <div className="bg-blue-600 flex items-center justify-center text-[9px] text-white" style={{ width: `${(len / 140) * 100}%` }}>
-                              Real
-                            </div>
-                            {len < 140 && (
-                              <div className="bg-emerald-900/60 flex items-center justify-center text-[9px] text-emerald-300" style={{ width: `${((140 - len) / 140) * 100}%` }}>
-                                Pad ({140 - len})
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                            ))}
+                          </React.Fragment>
+                        )
+                      )}
                     </div>
                   </div>
                 </div>
