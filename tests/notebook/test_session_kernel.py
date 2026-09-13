@@ -105,3 +105,28 @@ def test_session_manager():
     deleted = manager.delete("sess_1")
     assert deleted is True
     assert manager.get("sess_1") is None
+
+
+def test_default_frontend_cell():
+    k = NotebookKernel("test_fe")
+    code = '# Define sample data and calculate sum\nx = 15\ny = 25\nprint(f"Computed sum: {x + y}")\nx + y'
+    out = k.execute(code)
+    assert out.status == "ok", f"Error: {out.stderr} | {out.error_message}"
+    assert out.result == "40"
+    assert "Computed sum: 40" in out.stdout
+
+
+def test_allowed_science_and_typing_imports():
+    k = NotebookKernel("test_imports")
+    code = """
+import math
+import json
+from typing import List, Dict
+
+data: Dict[str, int] = {"a": 10, "b": 20}
+json_str = json.dumps(data)
+math.sqrt(data["a"] + data["b"] + 6)
+"""
+    out = k.execute(code)
+    assert out.status == "ok", f"Error: {out.stderr}"
+    assert out.result == "6.0"

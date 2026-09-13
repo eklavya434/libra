@@ -35,6 +35,16 @@ ALLOWED_MODULES: Set[str] = {
     "bisect",
     "heapq",
     "sys",
+    "typing",
+    "dataclasses",
+    "enum",
+    "pathlib",
+    "numpy",
+    "torch",
+    "pandas",
+    "scipy",
+    "matplotlib",
+    "packages",
 }
 
 FORBIDDEN_CALLS: Set[str] = {

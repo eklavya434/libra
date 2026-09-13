@@ -8,13 +8,17 @@ tracking (In [x] / Out [x]), standard stream capture, and rich multi-MIME displa
 from __future__ import annotations
 
 import ast
+import collections
 import contextlib
+import datetime
 import io
+import json
 import math
 import random
 import re
 import statistics
 import time
+import traceback
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -73,6 +77,9 @@ class NotebookKernel:
         "random": random,
         "statistics": statistics,
         "re": re,
+        "json": json,
+        "datetime": datetime,
+        "collections": collections,
         "LibraTable": LibraTable,
         "LibraChart": LibraChart,
     }
@@ -184,15 +191,18 @@ class NotebookKernel:
 
                     if stmt_nodes:
                         stmt_mod = ast.Module(body=stmt_nodes, type_ignores=[])
+                        ast.fix_missing_locations(stmt_mod)
                         stmt_code = compile(stmt_mod, filename="<cell>", mode="exec")
                         exec(stmt_code, self._globals)  # noqa: S102
 
                     # Evaluate final expression
                     expr_mod = ast.Expression(body=expr_node.value)
+                    ast.fix_missing_locations(expr_mod)
                     expr_code = compile(expr_mod, filename="<cell>", mode="eval")
                     eval_result = eval(expr_code, self._globals)  # noqa: S102
                 else:
                     # Pure statements
+                    ast.fix_missing_locations(parsed)
                     full_code = compile(parsed, filename="<cell>", mode="exec")
                     exec(full_code, self._globals)  # noqa: S102
 
@@ -229,11 +239,14 @@ class NotebookKernel:
         except Exception as e:
             duration = (time.perf_counter() - start_time) * 1000.0
             err_msg = f"{type(e).__name__}: {e}"
+            tb_lines = traceback.format_exception(type(e), e, e.__traceback__)
+            clean_tb = "".join(line for line in tb_lines if "session_kernel.py" not in line)
+            err_output = clean_tb.strip() if clean_tb.strip() else err_msg
             return ExecutionOutput(
                 status="error",
                 execution_count=self.execution_count,
                 stdout=stdout_io.getvalue(),
-                stderr=stderr_io.getvalue() + f"\n{err_msg}".strip(),
+                stderr=(stderr_io.getvalue() + f"\n{err_output}").strip(),
                 error_message=err_msg,
                 duration_ms=duration,
                 variables=self.get_variables(),

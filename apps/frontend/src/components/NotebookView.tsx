@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   RefreshCw,
 } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api';
 
 interface VariableItem {
   name: string;
@@ -80,7 +81,7 @@ export default function NotebookView() {
   // Fetch presets and variables on mount
   const fetchPresets = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/notebook/presets');
+      const res = await fetch(`${API_BASE_URL}/api/v1/notebook/presets`);
       if (res.ok) {
         const data = await res.json();
         setPresets(data);
@@ -92,7 +93,7 @@ export default function NotebookView() {
 
   const fetchVariables = useCallback(async (sid: string) => {
     try {
-      const res = await fetch(`/api/v1/notebook/sessions/${sid}/variables`);
+      const res = await fetch(`${API_BASE_URL}/api/v1/notebook/sessions/${sid}/variables`);
       if (res.ok) {
         const data = await res.json();
         setVariables(data);
@@ -134,7 +135,7 @@ export default function NotebookView() {
     );
 
     try {
-      const res = await fetch(`/api/v1/notebook/sessions/${sessionId}/execute`, {
+      const res = await fetch(`${API_BASE_URL}/api/v1/notebook/sessions/${sessionId}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: cell.content }),
@@ -207,7 +208,7 @@ export default function NotebookView() {
   // Restart kernel
   const restartKernel = async () => {
     try {
-      await fetch(`/api/v1/notebook/sessions/${sessionId}/reset`, { method: 'POST' });
+      await fetch(`${API_BASE_URL}/api/v1/notebook/sessions/${sessionId}/reset`, { method: 'POST' });
       setCells((prev) => prev.map((c) => ({ ...c, output: null, isRunning: false })));
       setVariables([]);
     } catch {
