@@ -105,6 +105,16 @@ class OpenAIProvider(BaseProvider):
                 "error": str(e),
             }
 
+    def _normalize_model_id(self, model: str) -> str:
+        m = model.lower().strip()
+        if m in ("chatgpt", "chatgpt-4o", "chatgpt-latest"):
+            return "chatgpt-4o-latest"
+        if m in ("gpt-4", "gpt4"):
+            return "gpt-4o"
+        if m in ("gpt-4-mini", "gpt4-mini"):
+            return "gpt-4o-mini"
+        return model
+
     async def list_models(self) -> list[ModelMetadata]:
         return [
             ModelMetadata(
@@ -131,6 +141,42 @@ class OpenAIProvider(BaseProvider):
                 hardware_tier="cloud",
                 capabilities=self.capabilities(),
             ),
+            ModelMetadata(
+                id="chatgpt-4o-latest",
+                name="ChatGPT-4o Latest",
+                provider=self.name,
+                architecture="Proprietary Transformer",
+                context_length=128000,
+                license="Commercial API",
+                is_local=False,
+                requires_gpu=False,
+                hardware_tier="cloud",
+                capabilities=self.capabilities(),
+            ),
+            ModelMetadata(
+                id="o1",
+                name="OpenAI o1 Reasoning",
+                provider=self.name,
+                architecture="Proprietary Reasoning Transformer",
+                context_length=200000,
+                license="Commercial API",
+                is_local=False,
+                requires_gpu=False,
+                hardware_tier="cloud",
+                capabilities=self.capabilities(),
+            ),
+            ModelMetadata(
+                id="o1-mini",
+                name="OpenAI o1-mini Reasoning",
+                provider=self.name,
+                architecture="Proprietary Reasoning Transformer",
+                context_length=128000,
+                license="Commercial API",
+                is_local=False,
+                requires_gpu=False,
+                hardware_tier="cloud",
+                capabilities=self.capabilities(),
+            ),
         ]
 
     async def chat(
@@ -144,8 +190,9 @@ class OpenAIProvider(BaseProvider):
         **kwargs: Any,
     ) -> dict[str, Any]:
         headers = self._get_headers()
+        norm_model = self._normalize_model_id(model)
         payload = {
-            "model": model,
+            "model": norm_model,
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
@@ -170,7 +217,7 @@ class OpenAIProvider(BaseProvider):
         usage = data.get("usage", {})
         prompt_tokens = usage.get("prompt_tokens", 0)
         completion_tokens = usage.get("completion_tokens", 0)
-        cost_info = calculate_cost(model, prompt_tokens, completion_tokens)
+        cost_info = calculate_cost(norm_model, prompt_tokens, completion_tokens)
 
         data["cost"] = cost_info
         return data
@@ -186,8 +233,9 @@ class OpenAIProvider(BaseProvider):
         **kwargs: Any,
     ) -> AsyncIterator[str]:
         headers = self._get_headers()
+        norm_model = self._normalize_model_id(model)
         payload = {
-            "model": model,
+            "model": norm_model,
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,

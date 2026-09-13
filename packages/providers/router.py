@@ -16,6 +16,7 @@ from packages.providers.gemini import GeminiProvider
 from packages.providers.generic_openai import OpenRouterProvider
 from packages.providers.groq import GroqProvider
 from packages.providers.huggingface import HuggingFaceProvider
+from packages.providers.kimi import KimiProvider
 from packages.providers.local_transformer import LocalTransformerProvider
 from packages.providers.mock import MockProvider
 from packages.providers.ollama import OllamaProvider
@@ -37,6 +38,7 @@ class ProviderRouter:
             "anthropic": AnthropicProvider(),
             "deepseek": DeepSeekProvider(),
             "groq": GroqProvider(),
+            "kimi": KimiProvider(),
             "openrouter": OpenRouterProvider(),
             "vllm": VLLMProvider(),
         }
@@ -59,6 +61,8 @@ class ProviderRouter:
             return self._providers["anthropic"]
         if "google" in name_clean:
             return self._providers["gemini"]
+        if "kimi" in name_clean or "moonshot" in name_clean:
+            return self._providers["kimi"]
         if "hf" in name_clean or "hugging" in name_clean:
             return self._providers["huggingface"]
         if "lab" in name_clean or "libra" in name_clean:
@@ -81,6 +85,7 @@ class ProviderRouter:
         if (
             model_lower.startswith("gpt-")
             or model_lower.startswith("o1")
+            or model_lower.startswith("chatgpt")
             or model_lower.startswith("text-embedding")
         ):
             prov = self._providers["openai"]
@@ -109,7 +114,20 @@ class ProviderRouter:
                 "Please configure ANTHROPIC_API_KEY or select a local/mock model."
             )
 
-        if "deepseek" in model_lower and not model_lower.startswith("deepseek-r1:"):
+        if "kimi" in model_lower or "moonshot" in model_lower:
+            prov = self._providers["kimi"]
+            if getattr(prov, "api_key", None):
+                return prov
+            raise ValueError(
+                f"Kimi/Moonshot model '{model_id}' requested, but KIMI_API_KEY is not configured in .env. "
+                "Please configure KIMI_API_KEY or select a local/mock model."
+            )
+
+        if (
+            "deepseek" in model_lower
+            and not model_lower.startswith("deepseek-r1:")
+            and "coder" not in model_lower
+        ):
             prov = self._providers["deepseek"]
             if getattr(prov, "api_key", None):
                 return prov
@@ -136,7 +154,14 @@ class ProviderRouter:
                 "Please configure OPENROUTER_API_KEY or select a local/mock model."
             )
 
-        # 2. Local routing
+        # 2. OpenCode / Coder specialist routing
+        if "opencode" in model_lower or "coder" in model_lower:
+            ollama_health = await self._providers["ollama"].health()
+            if ollama_health.get("connected"):
+                return self._providers["ollama"]
+            return self._providers["mock-provider"]
+
+        # 3. Local routing
         if model_lower.startswith("hf/") or "gpt2" in model_lower:
             return self._providers["huggingface"]
 

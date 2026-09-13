@@ -41,14 +41,32 @@ MODEL_PRICING_TABLE: dict[str, ModelPricing] = {
     "qwen2.5:1.5b": ModelPricing(0.0, 0.0, is_free=True),
     "qwen2.5:7b": ModelPricing(0.0, 0.0, is_free=True),
     "hf/gpt2": ModelPricing(0.0, 0.0, is_free=True),
-    # --- OPENAI COMMERCIAL MODELS ---
+    # --- OPEN-WEIGHT CODING SPECIALIST MODELS ($0.00 / ₹0.00) ---
+    "opencodeinterpreter:6.7b": ModelPricing(0.0, 0.0, is_free=True),
+    "opencodeinterpreter:33b": ModelPricing(0.0, 0.0, is_free=True),
+    "qwen2.5-coder:7b": ModelPricing(0.0, 0.0, is_free=True),
+    "deepseek-coder:6.7b": ModelPricing(0.0, 0.0, is_free=True),
+    # --- OPENAI / CHATGPT COMMERCIAL MODELS ---
     "gpt-4o": ModelPricing(2.50, 10.00),
     "gpt-4o-mini": ModelPricing(0.15, 0.60),
+    "chatgpt-4o-latest": ModelPricing(5.00, 15.00),
+    "chatgpt": ModelPricing(2.50, 10.00),
     "o1": ModelPricing(15.00, 60.00),
     "o1-mini": ModelPricing(3.00, 12.00),
     # --- ANTHROPIC CLAUDE COMMERCIAL MODELS ---
     "claude-3-5-sonnet-20241022": ModelPricing(3.00, 15.00),
+    "claude-3-5-sonnet": ModelPricing(3.00, 15.00),
     "claude-3-5-haiku-20241022": ModelPricing(0.80, 4.00),
+    "claude-3-5-haiku": ModelPricing(0.80, 4.00),
+    "claude-3-opus-20240229": ModelPricing(15.00, 75.00),
+    "claude-3-opus": ModelPricing(15.00, 75.00),
+    "claude": ModelPricing(3.00, 15.00),
+    # --- MOONSHOT AI / KIMI COMMERCIAL MODELS ---
+    "kimi-k1.5": ModelPricing(2.00, 8.00),
+    "kimi": ModelPricing(1.70, 1.70),
+    "moonshot-v1-8k": ModelPricing(1.70, 1.70),
+    "moonshot-v1-32k": ModelPricing(3.40, 3.40),
+    "moonshot-v1-128k": ModelPricing(8.50, 8.50),
     # --- GOOGLE GEMINI MODELS ---
     "gemini-1.5-flash": ModelPricing(0.075, 0.30),
     "gemini-1.5-pro": ModelPricing(1.25, 5.00),

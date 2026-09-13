@@ -20,6 +20,7 @@ from packages.providers.gemini import GeminiProvider
 from packages.providers.generic_openai import GenericOpenAIProvider, OpenRouterProvider
 from packages.providers.groq import GroqProvider
 from packages.providers.huggingface import HuggingFaceProvider
+from packages.providers.kimi import KimiProvider
 from packages.providers.local_transformer import LocalTransformerProvider
 from packages.providers.mock import MockProvider
 from packages.providers.ollama import OllamaProvider
@@ -44,6 +45,7 @@ __all__ = [
     "AnthropicProvider",
     "DeepSeekProvider",
     "GroqProvider",
+    "KimiProvider",
     "OpenRouterProvider",
     "GenericOpenAIProvider",
     "PromptTemplate",

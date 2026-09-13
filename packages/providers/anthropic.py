@@ -74,6 +74,16 @@ class AnthropicProvider(BaseProvider):
             }
         return {"status": "online", "provider": self.name, "configured": True}
 
+    def _normalize_model_id(self, model: str) -> str:
+        m = model.lower().strip()
+        if m in ("claude-3-5-sonnet", "claude-sonnet", "claude-3.5-sonnet", "claude"):
+            return "claude-3-5-sonnet-20241022"
+        if m in ("claude-3-5-haiku", "claude-haiku", "claude-3.5-haiku"):
+            return "claude-3-5-haiku-20241022"
+        if m in ("claude-3-opus", "claude-opus", "claude-3.0-opus"):
+            return "claude-3-opus-20240229"
+        return model
+
     async def list_models(self) -> list[ModelMetadata]:
         return [
             ModelMetadata(
@@ -91,6 +101,18 @@ class AnthropicProvider(BaseProvider):
             ModelMetadata(
                 id="claude-3-5-haiku-20241022",
                 name="Claude 3.5 Haiku",
+                provider=self.name,
+                architecture="Proprietary Transformer",
+                context_length=200000,
+                license="Commercial API",
+                is_local=False,
+                requires_gpu=False,
+                hardware_tier="cloud",
+                capabilities=self.capabilities(),
+            ),
+            ModelMetadata(
+                id="claude-3-opus-20240229",
+                name="Claude 3 Opus",
                 provider=self.name,
                 architecture="Proprietary Transformer",
                 context_length=200000,
@@ -126,9 +148,10 @@ class AnthropicProvider(BaseProvider):
     ) -> dict[str, Any]:
         headers = self._get_headers()
         system_prompt, clean_msgs = self._extract_system_and_messages(messages)
+        norm_model = self._normalize_model_id(model)
 
         payload: dict[str, Any] = {
-            "model": model,
+            "model": norm_model,
             "messages": clean_msgs,
             "max_tokens": max_tokens,
             "temperature": temperature,
@@ -152,12 +175,12 @@ class AnthropicProvider(BaseProvider):
         usage = data.get("usage", {})
         prompt_tokens = usage.get("input_tokens", 0)
         completion_tokens = usage.get("output_tokens", 0)
-        cost_info = calculate_cost(model, prompt_tokens, completion_tokens)
+        cost_info = calculate_cost(norm_model, prompt_tokens, completion_tokens)
 
         return {
             "id": data.get("id", f"anthropic-{int(time.time())}"),
             "provider": self.name,
-            "model": model,
+            "model": norm_model,
             "choices": [
                 {
                     "index": 0,
@@ -184,9 +207,10 @@ class AnthropicProvider(BaseProvider):
     ) -> AsyncIterator[str]:
         headers = self._get_headers()
         system_prompt, clean_msgs = self._extract_system_and_messages(messages)
+        norm_model = self._normalize_model_id(model)
 
         payload: dict[str, Any] = {
-            "model": model,
+            "model": norm_model,
             "messages": clean_msgs,
             "max_tokens": max_tokens,
             "temperature": temperature,

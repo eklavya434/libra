@@ -77,8 +77,8 @@ This second pass is fully verified end-to-end (live backend + frontend compilati
 
 ### 1. Live End-to-End Checks (backend PID running on `127.0.0.1:8000`)
 - **Mock streaming chat**: `200 OK`, SSE with `X-Conversation-Id`, token chunks, `[DONE]`. Verified `roles == ['user', 'assistant']` persisted.
-- **Regenerate simulation**: re-sending the identical tail user message yields `['user','assistant','assistant']` — **no duplicate user message**.
-- **New turn appended**: `['user','assistant','assistant','user','assistant']`.
+- **Regenerate simulation**: re-sending the identical tail user message replaces the prior assistant turn: `['user','assistant']` — **no duplicate user message, no duplicate assistant bubble**.
+- **New turn appended after regenerate**: `['user','assistant','user','assistant']`.
 - **Local lab model (`libra-llama-tied`)**: returns plain-English-like text (no control characters), e.g. prompt "What is a transformer?" → `'and tatat. rat titiftat...'`.
 
 ### 2. Automated Regression Tests
