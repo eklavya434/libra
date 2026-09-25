@@ -2,6 +2,8 @@
 Tests for Document OCR & Understanding API endpoints (apps/backend/api/v1/endpoints/document_ocr.py)
 """
 
+import asyncio
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -110,7 +112,7 @@ def test_upload_persists_stored_object_and_serves_it_back(memory_storage, client
     assert storage["backend"] == "memory"
     assert storage["key"] is not None
     assert storage["key"].startswith("documents/")
-    assert memory_storage.exists(storage["key"])
+    assert asyncio.run(memory_storage.exists(storage["key"]))
 
     served = client.get(f"/api/v1/document/files/{storage['key']}")
     assert served.status_code == 200
