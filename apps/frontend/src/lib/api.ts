@@ -1,4 +1,12 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+// Same-origin by default: in the deployment every /api/* request is proxied to
+// the backend by next.config rewrites, so browsers talk only to the frontend
+// origin (no CORS). NEXT_PUBLIC_API_URL is an escape hatch for standalone use
+// (e.g. hitting the FastAPI backend directly while developing the API alone).
+export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+
+const apiPath = (path: string): string => `${API_BASE_URL}${path}`;
+
+export { apiPath };
 
 // ---------------------------------------------------------------------------
 // Guest session identity
@@ -51,7 +59,7 @@ export async function bootstrapSession(): Promise<string | null> {
     try {
       // Intentionally a plain fetch WITHOUT the session header: the backend
       // mints a fresh session for callers that have none.
-      const res = await plainFetch(`${API_BASE_URL}/api/v1/auth/session`, {
+      const res = await plainFetch(apiPath("/api/v1/auth/session"), {
         headers: { "Accept": "application/json" },
       });
       const body: Record<string, unknown> = await res.json().catch(() => ({}));
@@ -415,36 +423,15 @@ export async function runArenaTournament(
 
 export async function fetchModels(): Promise<ModelMetadata[]> {
   try {
-    const res = await libraFetch(`${API_BASE_URL}/api/v1/models`);
+    const res = await libraFetch(apiPath("/api/v1/models"));
     if (!res.ok) throw new Error("Failed to fetch models");
     const json = await res.json();
     return json.models || [];
   } catch (err) {
-    console.warn("Could not fetch models, falling back to local defaults:", err);
-    return [
-      {
-        id: "libra-mock-v1",
-        name: "Libra Mock Engine v1",
-        provider: "mock-provider",
-        architecture: "Simulation",
-        context_length: 512,
-        parameter_count: "1M",
-        hardware_tier: "cpu-light",
-        is_local: true,
-        requires_gpu: false,
-      },
-      {
-        id: "libra-llama-tied",
-        name: "Libra Modern Transformer (Phase 4)",
-        provider: "libra_lab",
-        architecture: "Modern Transformer LM",
-        context_length: 512,
-        parameter_count: "467K",
-        hardware_tier: "cpu-light",
-        is_local: true,
-        requires_gpu: false,
-      },
-    ];
+    // Honest empty list: the UI must not pretend mock engines exist. The
+    // model selector shows an "unavailable" state instead.
+console.warn("Could not fetch models:", err);
+    return [];
   }
 }
 
@@ -482,7 +469,7 @@ export async function fetchConversations(): Promise<ConversationSummary[]> {
   }
 }
 
-export async function fetchDefaultModel(): Promise<string> {
+export async function fetchDefaultModel(): Promise<string | null> {
   try {
     const res = await libraFetch(`${API_BASE_URL}/api/v1/models/default`);
     if (res.ok) {
@@ -490,9 +477,9 @@ export async function fetchDefaultModel(): Promise<string> {
       if (data.default_model) return data.default_model;
     }
   } catch {
-    // fallback
+    // network error: report no configured default
   }
-  return "gemini-2.5-flash";
+  return null;
 }
 
 export async function createConversation(
@@ -506,7 +493,7 @@ export async function createConversation(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
-        model: model || "gemini-2.5-flash",
+        ...(model ? { model } : {}),
         system_prompt: systemPrompt,
       }),
     });

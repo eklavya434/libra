@@ -13,6 +13,7 @@ import {
   ChatTelemetry,
   fetchConversation,
   clearConversationMessages,
+  fetchDefaultModel,
   API_BASE_URL,
 } from '@/lib/api';
 
@@ -47,8 +48,10 @@ export default function ChatArea({
   ]);
 
   const [input, setInput] = useState('');
-  // Production default: configured frontier LLM (gemini-2.5-flash)
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
+  // Production default is resolved from the backend (/models/default) so the UI
+  // never hardcodes a model that may be unconfigured. Empty string = server-side
+  // configuration has not yet loaded.
+  const [selectedModel, setSelectedModel] = useState('');
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(512);
   const [topP, setTopP] = useState(0.9);
@@ -152,6 +155,18 @@ export default function ChatArea({
     }
     loadConv();
   }, [conversationId]);
+
+  // Resolve the backend-recommended default model once the real provider
+  // configuration is known. Never hardcode a provider id here.
+  useEffect(() => {
+    let cancelled = false;
+    fetchDefaultModel().then((defaultModel) => {
+      if (!cancelled && defaultModel) setSelectedModel(defaultModel);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -520,10 +535,14 @@ export default function ChatArea({
             </span>
             <button
               type="button"
-              onClick={() => setSelectedModel('gemini-2.5-flash')}
+              onClick={() => {
+                fetchDefaultModel().then((dm) => {
+                  if (dm && dm !== 'libra-mock-v1') setSelectedModel(dm);
+                });
+              }}
               className="text-[11px] font-medium text-amber-200 hover:text-white bg-amber-500/20 hover:bg-amber-500/30 px-2.5 py-1 rounded-md transition-colors"
             >
-              Switch to Gemini 2.5 Flash →
+              Switch to configured model →
             </button>
           </div>
         )}
@@ -533,7 +552,13 @@ export default function ChatArea({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={loading}
-            placeholder={loading ? 'Generating response...' : `Message ${selectedModel}...`}
+            placeholder={
+              loading
+                ? 'Generating response...'
+                : selectedModel
+                  ? `Message ${selectedModel}...`
+                  : 'No provider configured yet — add an API key or start Ollama'
+            }
             className="w-full bg-slate-900/90 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 disabled:opacity-60 rounded-xl px-4 py-3 pr-12 text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
           />
 

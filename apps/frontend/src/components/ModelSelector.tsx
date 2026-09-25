@@ -25,14 +25,23 @@ export default function ModelSelector({ selectedModel, onSelectModel }: ModelSel
   }, []);
 
   const currentModel = models.find((m) => m.id === selectedModel) || {
-    id: selectedModel,
-    name: selectedModel,
+    id: selectedModel || '',
+    name: selectedModel || 'No model selected',
     provider: 'local',
     architecture: 'Transformer',
     hardware_tier: 'cpu-light',
     is_local: true,
     available: true,
   };
+
+  // When no model is selected yet, surface the first actually-available model so
+  // the chat never silently submits an unconfigured id.
+  useEffect(() => {
+    if (!selectedModel && models.length > 0) {
+      const firstReady = models.find((m) => m.available !== false);
+      if (firstReady) onSelectModel(firstReady.id);
+    }
+  }, [models, selectedModel, onSelectModel]);
 
   const readyCount = models.filter((m) => m.available !== false).length;
 

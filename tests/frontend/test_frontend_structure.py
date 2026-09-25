@@ -13,6 +13,19 @@ def test_frontend_project_structure():
     assert (frontend_dir / "src" / "components").exists(), "src/components must exist"
 
 
+def test_root_is_a_public_landing_page_linking_into_chat():
+    """The single public URL serves a recruiter-facing landing page, not the raw shell."""
+    landing = (Path("apps/frontend/src/app") / "page.tsx").read_text(encoding="utf-8")
+    chat_page = (Path("apps/frontend/src/app/chat") / "page.tsx").read_text(encoding="utf-8")
+
+    # Root must lead visitors into the assistant app
+    assert 'href="/chat"' in landing
+    assert "Start chatting" in landing
+    # The app shell lives at /chat, not at the root
+    assert "activeTab" in chat_page
+    assert "Sidebar" in chat_page
+
+
 def test_frontend_key_components_present():
     """Verify critical React components exist for chat and educational features."""
     components_dir = Path("apps/frontend/src/components")
@@ -23,12 +36,29 @@ def test_frontend_key_components_present():
 
 
 def test_chat_defaults_to_configured_real_provider():
-    """Verify chat interface defaults to the configured production LLM."""
+    """Verify chat resolves the default model from the backend, never hardcodes it."""
     chat_area = (Path("apps/frontend/src/components") / "ChatArea.tsx").read_text(encoding="utf-8")
-    page = (Path("apps/frontend/src/app") / "page.tsx").read_text(encoding="utf-8")
+    chat_page = (Path("apps/frontend/src/app/chat") / "page.tsx").read_text(encoding="utf-8")
+    landing = (Path("apps/frontend/src/app") / "page.tsx").read_text(encoding="utf-8")
+    api = (Path("apps/frontend/src/lib") / "api.ts").read_text(encoding="utf-8")
 
-    assert "useState('gemini-2.5-flash')" in chat_area
-    assert "createConversation('New Conversation', 'gemini-2.5-flash')" in page
+    # No hardcoded production model id anywhere in the chat path or the landing
+    assert "gemini-2.5-flash" not in chat_area
+    assert "gemini-2.5-flash" not in chat_page
+    assert "gemini-2.5-flash" not in landing
+    assert "gemini-2.5-flash" not in api
+
+    # The default is resolved from the backend /models/default endpoint
+    assert "fetchDefaultModel" in chat_area
+    assert "fetchDefaultModel" in chat_page
+    assert "models/default" in api
+
+    # New conversations omit the model so the backend resolves a configured provider
+    assert "configuredDefaultModel ?? undefined" in chat_page
+    assert "...(model ? { model } : {})" in api
+
+    # Model listing is honest: failure yields an empty list, never a mock fallback
+    assert "libra-mock-v1" not in api
 
 
 def test_chat_area_guards_db_reload_during_active_stream():
