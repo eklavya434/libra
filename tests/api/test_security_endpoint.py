@@ -67,12 +67,22 @@ def test_security_headers_middleware_present(client):
 
 
 def test_middleware_returns_429_when_bucket_exhausted(client):
-    # burts capacity is 30; a fresh bucket (conftest autouse fixture) allows 30,
+    # Burst capacity is 30; a fresh bucket (conftest autouse fixture) allows 30,
     # the 31st request on a compute prefix must be throttled with 429.
-    for _ in range(30):
-        resp = client.get("/api/v1/security/stats")
-        assert resp.status_code == 200, "burst capacity should permit 30 requests"
-    throttled = client.get("/api/v1/security/stats")
-    assert throttled.status_code == 429
-    assert "Retry-After" in throttled.headers
-    assert throttled.json()["detail"] == "Too many requests. Rate limit exceeded."
+    # Freeze replenish for the duration so a slow test loop cannot refill tokens
+    # and mask the throttle (2 tokens/sec refill would otherwise race ~0.5s loops).
+    from apps.backend.middleware.security import get_global_rate_limiter
+
+    limiter = get_global_rate_limiter()
+    original_replenish = limiter.replenish_rate
+    limiter.replenish_rate = 0.0
+    try:
+        for _ in range(30):
+            resp = client.get("/api/v1/security/stats")
+            assert resp.status_code == 200, "burst capacity should permit 30 requests"
+        throttled = client.get("/api/v1/security/stats")
+        assert throttled.status_code == 429
+        assert "Retry-After" in throttled.headers
+        assert throttled.json()["detail"] == "Too many requests. Rate limit exceeded."
+    finally:
+        limiter.replenish_rate = original_replenish

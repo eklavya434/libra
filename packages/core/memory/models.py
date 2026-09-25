@@ -69,7 +69,9 @@ class CreateConversationRequest(BaseModel):
     """Payload to initialize a new conversation."""
 
     title: Optional[str] = Field(None, description="Optional initial conversation title")
-    model: str = Field("libra-llama-tied", description="Target model ID")
+    # None lets the backend resolve the recommended configured model rather than
+    # silently defaulting to a local/experimental model on a public deployment.
+    model: Optional[str] = Field(None, description="Target model ID; backend resolves when omitted")
     system_prompt: Optional[str] = Field(
         None, description="Optional persistent system instructions"
     )

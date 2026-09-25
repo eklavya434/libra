@@ -522,10 +522,35 @@ class SQLiteConversationStore:
 _global_store: Optional[SQLiteConversationStore] = None
 
 
-def get_conversation_store() -> SQLiteConversationStore:
-    """Singleton factory for application-wide SQLite conversation store."""
+def get_conversation_store():
+    """Singleton factory for the application-wide conversation store.
+
+    Uses PostgreSQL (Supabase) when ``DATABASE_URL`` is configured and psycopg
+    is importable; otherwise falls back to the SQLite store so the product keeps
+    working with a warning (graceful degradation).
+    """
     global _global_store
-    if _global_store is None:
-        db_path = os.getenv("LIBRA_DB_PATH", "data/conversations.db")
-        _global_store = SQLiteConversationStore(db_path=db_path)
+    if _global_store is not None:
+        return _global_store
+
+    database_url = os.getenv("DATABASE_URL", "").strip()
+    if database_url:
+        try:
+            from packages.core.memory.postgres_store import PostgresConversationStore
+
+            store = PostgresConversationStore(database_url=database_url)
+            store.init_schema()
+            _global_store = store  # type: ignore[assignment]
+            return _global_store
+        except Exception as exc:  # pragma: no cover - env dependent
+            # Log and fall back to SQLite; never crash startup because a remote
+            # database is temporarily unreachable.
+            import logging
+
+            logging.getLogger("libra.memory").warning(
+                "Postgres store unavailable (%s); falling back to SQLite.", exc
+            )
+
+    db_path = os.getenv("LIBRA_DB_PATH", "data/conversations.db")
+    _global_store = SQLiteConversationStore(db_path=db_path)
     return _global_store

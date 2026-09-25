@@ -169,13 +169,15 @@ async def test_provider_router_heuristics_for_new_models():
     prov_claude = await router.resolve_provider_for_model("claude-3-opus-20240229")
     assert prov_claude.name == "anthropic"
 
-    # 4. OpenCode / Coder routing with mock Ollama offline
+    # 4. OpenCode / Coder with Ollama offline must fail loudly — public requests
+    # must never degrade silently to MockProvider. The error carries an
+    # actionable "start Ollama / pull" instruction.
     async def mock_ollama_offline():
         return {"connected": False, "status": "offline"}
 
     router.providers["ollama"].health = mock_ollama_offline
-    prov_opencode = await router.resolve_provider_for_model("opencodeinterpreter:6.7b")
-    assert prov_opencode.name == "mock-provider"
+    with pytest.raises(ValueError, match="Ollama"):
+        await router.resolve_provider_for_model("opencodeinterpreter:6.7b")
 
     # 5. OpenCode / Coder routing with mock Ollama connected
     async def mock_ollama_online():

@@ -5,12 +5,22 @@ Tests for Document OCR & Understanding API endpoints (apps/backend/api/v1/endpoi
 import pytest
 from fastapi.testclient import TestClient
 
+from apps.backend.api.v1.endpoints import document_ocr as document_endpoint
 from apps.backend.main import app
+from packages.core.storage import MemoryObjectStore
 
 
 @pytest.fixture
 def client():
     return TestClient(app)
+
+
+@pytest.fixture
+def memory_storage(monkeypatch):
+    """Route document uploads to an explicit in-memory object store for tests."""
+    store = MemoryObjectStore()
+    monkeypatch.setattr(document_endpoint, "get_object_store", lambda: store)
+    return store
 
 
 def test_get_document_presets(client):
@@ -86,6 +96,35 @@ def test_upload_txt_document_endpoint(client):
     assert doc["title"] == "meeting"
     assert doc["num_pages"] == 1
     assert doc["total_elements"] >= 2
+
+
+def test_upload_persists_stored_object_and_serves_it_back(memory_storage, client):
+    content = "# Stored Plan\n| Step | Time |\n| A | 1h |\n"
+    response = client.post(
+        "/api/v1/document/upload",
+        files={"file": ("plan.md", content.encode("utf-8"), "text/markdown")},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    storage = data["storage"]
+    assert storage["backend"] == "memory"
+    assert storage["key"] is not None
+    assert storage["key"].startswith("documents/")
+    assert memory_storage.exists(storage["key"])
+
+    served = client.get(f"/api/v1/document/files/{storage['key']}")
+    assert served.status_code == 200
+    assert served.content == content.encode("utf-8")
+
+
+def test_files_endpoint_rejects_non_document_keys(client):
+    response = client.get("/api/v1/document/files/not-a-document/x.bin")
+    assert response.status_code == 404
+
+
+def test_files_endpoint_404_for_missing_object(memory_storage, client):
+    response = client.get("/api/v1/document/files/documents/000000000000/missing.bin")
+    assert response.status_code == 404
 
 
 def test_upload_image_returns_501(client):

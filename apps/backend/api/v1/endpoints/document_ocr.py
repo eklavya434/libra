@@ -7,15 +7,19 @@ and grounded visual question answering with table/cell citations.
 from __future__ import annotations
 
 import io
+import mimetypes
+import uuid
 from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from packages.core.document.document_qa import DocumentQAEngine
 from packages.core.document.layout_chunker import LayoutAwareChunker
 from packages.core.document.layout_parser import DocumentLayoutParser
+from packages.core.storage import get_object_store
 
 router = APIRouter(prefix="/document", tags=["Document Understanding & OCR"])
 
@@ -283,6 +287,26 @@ async def upload_document(
     doc_title = title or Path(filename).stem
     parsed = parser.parse_document_text(raw_text=text, title=doc_title)
 
+    # Persist the raw object through the configured object store so uploads are
+    # not lost when the process restarts. Failures are surfaced honestly rather
+    # than silently pretending the file was saved.
+    storage = {"backend": "none", "key": None, "signed_url": None}
+    try:
+        store = get_object_store()
+        key = f"documents/{uuid.uuid4().hex[:12]}/{Path(filename).name}"
+        await store.save(
+            key,
+            raw,
+            content_type=file.content_type
+            or mimetypes.guess_type(filename)[0]
+            or "application/octet-stream",
+        )
+        storage["backend"] = store.backend
+        storage["key"] = key
+        storage["signed_url"] = await store.signed_url(key)
+    except Exception as exc:  # storage is best-effort; document parsing still succeeds
+        storage["error"] = f"File could not be persisted: {exc}"
+
     return {
         "status": "success",
         "filename": filename,
@@ -290,7 +314,28 @@ async def upload_document(
         "text": text,
         "text_preview": text[:500],
         "document": parsed.to_dict(),
+        "storage": storage,
     }
+
+
+@router.get("/files/{key:path}")
+async def get_stored_file(key: str) -> Response:
+    """Fetch a stored document object by its storage key (documents/* only).
+
+    Files are served through the backend so storage URLs/keys are never leaked
+    directly to browsers; Supabase-backed deployments use signed URLs created
+    by the upload endpoint.
+    """
+    if not key.startswith("documents/"):
+        raise HTTPException(status_code=404, detail="Object not found.")
+    store = get_object_store()
+    data = await store.read(key)
+    if data is None:
+        raise HTTPException(status_code=404, detail="Object not found.")
+    return Response(
+        content=data,
+        media_type=mimetypes.guess_type(key)[0] or "application/octet-stream",
+    )
 
 
 @router.post("/chunk")

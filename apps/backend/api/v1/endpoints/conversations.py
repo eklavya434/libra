@@ -43,10 +43,13 @@ async def list_conversations(
 @router.post("", response_model=Conversation, summary="Create a new conversation session")
 async def create_conversation(request: Request, payload: CreateConversationRequest) -> Conversation:
     """Initialize a brand new conversation session owned by the current session."""
+    from apps.backend.api.v1.endpoints.models import get_system_default_model
+
     store = get_conversation_store()
+    model = payload.model or get_system_default_model() or "libra-llama-tied"
     return store.create_conversation(
         title=payload.title,
-        model=payload.model,
+        model=model,
         system_prompt=payload.system_prompt,
         owner_id=_session_id(request),
     )

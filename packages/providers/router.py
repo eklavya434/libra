@@ -184,10 +184,12 @@ class ProviderRouter:
             installed, reason = await self._ollama_model_installed(model_id)
             if installed:
                 return self._providers["ollama"]
-            ollama_health = await self._providers["ollama"].health()
-            if not ollama_health.get("connected"):
-                return self._providers["mock-provider"]
-            raise ValueError(reason)
+            # Never degrade to MockProvider when the local engine is unavailable:
+            # a public request must fail with an actionable message instead.
+            raise ValueError(
+                reason
+                or f"Model '{model_id}' requires the local Ollama engine, which is not available here."
+            )
 
         # 3. Local routing
         if model_lower.startswith("hf/") or "gpt2" in model_lower:

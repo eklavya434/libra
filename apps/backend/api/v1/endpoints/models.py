@@ -2,12 +2,10 @@
 Libra API v1 - Models & Registry Endpoint
 """
 
-import os
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
-from apps.backend.core.config import settings
 from packages.models.catalog import get_default_registry
 from packages.models.registry import HardwareTier
 from packages.providers.router import get_router
@@ -93,23 +91,30 @@ async def list_models(
     }
 
 
-def get_system_default_model() -> str:
-    """Resolve the highest quality available model based on active configuration."""
-    # 1. Prefer Gemini 2.5 Flash if GEMINI_API_KEY is configured
-    if settings.gemini_api_key or os.getenv("GEMINI_API_KEY"):
-        return "gemini-2.5-flash"
+def get_system_default_model() -> str | None:
+    """Resolve the highest quality CONFIGURED real model id, or None.
 
-    # 2. Check registered local Ollama models
-    for mid in ["llama3.2:1b", "llama3.2:3b", "qwen2.5:0.5b", "gemma2:2b"]:
-        if mid in registry._models:
-            return mid
-
-    # 3. Check OpenAI if configured
-    if settings.openai_api_key or os.getenv("OPENAI_API_KEY"):
-        return "gpt-4o-mini"
-
-    # 4. Fallback to mock
-    return "libra-mock-v1"
+    Public production must never silently fall back to MockProvider or to a
+    local/experimental model. Only providers whose API key is actually
+    configured (and whose representative model id exists in the registry) are
+    candidates. When nothing is configured the caller must surface a clear
+    configuration message instead of faking availability.
+    """
+    has_key = lambda pid: bool(  # noqa: E731
+        getattr(provider_router.get_provider(pid), "api_key", None)
+    )
+    candidates = [
+        ("gemini", "gemini-2.5-flash"),
+        ("anthropic", "claude-3-5-haiku-20241022"),
+        ("nvidia", "nvidia/llama-3.1-nemotron-70b-instruct"),
+        ("openai", "gpt-4o-mini"),
+        ("deepseek", "deepseek-ai/deepseek-v4-flash-0731"),
+        ("kimi", "kimi-k1.5"),
+    ]
+    for provider_id, model_id in candidates:
+        if has_key(provider_id) and registry.get(model_id) is not None:
+            return model_id
+    return None
 
 
 @router.get(
@@ -117,9 +122,21 @@ def get_system_default_model() -> str:
 )
 async def get_default_model() -> dict[str, Any]:
     def_id = get_system_default_model()
+    if def_id is None:
+        return {
+            "default_model": None,
+            "configured": False,
+            "message": (
+                "No provider is configured. Add an API key (e.g. GEMINI_API_KEY, ANTHROPIC_API_KEY) "
+                "or start a local Ollama engine, then reload. Chat will refuse to answer until a "
+                "real provider is configured — MockProvider is never used in production."
+            ),
+            "model": None,
+        }
     model = registry.get(def_id)
     return {
         "default_model": def_id,
+        "configured": True,
         "model": model.to_dict() if model else None,
     }
 

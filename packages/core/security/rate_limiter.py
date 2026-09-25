@@ -79,7 +79,11 @@ class TokenBucketRateLimiter:
             bucket = self._buckets[client_id]
             allowed, retry_after = bucket.try_consume(cost, now)
             remaining = int(max(0.0, bucket.tokens))
-            reset_epoch = now + (self.capacity - bucket.tokens) / self.replenish_rate
+            if self.replenish_rate > 0:
+                reset_epoch = now + (self.capacity - bucket.tokens) / self.replenish_rate
+            else:
+                # Frozen/zero replenish (tests, clamped config): report a fixed horizon.
+                reset_epoch = now + 60.0
 
             return RateLimitInfo(
                 allowed=allowed,

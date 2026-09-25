@@ -13,6 +13,7 @@ from packages.core.memory.models import (
     Message,
     UpdateConversationRequest,
 )
+from packages.core.memory.postgres_store import PostgresConversationStore
 from packages.core.memory.sqlite_store import (
     SQLiteConversationStore,
     get_conversation_store,
@@ -20,6 +21,7 @@ from packages.core.memory.sqlite_store import (
 
 __all__ = [
     "SQLiteConversationStore",
+    "PostgresConversationStore",
     "get_conversation_store",
     "ContextWindowManager",
     "TruncatedContext",
