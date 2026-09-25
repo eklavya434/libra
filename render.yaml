@@ -1,15 +1,20 @@
 # ==============================================================================
-# LIBRA RENDER BLUEPRINT (zero-cost managed deployment)
+# LIBRA RENDER BLUEPRINT (zero-cost managed deployment, FREE tier compatible)
 #
 # Render watches the connected GitHub repository and auto-deploys this file's
 # services on every push to `main`. No CLI or tokens are required for deploys —
 # only a GitHub app connection made once in the Render dashboard (owner action).
 #
-# Free-tier notes:
+# Free-tier reality (verified 2026):
 #   - Free web services sleep after 15 min of inactivity and cold-start in ~1 min.
-#   - Persistent disk on free instances is limited; SQLite lives on a small disk
-#     mount which is suitable for a single-replica demo (<10 concurrent users).
-#     Scale-out (Postgres + S3) is documented in docs/deployment/PRODUCTION.md.
+#   - Free web services CANNOT attach persistent disks. The filesystem is
+#     ephemeral: SQLite conversations reset on every redeploy/restart. This is
+#     acceptable for a public demo/lab; for real persistence, either upgrade the
+#     backend to a paid plan and re-add the `disk` block below, or connect a free
+#     Render Postgres (note: free Postgres expires after ~30 days).
+#   - Free = 0.1 CPU / 512 MB RAM. Cloud-provider model calls (Gemini/NVIDIA)
+#     are network-bound, so the low CPU is fine; local Ollama models stay on
+#     the owner's PC.
 # ==============================================================================
 
 services:
@@ -50,10 +55,11 @@ services:
         sync: false
       - key: LIBRA_DEPLOY_ENV
         value: render
-    disk:
-      name: libra-data
-      mountPath: /app/data
-      sizeGB: 1
+    # Optional: uncomment ONLY on a paid plan to persist SQLite across deploys.
+    # disk:
+    #   name: libra-data
+    #   mountPath: /app/data
+    #   sizeGB: 1
 
   - type: web
     name: libra-frontend

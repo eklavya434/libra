@@ -26,7 +26,7 @@ simple enough to audit line-by-line, and every residual risk is explicit.
 | Arbitrary code | RCE via notebook/coder/tools | **`LIBRA_PUBLIC_CODE_EXEC=false` → notebook `/execute` returns 503 by default.** Enabling requires the subprocess sandbox roadmap (below). |
 | Injection | Prompt injection exfil | Recognized LAB risk; documented in `docs/research`; no tool-autonomy paths enabled in public. |
 | Data tampering | SQLite manipulation | Only write path is the API layer via the store; single-owner files under `data/`. |
-| Disk exhaustion | Fill `/app/data` | `MAX_DISK_USAGE_PERCENT` guard + Render disk cap (1 GB). |
+| Disk exhaustion | Fill `/app/data` | `MAX_DISK_USAGE_PERCENT` guard; ephemeral FS on the free platform resets on redeploy (no runaway-growth surface). |
 
 ## Controls by layer (where they live)
 
@@ -59,8 +59,10 @@ simple enough to audit line-by-line, and every residual risk is explicit.
 3. **Code execution is off, not sandboxed.** Re-enabling requires the subprocess
    jail (rlimit/fork sandbox or gVisor) with unit tests proving no host escape —
    until then the gate stays closed.
-4. **Knowledge/upload persistence** relies on Render disk (single instance).
-   Multi-instance requires Postgres/S3 adapters (documented, not shipped).
+4. **Knowledge/upload persistence is ephemeral on the free tier** (single
+   instance, no free persistent disk). Persistent multi-instance storage
+   requires Postgres/S3 adapters (documented, not shipped; paid disk works on a
+   single instance).
 5. **No secrets rotation automation** yet; keys are changed manually via the
    platform dashboard.
 

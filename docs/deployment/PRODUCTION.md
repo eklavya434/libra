@@ -24,8 +24,9 @@ Zero-cost public deployment for the Libra AI Laboratory & Assistant.
                       |  |  |  +--> Providers: Gemini / NVIDIA (free tier, keys
                       |  |  |        are secrets, never stored in-repo)
                       |  |  |
-                      |  |  +-----> SQLite (on Render disk mount /app/data) —
-                      |  |            conversations + guest sessions
+                      |  |  +-----> SQLite (ephemeral on the FREE plan: resets on
+                      |  |            redeploy/restart) — see "Data persistence"
+                      |  |            below for how to claim persistence
                       |  |
                       |  +---------> RAG index (in-memory; re-seeded by document
                       |               uploads; persisted on disk mount)
@@ -47,8 +48,26 @@ Total recurring cost: **$0**. Free-tier sleeps after inactivity; cold-starts ~1 
 - **Code execution stays OFF publicly**: `LIBRA_PUBLIC_CODE_EXEC=false` (default)
   makes the notebook executor return 503. Enabling it requires an explicit
   operator decision and a sandboxed subprocess runner (see SECURITY.md).
-- **Honest limits**: single-replica SQLite on a small disk. Suitable for a
-  demo/lab (<10 concurrent users). Scaling out is documented below.
+- **Honest limits**: single-replica SQLite; on the Render FREE plan the
+  filesystem is ephemeral (see "Data persistence"). Suitable for a demo/lab
+  (<10 concurrent users). Scaling out is documented below.
+
+## Data persistence (free vs paid — read this before deploying)
+
+Render free web services have an **ephemeral filesystem**: SQLite
+conversations + sessions are **lost on every redeploy or restart**. The
+important consequence: on the free tier, a demo visitor's chats survive within
+a cold-start cycle but not across service updates. Options, in recommended order:
+
+1. **Demo acceptable (default)**: ship as-is. Persistence across runs is not
+   guaranteed; documents exactly what the free tier provides. The
+   `conversations.db` is recreated from schema on first request.
+2. **Upgrade the backend to a paid plan (~$7/mo)**: uncomment the `disk:` block
+   in `render.yaml` (mount `/app/data`, pick 1 GB ~ $0.25/mo). SQLite then
+   persists across deploys and restarts, with daily automatic snapshots.
+3. **Free Render Postgres**: works but the free database expires after ~30 days,
+   and wiring the store to Postgres requires the untried adapter — deferred per
+   the no-untested-storage rule. Not recommended for the zero-cost mission.
 
 ## Step-by-step (owner actions required)
 
@@ -125,9 +144,9 @@ Free services sleep after ~15 min idle; first request triggers a cold start
 warm, or accept the latency. `LIBRA_DEPLOY_ENV=render` is set for telemetry.
 
 ### Backups
-SQLite lives on the Render disk. Download `data/conversations.db`
-periodically, or add an optional cron that dumps it to an R2/Drive destination
-(owner's storage keys required; not in the default flow).
+On a paid plan, SQLite lives on the Render disk (`/app/data`) with daily
+snapshots. On the free plan the filesystem is ephemeral, so backup by polling
+`/api/v1/conversations` (export endpoint) or accept the demo reset behavior.
 
 ## Scaling-out path (documented, not built — avoid untested code on $0)
 When more than single-replica is needed:
