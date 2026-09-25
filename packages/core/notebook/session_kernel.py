@@ -92,10 +92,27 @@ class NotebookKernel:
         self.last_accessed = time.time()
         self._globals: Dict[str, Any] = {}
         self._initial_keys: set[str] = set()
+        # Optional external executor (e.g. the subprocess jail). When set, all
+        # state lives behind the executor boundary and introspection proxies to it.
+        self._executor: Optional[Any] = None
         self.reset()
+
+    def set_executor(self, executor: Any) -> None:
+        """Route execution through an external sandbox executor (in-process by default)."""
+        self._executor = executor
+
+    @property
+    def uses_external_executor(self) -> bool:
+        return self._executor is not None
 
     def reset(self) -> None:
         """Flushes user state and restores default built-in analytics utilities."""
+        if self._executor is not None:
+            # Ask the remote namespace to reset; the worker reports its count = 0.
+            self._executor.reset()
+            self.execution_count = 0
+            self.last_accessed = time.time()
+            return
         self._globals = {
             "__name__": "__main__",
             "__doc__": None,
@@ -108,6 +125,9 @@ class NotebookKernel:
 
     def get_variables(self) -> List[Dict[str, Any]]:
         """Introspects user-defined variables in the active namespace."""
+        if self._executor is not None:
+            return self._executor.list_vars()
+
         vars_summary: List[Dict[str, Any]] = []
         for key, val in self._globals.items():
             if key.startswith("_") or key in self.DEFAULT_IMPORTS:
@@ -140,6 +160,12 @@ class NotebookKernel:
         Executes code within the kernel's persistent namespace.
         Splits execution into statements and an optional final evaluated expression.
         """
+        if self._executor is not None:
+            self.last_accessed = time.time()
+            output = self._executor.execute(code)
+            self.execution_count = output.execution_count
+            return output
+
         self.last_accessed = time.time()
         start_time = time.perf_counter()
 

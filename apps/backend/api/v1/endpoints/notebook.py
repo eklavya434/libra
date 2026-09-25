@@ -96,19 +96,24 @@ def execute_cell(session_id: str, request: ExecuteCellRequest) -> Dict[str, Any]
     """Execute Python code within the stateful kernel session.
 
     Arbitrary code execution is disabled on the shared/public deployment by
-    default (``LIBRA_PUBLIC_CODE_EXEC``). Running user-supplied code inside the
-    API process is not safe for multi-tenant use.
+    default (``LIBRA_PUBLIC_CODE_EXEC``) and additionally requires a chosen
+    sandbox backend (``LIBRA_CODE_SANDBOX=jail|inprocess``). The reference
+    deployment keeps both OFF, so this endpoint reports that the secure
+    sandbox infrastructure is unavailable.
     """
+    code_exec_message = (
+        "Code execution unavailable in public deployment because secure "
+        "sandbox infrastructure is not available."
+    )
     if not settings.libra_public_code_exec_enabled:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Code execution is disabled on this deployment for public-safety reasons. "
-                "Operators can enable it explicitly with LIBRA_PUBLIC_CODE_EXEC=true; "
-                "the reference deployment keeps it OFF."
-            ),
-        )
+        raise HTTPException(status_code=503, detail=code_exec_message)
+    if settings.libra_code_sandbox not in ("jail", "inprocess"):
+        raise HTTPException(status_code=503, detail=code_exec_message)
     kernel = notebook_session_manager.get_or_create(session_id)
+    if settings.libra_code_sandbox == "jail" and not kernel.uses_external_executor:
+        from packages.core.notebook.jail import NotebookJail
+
+        kernel.set_executor(NotebookJail(session_id=session_id, timeout_sec=kernel.timeout_sec))
     output = kernel.execute(request.code)
     return output.to_dict()
 

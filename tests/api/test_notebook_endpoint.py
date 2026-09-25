@@ -18,6 +18,9 @@ client = TestClient(app)
 @pytest.fixture
 def enable_code_exec(monkeypatch):
     monkeypatch.setattr(notebook_endpoint.settings, "libra_public_code_exec_enabled", True)
+    # Explicit trusted-operator backend keeps the existing end-to-end tests fast
+    # and deterministic; the jail backend is exercised by its own tests below.
+    monkeypatch.setattr(notebook_endpoint.settings, "libra_code_sandbox", "inprocess")
     yield
 
 
@@ -42,7 +45,7 @@ def test_api_execution_gated_off_by_default():
         json={"code": "print(1)"},
     )
     assert resp.status_code == 503
-    assert "disabled" in resp.json()["detail"]
+    assert "secure sandbox infrastructure is not available" in resp.json()["detail"]
 
 
 def test_api_execute_cell_and_persist_state(enable_code_exec):
@@ -98,3 +101,42 @@ def test_api_security_error_response(enable_code_exec):
     data = resp.json()
     assert data["status"] == "error"
     assert "Security policy violation" in data["error_message"]
+
+
+def test_api_enabled_but_no_sandbox_backend_is_refused(monkeypatch):
+    # Operator flipped the code-exec flag ON but picked no sandbox backend:
+    # the deployment must refuse with the exact mission message.
+    monkeypatch.setattr(notebook_endpoint.settings, "libra_public_code_exec_enabled", True)
+    monkeypatch.setattr(notebook_endpoint.settings, "libra_code_sandbox", "")
+    resp = client.post(
+        "/api/v1/notebook/sessions/refused/execute",
+        json={"code": "print('nope')"},
+    )
+    assert resp.status_code == 503
+    assert "secure sandbox infrastructure is not available" in resp.json()["detail"]
+
+
+def test_api_jail_backend_end_to_end(monkeypatch):
+    monkeypatch.setattr(notebook_endpoint.settings, "libra_public_code_exec_enabled", True)
+    monkeypatch.setattr(notebook_endpoint.settings, "libra_code_sandbox", "jail")
+    sid = "test_jail_api"
+
+    c1 = client.post(
+        f"/api/v1/notebook/sessions/{sid}/execute",
+        json={"code": "a = 21\nb = a * 2\nb"},
+    )
+    assert c1.status_code == 200
+    assert c1.json()["status"] == "ok"
+    assert c1.json()["result"] == "42"
+
+    c2 = client.post(
+        f"/api/v1/notebook/sessions/{sid}/execute",
+        json={"code": "b + 8"},
+    )
+    assert c2.status_code == 200
+    assert c2.json()["result"] == "50"
+    assert c2.json()["execution_count"] == 2
+
+    vars_resp = client.get(f"/api/v1/notebook/sessions/{sid}/variables")
+    assert vars_resp.status_code == 200
+    assert any(v["name"] == "a" and v["value_repr"] == "21" for v in vars_resp.json())
