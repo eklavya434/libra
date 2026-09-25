@@ -1,5 +1,94 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
+// ---------------------------------------------------------------------------
+// Guest session identity
+//
+// The backend isolates conversations per guest session. The session token is
+// minted by the backend (GET /api/v1/auth/session) and carried back on the
+// X-Libra-Session header. We persist it in localStorage and attach it to every
+// API call so anonymous users keep persistent, isolated conversation history.
+// ---------------------------------------------------------------------------
+
+const SESSION_STORAGE_KEY = "libra_session_token";
+
+let sessionToken: string | null = null;
+let bootstrapping: Promise<string | null> | null = null;
+
+export function getSessionToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(SESSION_STORAGE_KEY);
+}
+
+export function setSessionToken(token: string): void {
+  sessionToken = token;
+  if (typeof window !== "undefined" && token) {
+    localStorage.setItem(SESSION_STORAGE_KEY, token);
+  }
+}
+
+export function clearSessionToken(): void {
+  sessionToken = null;
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+  }
+}
+
+/** Plain fetch (no session header) used only during session bootstrap. */
+const plainFetch = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
+  fetch(input, init);
+
+/** Resolve a session token once (safe to call concurrently, memoized). */
+export async function bootstrapSession(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  const stored = getSessionToken();
+  if (stored) {
+    sessionToken = stored;
+    return stored;
+  }
+  if (bootstrapping) return bootstrapping;
+
+  bootstrapping = (async () => {
+    try {
+      // Intentionally a plain fetch WITHOUT the session header: the backend
+      // mints a fresh session for callers that have none.
+      const res = await plainFetch(`${API_BASE_URL}/api/v1/auth/session`, {
+        headers: { "Accept": "application/json" },
+      });
+      const body: Record<string, unknown> = await res.json().catch(() => ({}));
+      const token = (typeof body.token === "string" ? body.token : null) || res.headers.get("X-Libra-Session");
+      if (token) {
+        setSessionToken(token);
+        return token;
+      }
+      return null;
+    } catch (err) {
+      console.warn("Session bootstrap failed (continuing anonymously):", err);
+      return null;
+    } finally {
+      bootstrapping = null;
+    }
+  })();
+  return bootstrapping;
+}
+
+/** fetch() wrapper that attaches the guest session header. */
+export async function libraFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit
+): Promise<Response> {
+  if (typeof window !== "undefined" && !sessionToken) {
+    sessionToken = getSessionToken();
+  }
+  if (!sessionToken && typeof window !== "undefined") {
+    sessionToken = await bootstrapSession();
+  }
+  const headers = new Headers(init?.headers);
+  if (sessionToken) {
+    headers.set("X-Libra-Session", sessionToken);
+  }
+  return fetch(input, { ...init, headers });
+}
+
 export interface ModelMetadata {
   id: string;
   name: string;
@@ -10,6 +99,8 @@ export interface ModelMetadata {
   hardware_tier: string;
   is_local: boolean;
   requires_gpu: boolean;
+  available?: boolean;
+  unavailable_reason?: string;
 }
 
 export interface ChatMessage {
@@ -135,7 +226,7 @@ export interface ArenaBattleResponse {
 
 export async function fetchEloLeaderboard(category = "overall"): Promise<ModelEloRecord[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/arena/leaderboard?category=${encodeURIComponent(category)}`);
+    const res = await libraFetch(`${API_BASE_URL}/api/v1/arena/leaderboard?category=${encodeURIComponent(category)}`);
     if (!res.ok) throw new Error("Failed to fetch Elo leaderboard");
     return await res.json();
   } catch (err) {
@@ -150,7 +241,7 @@ export async function runArenaBattle(
   modelB: ArenaModelTarget,
   category = "overall"
 ): Promise<ArenaBattleResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/arena/battle`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/arena/battle`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -174,7 +265,7 @@ export async function voteInArena(
   category = "overall",
   prompt?: string
 ): Promise<any> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/arena/vote`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/arena/vote`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -233,7 +324,7 @@ export async function executeReasoning(
   maxTokens = 512,
   systemPrompt?: string
 ): Promise<{ model: string; provider: string; trace: ReasoningTrace; raw_response: string }> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/reasoning/generate`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/reasoning/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -258,7 +349,7 @@ export async function executeSelfConsistency(
   temperature = 0.7,
   maxTokens = 256
 ): Promise<SelfConsistencyResult> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/reasoning/self-consistency`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/reasoning/self-consistency`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -283,7 +374,7 @@ export async function executeBestOfN(
   temperature = 0.8,
   maxTokens = 256
 ): Promise<BestOfNResult> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/reasoning/best-of-n`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/reasoning/best-of-n`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -306,7 +397,7 @@ export async function runArenaTournament(
   categories?: string[],
   promptsPerCategory = 1
 ): Promise<any> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/arena/tournament`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/arena/tournament`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -324,7 +415,7 @@ export async function runArenaTournament(
 
 export async function fetchModels(): Promise<ModelMetadata[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/models`);
+    const res = await libraFetch(`${API_BASE_URL}/api/v1/models`);
     if (!res.ok) throw new Error("Failed to fetch models");
     const json = await res.json();
     return json.models || [];
@@ -382,7 +473,7 @@ export interface ConversationDetail extends ConversationSummary {
 
 export async function fetchConversations(): Promise<ConversationSummary[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/conversations`);
+    const res = await libraFetch(`${API_BASE_URL}/api/v1/conversations`);
     if (!res.ok) throw new Error("Failed to fetch conversations");
     return await res.json();
   } catch (err) {
@@ -393,7 +484,7 @@ export async function fetchConversations(): Promise<ConversationSummary[]> {
 
 export async function fetchDefaultModel(): Promise<string> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/models/default`);
+    const res = await libraFetch(`${API_BASE_URL}/api/v1/models/default`);
     if (res.ok) {
       const data = await res.json();
       if (data.default_model) return data.default_model;
@@ -410,7 +501,7 @@ export async function createConversation(
   systemPrompt?: string
 ): Promise<ConversationSummary | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/conversations`, {
+    const res = await libraFetch(`${API_BASE_URL}/api/v1/conversations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -429,7 +520,7 @@ export async function createConversation(
 
 export async function fetchConversation(id: string): Promise<ConversationDetail | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/conversations/${id}`);
+    const res = await libraFetch(`${API_BASE_URL}/api/v1/conversations/${id}`);
     if (!res.ok) throw new Error("Failed to fetch conversation detail");
     return await res.json();
   } catch (err) {
@@ -440,7 +531,7 @@ export async function fetchConversation(id: string): Promise<ConversationDetail 
 
 export async function deleteConversation(id: string): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/conversations/${id}`, {
+    const res = await libraFetch(`${API_BASE_URL}/api/v1/conversations/${id}`, {
       method: "DELETE",
     });
     return res.ok;
@@ -452,7 +543,7 @@ export async function deleteConversation(id: string): Promise<boolean> {
 
 export async function clearConversationMessages(id: string): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/conversations/${id}/messages`, {
+    const res = await libraFetch(`${API_BASE_URL}/api/v1/conversations/${id}/messages`, {
       method: "DELETE",
     });
     return res.ok;
@@ -515,7 +606,7 @@ export interface RAGQueryResponse {
 
 export async function fetchRAGDocuments(): Promise<RAGDocument[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/rag/documents`);
+    const res = await libraFetch(`${API_BASE_URL}/api/v1/rag/documents`);
     if (!res.ok) throw new Error("Failed to fetch RAG documents");
     return await res.json();
   } catch (err) {
@@ -526,7 +617,7 @@ export async function fetchRAGDocuments(): Promise<RAGDocument[]> {
 
 export async function uploadRAGDocument(title: string, content: string): Promise<RAGDocument | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/rag/documents`, {
+    const res = await libraFetch(`${API_BASE_URL}/api/v1/rag/documents`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, content }),
@@ -541,7 +632,7 @@ export async function uploadRAGDocument(title: string, content: string): Promise
 
 export async function deleteRAGDocument(docId: string): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/rag/documents/${docId}`, {
+    const res = await libraFetch(`${API_BASE_URL}/api/v1/rag/documents/${docId}`, {
       method: "DELETE",
     });
     return res.ok;
@@ -570,7 +661,7 @@ export async function queryRAG(
         };
 
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/rag/query`, {
+    const res = await libraFetch(`${API_BASE_URL}/api/v1/rag/query`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -604,7 +695,7 @@ export async function streamChat(
   let accumulatedTokens = 0;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/chat/completions`, {
+    const response = await libraFetch(`${API_BASE_URL}/api/v1/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -625,6 +716,12 @@ export async function streamChat(
     if (!response.ok) {
       const errText = await response.text();
       throw new Error(`Chat request failed (${response.status}): ${errText}`);
+    }
+
+    // If the backend minted a fresh session for us, persist it now.
+    const srvSession = response.headers.get("X-Libra-Session");
+    if (srvSession) {
+      setSessionToken(srvSession);
     }
 
     const headerConvId = response.headers.get("X-Conversation-Id");
@@ -740,7 +837,7 @@ export async function compareInArena(
   temperature = 0.7,
   maxTokens = 256
 ): Promise<ArenaComparisonResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/arena/compare`, {
+  const response = await libraFetch(`${API_BASE_URL}/api/v1/arena/compare`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -775,7 +872,7 @@ export async function streamTelemetry(
   }
 ): Promise<void> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/telemetry/stream`, {
+    const response = await libraFetch(`${API_BASE_URL}/api/v1/telemetry/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: options.signal,
@@ -891,7 +988,7 @@ export async function inspectRoPEScaling(
   originalMaxSeqLen = 512,
   scalingType = "yarn"
 ): Promise<RoPEFrequencyResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/context/scale`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/context/scale`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -911,7 +1008,7 @@ export async function runNeedleEvaluation(
   contextLengths = [250, 500, 1000],
   depthFractions = [0.0, 0.25, 0.5, 0.75, 1.0]
 ): Promise<NeedleEvaluationResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/context/needle`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/context/needle`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -969,7 +1066,7 @@ export async function simulatePagedMemory(
   maxOutputTokens = 256,
   blockSize = 16
 ): Promise<PagedSimulationResult> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/paged/simulate`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/paged/simulate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -987,7 +1084,7 @@ export async function runContinuousBatchSimulation(
   prompts?: string[],
   maxTokens = 12
 ): Promise<BatchRunResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/paged/batch_run`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/paged/batch_run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1041,7 +1138,7 @@ export async function embedImage(
   patchSize = 8,
   visionDim = 32
 ): Promise<EmbedImageResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/multimodal/embed_image`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/multimodal/embed_image`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1060,7 +1157,7 @@ export async function generateWithVLM(
   pattern = "checkerboard",
   maxNewTokens = 6
 ): Promise<VLMGenerateResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/multimodal/generate`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/multimodal/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1111,7 +1208,7 @@ export async function formatChatML(
   messages: { role: string; content: string }[],
   maxLength = 256
 ): Promise<FormatChatResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/corpus/format_chat`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/corpus/format_chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1124,7 +1221,7 @@ export async function formatChatML(
 }
 
 export async function packCorpusSequences(maxLength = 256): Promise<PackResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/corpus/pack`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/corpus/pack`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1181,7 +1278,7 @@ export interface SecurityStatsResponse {
 }
 
 export async function scanSecurityText(text: string): Promise<SecurityScanResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/security/scan`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/security/scan`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
@@ -1196,7 +1293,7 @@ export async function redactSecurityText(text: string): Promise<{
   secrets_found: number;
   redacted_text: string;
 }> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/security/redact`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/security/redact`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
@@ -1206,7 +1303,7 @@ export async function redactSecurityText(text: string): Promise<{
 }
 
 export async function fetchSecurityStats(): Promise<SecurityStatsResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/security/stats`);
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/security/stats`);
   if (!res.ok) throw new Error("Failed to fetch security stats");
   return await res.json();
 }
@@ -1270,25 +1367,25 @@ export async function fetchTraces(limit = 50, offset = 0): Promise<{
   offset: number;
   traces: TraceSummary[];
 }> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/observability/traces?limit=${limit}&offset=${offset}`);
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/observability/traces?limit=${limit}&offset=${offset}`);
   if (!res.ok) throw new Error("Failed to fetch distributed traces");
   return await res.json();
 }
 
 export async function fetchTraceDetail(traceId: string): Promise<TraceDetail> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/observability/traces/${traceId}`);
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/observability/traces/${traceId}`);
   if (!res.ok) throw new Error(`Failed to fetch trace '${traceId}'`);
   return await res.json();
 }
 
 export async function fetchObservabilityMetrics(): Promise<ObservabilityMetrics> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/observability/metrics`);
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/observability/metrics`);
   if (!res.ok) throw new Error("Failed to fetch observability metrics");
   return await res.json();
 }
 
 export async function clearTraces(): Promise<{ status: string; message: string }> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/observability/traces/clear`, {
+  const res = await libraFetch(`${API_BASE_URL}/api/v1/observability/traces/clear`, {
     method: "POST",
   });
   if (!res.ok) throw new Error("Failed to clear traces");

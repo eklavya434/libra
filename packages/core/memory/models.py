@@ -20,6 +20,20 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def parse_iso(value: str) -> Optional[datetime]:
+    """Parse an ISO 8601 timestamp into a timezone-aware datetime.
+
+    Returns None if the value cannot be parsed.
+    """
+    try:
+        dt = datetime.fromisoformat(value)
+    except (ValueError, TypeError):
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 class Message(BaseModel):
     """Represents a single message in a multi-turn conversation."""
 

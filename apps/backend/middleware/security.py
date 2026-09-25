@@ -15,14 +15,26 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from apps.backend.core.config import settings
 from packages.core.security.rate_limiter import TokenBucketRateLimiter
 
-# Shared global rate limiter instance
+# Shared global rate limiter instance (single source of truth for enforcement
+# AND telemetry; consumed by RateLimitingMiddleware below and by the security
+# stats endpoint). Uvicorn runs one process, so a process-wide bucket is correct.
 _global_rate_limiter = TokenBucketRateLimiter(requests_per_minute=120, burst_capacity=30)
 
 
 def get_global_rate_limiter() -> TokenBucketRateLimiter:
     return _global_rate_limiter
+
+
+def reset_global_rate_limiter() -> None:
+    """Testing hook: restores a full token bucket for every client.
+
+    Each test deserves a full bucket regardless of scheduling; prod behavior is
+    unaffected because this is never called outside the test suite.
+    """
+    _global_rate_limiter.reset()
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -62,26 +74,65 @@ class RequestSizeLimiterMiddleware(BaseHTTPMiddleware):
 
 
 class RateLimitingMiddleware(BaseHTTPMiddleware):
-    """Token-bucket client IP rate limiter on sensitive API endpoints."""
+    """Token-bucket client IP rate limiter on compute-heavy API endpoints.
 
-    def __init__(self, app, rate_limiter: TokenBucketRateLimiter | None = None) -> None:
+    Coverage is broader than the original chat-only guard: file upload, OCR,
+    notebook/code execution, RAG indexing, batch jobs, tools, agents and
+    dynamic routing are all state-changing or expensive.
+    """
+
+    # Path prefixes that are rate-limited per client IP.
+    _LIMITED_PREFIXES = (
+        "/api/v1/chat",
+        "/api/v1/agents",
+        "/api/v1/security",
+        "/api/v1/upload",
+        "/api/v1/files",
+        "/api/v1/document_ocr",
+        "/api/v1/ocr",
+        "/api/v1/notebook",
+        "/api/v1/coder",
+        "/api/v1/rag",
+        "/api/v1/batch",
+        "/api/v1/tools",
+        "/api/v1/routing",
+        "/api/v1/multimodal",
+        "/api/v1/capstone",
+    )
+
+    def __init__(
+        self,
+        app,
+        requests_per_minute: int = 120,
+        burst_capacity: int = 30,
+    ) -> None:
         super().__init__(app)
-        self.rate_limiter = rate_limiter or _global_rate_limiter
+        # Enforce with the single global limiter so the stats endpoint reports
+        # the exact same state (one source of truth per process).
+        self.rate_limiter = get_global_rate_limiter()
+        if (
+            self.rate_limiter.limit != requests_per_minute
+            or self.rate_limiter.capacity != burst_capacity
+        ):
+            self.rate_limiter.limit = requests_per_minute
+            self.rate_limiter.capacity = burst_capacity
+            self.rate_limiter.replenish_rate = requests_per_minute / 60.0
+
+    def _client_ip(self, request: Request) -> str:
+        # Trust X-Forwarded-For only when a trusted proxy count is configured
+        # (LIBRA_TRUSTED_PROXIES, default 1: the Render/Railway edge TLS terminator).
+        # The edge overwrites XFF, so the first entry is the real client IP.
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded and settings.libra_trusted_proxies > 0:
+            return forwarded.split(",")[0].strip()
+        host = request.client.host if request.client else "127.0.0.1"
+        # Starlette's test client appears as "testclient"; keep it bucketed alone.
+        return "127.0.0.1" if host == "testclient" else host
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        # Rate limit only state-altering or compute-heavy endpoints
         path = request.url.path
-        if (
-            path.startswith("/api/v1/chat")
-            or path.startswith("/api/v1/agents")
-            or path.startswith("/api/v1/security")
-        ):
-            client_ip = request.headers.get("x-forwarded-for") or (
-                request.client.host if request.client else "127.0.0.1"
-            )
-            client_ip = client_ip.split(",")[0].strip()
-
-            info = self.rate_limiter.check(client_ip)
+        if path.startswith(self._LIMITED_PREFIXES):
+            info = self.rate_limiter.check(self._client_ip(request))
             if not info.allowed:
                 return JSONResponse(
                     status_code=429,

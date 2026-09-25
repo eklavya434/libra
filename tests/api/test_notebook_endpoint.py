@@ -1,12 +1,24 @@
 """
 Integration tests for Notebook FastAPI endpoints.
+
+Note: arbitrary code execution is DISABLED by default on shared deployments
+(LIBRA_PUBLIC_CODE_EXEC=false). The execution tests flip the flag on to
+exercise the kernel behavior, and separately assert the default gate.
 """
 
+import pytest
 from fastapi.testclient import TestClient
 
+import apps.backend.api.v1.endpoints.notebook as notebook_endpoint
 from apps.backend.main import app
 
 client = TestClient(app)
+
+
+@pytest.fixture
+def enable_code_exec(monkeypatch):
+    monkeypatch.setattr(notebook_endpoint.settings, "libra_public_code_exec_enabled", True)
+    yield
 
 
 def test_api_create_and_list_sessions():
@@ -24,7 +36,16 @@ def test_api_create_and_list_sessions():
     assert "test_api_session" in sids
 
 
-def test_api_execute_cell_and_persist_state():
+def test_api_execution_gated_off_by_default():
+    resp = client.post(
+        "/api/v1/notebook/sessions/default_gate/execute",
+        json={"code": "print(1)"},
+    )
+    assert resp.status_code == 503
+    assert "disabled" in resp.json()["detail"]
+
+
+def test_api_execute_cell_and_persist_state(enable_code_exec):
     session_id = "test_exec_api"
 
     # Cell 1
@@ -68,7 +89,7 @@ def test_api_presets():
     assert any("financial" in p["id"] for p in presets)
 
 
-def test_api_security_error_response():
+def test_api_security_error_response(enable_code_exec):
     resp = client.post(
         "/api/v1/notebook/sessions/sec_test/execute",
         json={"code": "import subprocess\nsubprocess.call(['whoami'])"},

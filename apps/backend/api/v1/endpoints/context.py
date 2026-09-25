@@ -148,7 +148,12 @@ async def inspect_rope_scaling(req: RoPEFrequencyRequest) -> RoPEFrequencyRespon
 @router.post("/needle", response_model=NeedleEvaluationResponse)
 async def evaluate_needle_in_haystack(req: NeedleEvaluationRequest) -> NeedleEvaluationResponse:
     """Executes a Needle-In-A-Haystack retrieval benchmark grid."""
-    provider = _router.get_provider(req.model)
+    try:
+        provider = await _router.resolve_provider_for_model(req.model)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=404, detail=f"Model provider for '{req.model}' unavailable: {exc!s}"
+        ) from exc
     if provider is None:
         raise HTTPException(status_code=404, detail=f"Model provider '{req.model}' not found")
 

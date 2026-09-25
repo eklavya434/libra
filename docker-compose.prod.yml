@@ -1,0 +1,95 @@
+# ==============================================================================
+# LIBRA PRODUCTION COMPOSE (single host / self-hosted)
+#
+# Reflects the zero-cost production architecture:
+#   backend (FastAPI, non-root, CPU-first) + frontend (Next.js standalone)
+#
+# Secrets come from the environment (or a .env file via `--env-file`).
+# Code execution is DISABLED by default (LIBRA_PUBLIC_CODE_EXEC unset).
+# ==============================================================================
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+    image: libra-backend:prod
+    container_name: libra-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      LIBRA_ENV: production
+      LIBRA_LEARNING_MODE: "true"
+      LIBRA_HOST: 0.0.0.0
+      LIBRA_PORT: "8000"
+      LIBRA_DATA_DIR: /app/data
+      LIBRA_CACHE_DIR: /app/models
+      LIBRA_PUBLIC_CODE_EXEC: "${LIBRA_PUBLIC_CODE_EXEC:-false}"
+      LIBRA_SESSION_TTL_DAYS: "${LIBRA_SESSION_TTL_DAYS:-30}"
+      LIBRA_RATE_LIMIT_PER_MINUTE: "${LIBRA_RATE_LIMIT_PER_MINUTE:-120}"
+      LIBRA_RATE_LIMIT_BURST: "${LIBRA_RATE_LIMIT_BURST:-30}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-[]}"
+      # Provider keys are only wired when present in the host environment.
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      NVIDIA_API_KEY: "${NVIDIA_API_KEY:-}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      GROQ_API_KEY: "${GROQ_API_KEY:-}"
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:-}"
+      KIMI_API_KEY: "${KIMI_API_KEY:-}"
+      MOONSHOT_API_KEY: "${MOONSHOT_API_KEY:-}"
+    volumes:
+      - libra_data:/app/data
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 8192M
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; exit(0 if urllib.request.urlopen('http://localhost:8000/healthz', timeout=5).getcode() == 200 else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - libra-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.frontend
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    image: libra-frontend:prod
+    container_name: libra-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    depends_on:
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - libra-network
+
+volumes:
+  libra_data:
+
+networks:
+  libra-network:
+    driver: bridge

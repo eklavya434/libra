@@ -64,3 +64,15 @@ def test_security_headers_middleware_present(client):
     assert response.headers.get("X-Content-Type-Options") == "nosniff"
     assert response.headers.get("X-Frame-Options") == "DENY"
     assert "strict-origin" in response.headers.get("Referrer-Policy", "")
+
+
+def test_middleware_returns_429_when_bucket_exhausted(client):
+    # burts capacity is 30; a fresh bucket (conftest autouse fixture) allows 30,
+    # the 31st request on a compute prefix must be throttled with 429.
+    for _ in range(30):
+        resp = client.get("/api/v1/security/stats")
+        assert resp.status_code == 200, "burst capacity should permit 30 requests"
+    throttled = client.get("/api/v1/security/stats")
+    assert throttled.status_code == 429
+    assert "Retry-After" in throttled.headers
+    assert throttled.json()["detail"] == "Too many requests. Rate limit exceeded."

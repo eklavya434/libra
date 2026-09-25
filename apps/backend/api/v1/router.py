@@ -9,6 +9,7 @@ from apps.backend.api.v1.endpoints import (
     alignment,
     arena,
     attention,
+    auth,
     batch,
     capstone,
     chat,
@@ -47,6 +48,7 @@ from apps.backend.api.v1.endpoints import (
 
 api_v1_router = APIRouter(prefix="/api/v1")
 api_v1_router.include_router(health.router, tags=["Health"])
+api_v1_router.include_router(auth.router, prefix="/auth", tags=["Auth & Sessions"])
 api_v1_router.include_router(models.router, tags=["Models"])
 api_v1_router.include_router(chat.router, tags=["Chat"])
 api_v1_router.include_router(arena.router, tags=["Arena"])

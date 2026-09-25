@@ -1,0 +1,71 @@
+# ==============================================================================
+# LIBRA RENDER BLUEPRINT (zero-cost managed deployment)
+#
+# Render watches the connected GitHub repository and auto-deploys this file's
+# services on every push to `main`. No CLI or tokens are required for deploys —
+# only a GitHub app connection made once in the Render dashboard (owner action).
+#
+# Free-tier notes:
+#   - Free web services sleep after 15 min of inactivity and cold-start in ~1 min.
+#   - Persistent disk on free instances is limited; SQLite lives on a small disk
+#     mount which is suitable for a single-replica demo (<10 concurrent users).
+#     Scale-out (Postgres + S3) is documented in docs/deployment/PRODUCTION.md.
+# ==============================================================================
+
+services:
+  - type: web
+    name: libra-backend
+    runtime: docker
+    repo: https://github.com/eklavya434/libra
+    branch: main
+    dockerfilePath: infra/docker/Dockerfile.backend
+    dockerContext: .
+    plan: free
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: LIBRA_ENV
+        value: production
+      - key: LIBRA_HOST
+        value: 0.0.0.0
+      - key: LIBRA_PORT
+        value: "8000"
+      - key: LIBRA_LEARNING_MODE
+        value: "true"
+      - key: LIBRA_PUBLIC_CODE_EXEC
+        value: "false"
+      - key: LIBRA_SESSION_TTL_DAYS
+        value: "30"
+      - key: LIBRA_RATE_LIMIT_PER_MINUTE
+        value: "120"
+      - key: LIBRA_RATE_LIMIT_BURST
+        value: "30"
+      # Production frontend origin. Set once the frontend service is live.
+      # MUST match the FQDN (https://libra-frontend.onrender.com by default).
+      - key: CORS_ORIGINS
+        value: '["https://libra-frontend.onrender.com"]'
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: LIBRA_DEPLOY_ENV
+        value: render
+    disk:
+      name: libra-data
+      mountPath: /app/data
+      sizeGB: 1
+
+  - type: web
+    name: libra-frontend
+    runtime: docker
+    repo: https://github.com/eklavya434/libra
+    branch: main
+    dockerfilePath: infra/docker/Dockerfile.frontend
+    dockerContext: .
+    plan: free
+    autoDeploy: true
+    envVars:
+      # Points the browser-side API calls at the backend public URL.
+      # Replace with your custom domain once DNS is wired.
+      - key: NEXT_PUBLIC_API_URL
+        value: https://libra-backend.onrender.com

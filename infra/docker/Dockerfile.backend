@@ -57,5 +57,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD python3 -c "import urllib.request; sys_exit = 0 if urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=5).getcode() == 200 else 1; exit(sys_exit)"
 
-# Launch Uvicorn server bound to all interfaces
-CMD ["python3", "-m", "uvicorn", "apps.backend.main:app", "--host", "0.0.0.0", "--port", "8000"]\n
+# Launch Uvicorn server bound to all interfaces.
+# --forwarded-allow-ips "*" lets uvicorn rebuild the real client IP from
+# X-Forwarded-For set by the platform edge (Render/Railway) for rate limiting.
+CMD ["python3", "-m", "uvicorn", "apps.backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--forwarded-allow-ips", "*"]\n

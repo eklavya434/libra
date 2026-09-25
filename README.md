@@ -210,12 +210,32 @@ docker compose up -d --build
 # Frontend UI:  http://localhost:3000
 ```
 
+Production-compose variant (no Ollama, hardened healthchecks, proxy trust,
+resource caps): `docker compose -f docker-compose.prod.yml up --build`.
+
+### 5. Public Zero-Cost Deployment (Render)
+
+A ready-to-use **Render Blueprint** (`render.yaml`) deploys two web services:
+backend (FastAPI, `/healthz`, non-root) and frontend (Next.js standalone),
+built from the hardened Dockerfiles in `infra/docker/`. No cost, no CLI, no
+tokens — deploy happens automatically when your GitHub repo is connected.
+Owner-only steps (GitHub connection, provider keys as Render secrets, custom
+domain/DNS on your GitHub Student domain) are in
+[`docs/deployment/PRODUCTION.md`](docs/deployment/PRODUCTION.md).
+
+Public-safety defaults: guest conversation isolation via `X-Libra-Session`,
+code execution **off** (`LIBRA_PUBLIC_CODE_EXEC=false`), per-IP rate limiting,
+config-driven in `.env.example` (see
+[`docs/deployment/ENV_INVENTORY.md`](docs/deployment/ENV_INVENTORY.md)).
+
 ---
 
 ## Documentation
 
 - **Educational Retrospectives**: Detailed retrospectives for all 50 phases are located in [`docs/educational/`](docs/educational/).
 - **Architecture Decisions**: Design records and rationale are preserved in [`docs/architecture/`](docs/architecture/).
+- **Deployment**: [`docs/deployment/PRODUCTION.md`](docs/deployment/PRODUCTION.md) (steps/runbooks), [`docs/deployment/ENV_INVENTORY.md`](docs/deployment/ENV_INVENTORY.md) (environments).
+- **Security**: [`docs/security/SECURITY.md`](docs/security/SECURITY.md) (threat model, controls, incident runbook).
 - **Interactive API Documentation**: Available at `http://localhost:8000/docs` when running the FastAPI backend.
 
 ---

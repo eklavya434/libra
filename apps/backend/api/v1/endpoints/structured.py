@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from packages.core.grammar import SchemaCompiler
@@ -51,15 +51,20 @@ class ValidateStructuredResponse(BaseModel):
 async def generate_structured(request: StructuredGenerateRequest) -> StructuredResult[Any]:
     """Generate structured response guaranteed to parse against schema_dict with self-healing fallback."""
     generator = StructuredOutputGenerator()
-    result = await generator.generate(
-        prompt=request.prompt,
-        schema=request.schema_dict,
-        model_id=request.model_id,
-        provider_name=request.provider_name,
-        system_prompt=request.system_prompt,
-        max_retries=request.max_retries,
-        temperature=request.temperature,
-    )
+    try:
+        result = await generator.generate(
+            prompt=request.prompt,
+            schema=request.schema_dict,
+            model_id=request.model_id,
+            provider_name=request.provider_name,
+            system_prompt=request.system_prompt,
+            max_retries=request.max_retries,
+            temperature=request.temperature,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=404, detail=f"Structured generation failed: {exc!s}"
+        ) from exc
     return result
 
 

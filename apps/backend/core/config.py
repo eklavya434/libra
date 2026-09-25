@@ -21,11 +21,27 @@ class Settings(BaseSettings):
     libra_log_level: str = Field(default="INFO", alias="LIBRA_LOG_LEVEL")
 
     # Security & Networking
-    cors_origins: list[str] = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-    ]
+    cors_origins: list[str] = Field(
+        default_factory=lambda: [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:8000",
+        ],
+        alias="CORS_ORIGINS",
+        description="Comma/JSON list of allowed browser origins. Empty in production when frontend and backend share one origin.",
+    )
+    libra_trusted_proxies: int = Field(default=1, alias="LIBRA_TRUSTED_PROXIES")
+
+    # Guest identity & multi-tenant isolation
+    libra_session_ttl_days: int = Field(default=30, ge=1, le=365, alias="LIBRA_SESSION_TTL_DAYS")
+
+    # Public-safety gates (mission §16/§18): dangerous features default OFF on
+    # the shared deployment. Code execution also requires an explicit operator flag.
+    libra_public_code_exec_enabled: bool = Field(default=False, alias="LIBRA_PUBLIC_CODE_EXEC")
+
+    # Rate limiting (per-client-IP token bucket)
+    libra_rate_limit_per_minute: int = Field(default=120, alias="LIBRA_RATE_LIMIT_PER_MINUTE")
+    libra_rate_limit_burst: int = Field(default=30, alias="LIBRA_RATE_LIMIT_BURST")
 
     # Model Storage
     libra_cache_dir: str = Field(default="./models", alias="LIBRA_CACHE_DIR")

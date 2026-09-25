@@ -10,9 +10,11 @@ from fastapi import APIRouter, HTTPException, Query
 from apps.backend.core.config import settings
 from packages.models.catalog import get_default_registry
 from packages.models.registry import HardwareTier
+from packages.providers.router import get_router
 
 router = APIRouter()
 registry = get_default_registry()
+provider_router = get_router()
 
 
 @router.get("/models", summary="List all available models across providers")
@@ -28,12 +30,13 @@ async def list_models(
     ),
 ) -> dict[str, Any]:
     # Discover models from local Ollama runtime if reachable
+    installed_ollama_ids: set[str] = set()
     try:
         from packages.models.registry import LicenseType, ModelMetadata
-        from packages.providers.router import get_router
 
-        ollama_prov = get_router().get_provider("ollama")
+        ollama_prov = provider_router.get_provider("ollama")
         installed_ollama = await ollama_prov.list_models()
+        installed_ollama_ids = {om.id for om in installed_ollama}
         for om in installed_ollama:
             if om.id not in registry._models:
                 registry.register(
@@ -69,10 +72,24 @@ async def list_models(
         provider=filter_provider, tier=hw_tier, cpu_friendly_only=filter_cpu_friendly
     )
     def_model_id = get_system_default_model()
+
+    annotated: list[dict[str, Any]] = []
+    for m in models:
+        d = m.to_dict()
+        try:
+            available, reason = await provider_router.check_model_available(
+                m.model_id, installed_ollama_ids
+            )
+        except Exception:
+            available, reason = False, "Availability could not be verified right now."
+        d["available"] = available
+        d["unavailable_reason"] = reason
+        annotated.append(d)
+
     return {
         "count": len(models),
         "default_model": def_model_id,
-        "models": [m.to_dict() for m in models],
+        "models": annotated,
     }
 
 

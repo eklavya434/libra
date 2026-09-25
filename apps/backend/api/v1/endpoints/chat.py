@@ -12,7 +12,7 @@ import json
 import uuid
 from typing import Any, Literal, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -57,7 +57,8 @@ class ChatCompletionRequest(BaseModel):
 
 
 @router.post("/chat/completions", summary="Create chat completion (streaming or standard)")
-async def create_chat_completion(request: ChatCompletionRequest) -> Any:
+async def create_chat_completion(request: ChatCompletionRequest, fastapi_request: Request) -> Any:
+    session_id: str = fastapi_request.state.session_id
     router_instance = get_router()
     try:
         provider = await router_instance.resolve_provider_for_model(
@@ -75,8 +76,16 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
     store = get_conversation_store()
     active_conv_id = request.conversation_id or f"conv-{uuid.uuid4().hex[:12]}"
 
+    # The client-supplied conversation id must belong to this session (or be a
+    # legacy owner-less row). Distinguish "does not exist" from "not yours".
+    existing_owner = store.conversation_owner(active_conv_id)
+    if existing_owner is not None and existing_owner != session_id:
+        raise HTTPException(
+            status_code=403, detail="Conversation is not accessible to this session"
+        )
+
     # Handle persistent conversation memory
-    conv = store.get_conversation(active_conv_id)
+    conv = store.get_conversation(active_conv_id, owner_id=session_id)
     if not conv:
         # Determine title from the first non-empty user message
         title = "New Conversation"
@@ -91,12 +100,13 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
             title=title,
             model=request.model,
             system_prompt=request.system_prompt,
+            owner_id=session_id,
         )
 
     # Append incoming user turn if present
     last_req_msg = request.messages[-1]
     if last_req_msg.role == "user":
-        db_messages = store.get_messages(active_conv_id)
+        db_messages = store.get_messages(active_conv_id, owner_id=session_id)
         # Check if this request is a "Regenerate" action from the frontend.
         # A regenerate occurs when the client re-sends the last user message, but
         # intentionally strips the trailing assistant answer that was stored in the DB.
@@ -113,7 +123,7 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
         ):
             # Remove the superseded assistant message so the new generation replaces it cleanly
             store.delete_message(db_messages[-1].id)
-            db_messages = store.get_messages(active_conv_id)
+            db_messages = store.get_messages(active_conv_id, owner_id=session_id)
 
         # Only append the user turn if it is not ALREADY the most recent message in the DB.
         # If the last message in DB was an assistant message, this incoming user turn is
@@ -127,15 +137,16 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
                 conversation_id=active_conv_id,
                 role=last_req_msg.role,
                 content=last_req_msg.content,
+                owner_id=session_id,
             )
 
     # Sync conversation model if user switched models in UI
-    conv = store.get_conversation(active_conv_id)
+    conv = store.get_conversation(active_conv_id, owner_id=session_id)
     if conv and conv.model != request.model:
-        store.update_conversation(active_conv_id, model=request.model)
+        store.update_conversation(active_conv_id, model=request.model, owner_id=session_id)
 
     # Retrieve full conversation history from persistent store
-    history = store.get_messages(active_conv_id)
+    history = store.get_messages(active_conv_id, owner_id=session_id)
     active_system_prompt = (
         request.system_prompt
         or (conv.system_prompt if conv else None)
@@ -179,6 +190,7 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
                             conversation_id=active_conv_id,
                             role="assistant",
                             content=assistant_text,
+                            owner_id=session_id,
                         )
             return response
         except ConnectionError as e:
@@ -225,6 +237,7 @@ async def create_chat_completion(request: ChatCompletionRequest) -> Any:
                     conversation_id=active_conv_id,
                     role="assistant",
                     content=full_text,
+                    owner_id=session_id,
                 )
 
             yield "data: [DONE]\n\n"

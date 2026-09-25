@@ -88,7 +88,9 @@ async def generate_reasoning(request: ReasoningGenerateRequest) -> Any:
             "trace": trace.model_dump(),
             "raw_response": content,
         }
-    except (ValueError, TypeError, RuntimeError, OSError, KeyError, IndexError) as e:
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=f"Reasoning generation failed: {e!s}")
+    except (TypeError, RuntimeError, OSError, KeyError, IndexError) as e:
         raise HTTPException(status_code=500, detail=f"Reasoning generation failed: {e!s}")
 
 

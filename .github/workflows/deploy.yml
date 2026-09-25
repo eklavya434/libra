@@ -1,0 +1,28 @@
+name: Deploy Libra (Render)
+
+# Continuous deployment for the production services described in render.yaml.
+#
+# What you need to enable this:
+#   1. Connect the repository to Render (dashboard -> New -> Blueprint), which
+#      auto-deploys on every push to `main` WITHOUT any tokens (owner action).
+#   2. OPTIONAL belt-and-suspenders: add a repository secret `RENDER_DEPLOY_HOOK`
+#      (Services -> libra-backend/libra-frontend -> Deploy -> Deploy Hook URL).
+#      This workflow then fires the hooks explicitly. Without the secret the
+#      workflow still succeeds (Render's built-in auto-deploy covers it).
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Trigger Render deploy hooks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fire backend deploy hook
+        if: ${{ env.RENDER_DEPLOY_HOOK != '' }}
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK" || echo "Deploy hook not reachable - Render auto-deploy still applies"

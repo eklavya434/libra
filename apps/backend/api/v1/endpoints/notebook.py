@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from apps.backend.core.config import settings
 from packages.core.notebook.session_kernel import notebook_session_manager
 
 router = APIRouter()
@@ -70,10 +71,8 @@ def list_sessions() -> List[Dict[str, Any]]:
 
 @router.get("/sessions/{session_id}")
 def get_session_info(session_id: str) -> Dict[str, Any]:
-    """Get metadata and variable inspection for a session."""
-    kernel = notebook_session_manager.get(session_id)
-    if not kernel:
-        raise HTTPException(status_code=404, detail=f"Notebook session '{session_id}' not found")
+    """Get metadata and variable inspection for a session (implicitly creates it)."""
+    kernel = notebook_session_manager.get_or_create(session_id)
     return {
         "session_id": kernel.session_id,
         "execution_count": kernel.execution_count,
@@ -94,7 +93,21 @@ def delete_session(session_id: str) -> Dict[str, Any]:
 
 @router.post("/sessions/{session_id}/execute", response_model=CellExecutionResponse)
 def execute_cell(session_id: str, request: ExecuteCellRequest) -> Dict[str, Any]:
-    """Execute Python code within the stateful kernel session."""
+    """Execute Python code within the stateful kernel session.
+
+    Arbitrary code execution is disabled on the shared/public deployment by
+    default (``LIBRA_PUBLIC_CODE_EXEC``). Running user-supplied code inside the
+    API process is not safe for multi-tenant use.
+    """
+    if not settings.libra_public_code_exec_enabled:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Code execution is disabled on this deployment for public-safety reasons. "
+                "Operators can enable it explicitly with LIBRA_PUBLIC_CODE_EXEC=true; "
+                "the reference deployment keeps it OFF."
+            ),
+        )
     kernel = notebook_session_manager.get_or_create(session_id)
     output = kernel.execute(request.code)
     return output.to_dict()
@@ -102,19 +115,15 @@ def execute_cell(session_id: str, request: ExecuteCellRequest) -> Dict[str, Any]
 
 @router.get("/sessions/{session_id}/variables", response_model=List[VariableItem])
 def get_session_variables(session_id: str) -> List[Dict[str, Any]]:
-    """Inspect variables currently stored in the session namespace."""
-    kernel = notebook_session_manager.get(session_id)
-    if not kernel:
-        raise HTTPException(status_code=404, detail=f"Notebook session '{session_id}' not found")
+    """Inspect variables currently stored in the session namespace (implicitly creates it)."""
+    kernel = notebook_session_manager.get_or_create(session_id)
     return kernel.get_variables()
 
 
 @router.post("/sessions/{session_id}/reset")
 def reset_session(session_id: str) -> Dict[str, Any]:
-    """Reset the session namespace back to its initial clean state."""
-    kernel = notebook_session_manager.get(session_id)
-    if not kernel:
-        raise HTTPException(status_code=404, detail=f"Notebook session '{session_id}' not found")
+    """Reset the session namespace back to its initial clean state (implicitly creates it)."""
+    kernel = notebook_session_manager.get_or_create(session_id)
     kernel.reset()
     return {"message": f"Session '{session_id}' reset successfully", "execution_count": 0}
 

@@ -62,10 +62,12 @@ export default function ArenaView() {
     async function load() {
       const data = await fetchModels();
       setAvailableModels(data);
+      const ready = data.filter((m) => m.available !== false);
       if (data.length >= 2) {
-        setSelectedModels([data[0].id, data[1].id]);
-        setBattleModelA(data[0].id);
-        setBattleModelB(data[1].id);
+        const picks = ready.length >= 2 ? ready.slice(0, 2) : data.slice(0, 2);
+        setSelectedModels([picks[0].id, picks[1].id]);
+        setBattleModelA(picks[0].id);
+        setBattleModelB(picks[1].id);
       }
     }
     load();
@@ -261,24 +263,28 @@ export default function ArenaView() {
                 <div className="flex flex-wrap gap-2">
                   {availableModels.map((m) => {
                     const isChecked = selectedModels.includes(m.id);
+                    const isAvailable = m.available !== false;
                     return (
                       <button
                         key={m.id}
                         type="button"
-                        onClick={() => handleToggleModel(m.id)}
+                        onClick={() => isAvailable && handleToggleModel(m.id)}
+                        disabled={!isAvailable}
+                        title={isAvailable ? undefined : m.unavailable_reason}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border transition-all ${
                           isChecked
                             ? 'bg-indigo-600/20 border-indigo-500 text-indigo-200 font-medium'
                             : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                        }`}
+                        } ${!isAvailable ? 'opacity-45 cursor-not-allowed' : ''}`}
                       >
                         <span
                           className={`w-2 h-2 rounded-full ${
-                            isChecked ? 'bg-indigo-400' : 'bg-slate-600'
+                            isChecked ? 'bg-indigo-400' : isAvailable ? 'bg-slate-600' : 'bg-slate-700'
                           }`}
                         />
                         <span>{m.name}</span>
                         <span className="text-[10px] text-slate-400 font-mono">({m.provider})</span>
+                        {!isAvailable && <span className="text-[9px] text-slate-500">needs setup</span>}
                       </button>
                     );
                   })}

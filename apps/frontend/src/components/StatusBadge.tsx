@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Cpu, HardDrive, ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
+import { API_BASE_URL, libraFetch } from '@/lib/api';
 
 interface HardwareData {
   cpu_model: string;
@@ -30,7 +31,7 @@ export default function StatusBadge() {
   const fetchHealth = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/v1/health');
+      const res = await libraFetch(`${API_BASE_URL}/api/v1/health`);
       if (!res.ok) throw new Error('API offline');
       const json = await res.json();
       setData(json);

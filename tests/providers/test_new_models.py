@@ -181,9 +181,21 @@ async def test_provider_router_heuristics_for_new_models():
     async def mock_ollama_online():
         return {"connected": True, "status": "online"}
 
+    class _FakeInstalledModel:
+        id = "qwen2.5-coder:7b"
+
+    async def mock_list_installed():
+        return [_FakeInstalledModel()]
+
     router.providers["ollama"].health = mock_ollama_online
+    router.providers["ollama"].list_models = mock_list_installed
     prov_qwen_coder = await router.resolve_provider_for_model("qwen2.5-coder:7b")
     assert prov_qwen_coder.name == "ollama"
+
+    # An Ollama model that is reachable but not downloaded fails fast with an
+    # actionable pull instruction instead of a confusing runtime 404.
+    with pytest.raises(ValueError, match="ollama pull"):
+        await router.resolve_provider_for_model("phi3.5:3.8b")
 
 
 def test_registry_contains_new_models():
