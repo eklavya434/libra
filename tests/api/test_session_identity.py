@@ -174,7 +174,8 @@ def test_notebook_code_execution_gated_off_by_default(client):
         json={"code": "print('hello')"},
     )
     assert res.status_code == 503
-    assert "disabled" in res.json()["detail"]
+    # Exact mission message: secure sandbox infrastructure is not available.
+    assert "secure sandbox infrastructure is not available" in res.json()["detail"]
 
 
 def test_exception_handler_never_leaks_stack_traces(client, monkeypatch):
@@ -204,3 +205,109 @@ def test_exception_handler_never_leaks_stack_traces(client, monkeypatch):
     assert "super-secret-internal-detail" not in res.text
     assert body["detail"] == "Internal server error"
     assert "request_id" in body
+
+
+# ---------------------------------------------------------------------------
+# Optional Supabase JWT authentication (opt-in; guests remain the default)
+# ---------------------------------------------------------------------------
+
+
+def _sign_supabase_jwt(payload: dict, secret: str = "test-jwt-secret") -> str:
+    import base64
+    import hashlib
+    import hmac
+    import json
+
+    def b64(data: bytes) -> str:
+        return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+    header = b64(b'{"alg":"HS256","typ":"JWT"}')
+    body = b64(json.dumps(payload, separators=(",", ":")).encode("ascii"))
+    sig = b64(
+        hmac.new(
+            secret.encode("utf-8"), f"{header}.{body}".encode("ascii"), hashlib.sha256
+        ).digest()
+    )
+    return f"{header}.{body}.{sig}"
+
+
+@pytest.fixture
+def supabase_auth_enabled(monkeypatch):
+    """Turn on Supabase JWT auth for the identity middleware."""
+    from apps.backend.middleware import identity as identity_module
+
+    monkeypatch.setattr(identity_module.settings, "supabase_auth_enabled", True)
+    monkeypatch.setattr(identity_module.settings, "supabase_jwt_secret", "test-jwt-secret")
+    monkeypatch.setattr(identity_module.settings, "supabase_jwt_audience", "authenticated")
+    return identity_module
+
+
+def _valid_jwt(sub: str) -> str:
+    import time
+
+    return _sign_supabase_jwt(
+        {
+            "sub": sub,
+            "aud": "authenticated",
+            "iat": int(time.time()) - 60,
+            "exp": int(time.time()) + 3600,
+        }
+    )
+
+
+def test_supabase_jwt_identity_is_scoped_per_user(client, supabase_auth_enabled):
+    alice = _valid_jwt("alice-1")
+    bob = _valid_jwt("bob-2")
+    headers_a = {"Authorization": f"Bearer {alice}"}
+    headers_b = {"Authorization": f"Bearer {bob}"}
+
+    created = client.post(
+        "/api/v1/conversations",
+        headers=headers_a,
+        json={"title": "Alice Secret", "model": "libra-mock-v1"},
+    )
+    assert created.status_code == 200
+    conv_id = created.json()["id"]
+
+    # Alice sees her conversation...
+    alice_list = client.get("/api/v1/conversations", headers=headers_a).json()
+    assert any(c["id"] == conv_id for c in alice_list)
+
+    # ...Bob does not (per-user JWT scoping).
+    bob_list = client.get("/api/v1/conversations", headers=headers_b).json()
+    assert not any(c["id"] == conv_id for c in bob_list)
+
+
+def test_supabase_invalid_jwt_falls_back_to_public_scope(client, supabase_auth_enabled):
+    bob = _valid_jwt("bob-2")
+    bob_conv = client.post(
+        "/api/v1/conversations",
+        headers={"Authorization": f"Bearer {bob}"},
+        json={"title": "Bob", "model": "libra-mock-v1"},
+    )
+    assert bob_conv.status_code == 200
+    bob_id = bob_conv.json()["id"]
+
+    bad = client.get(
+        "/api/v1/conversations", headers={"Authorization": "Bearer not-a-real-jwt"}
+    ).json()
+    assert not any(c["id"] == bob_id for c in bad)
+
+
+def test_supabase_auth_disabled_ignores_bearer(client, supabase_auth_enabled, monkeypatch):
+    from apps.backend.middleware import identity as identity_module
+
+    # Turn the feature back off mid-test: bearer tokens must be ignored entirely.
+    monkeypatch.setattr(identity_module.settings, "supabase_auth_enabled", False)
+    token = _valid_jwt("anyone")
+    created = client.post(
+        "/api/v1/conversations",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"title": "Guest Scoped", "model": "libra-mock-v1"},
+    )
+    assert created.status_code == 200
+    conv_id = created.json()["id"]
+
+    # Without the header the same conversation is visible => it was treated as guest scope.
+    guest_list = client.get("/api/v1/conversations").json()
+    assert any(c["id"] == conv_id for c in guest_list)

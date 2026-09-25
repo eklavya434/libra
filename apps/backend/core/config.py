@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     # Public-safety gates (mission §16/§18): dangerous features default OFF on
     # the shared deployment. Code execution also requires an explicit operator flag.
     libra_public_code_exec_enabled: bool = Field(default=False, alias="LIBRA_PUBLIC_CODE_EXEC")
+    # Execution backend when code execution is enabled:
+    #   ""          (default) -> refused: code infrastructure not available
+    #   "jail"      -> isolated subprocess worker with wall-clock timeouts and
+    #                  OS resource limits where supported (recommended).
+    #   "inprocess" -> trusted single-operator mode (executes inside the API
+    #                  process; NOT safe for multi-tenant/public deployments).
+    libra_code_sandbox: str = Field(default="", alias="LIBRA_CODE_SANDBOX")
 
     # Rate limiting (per-client-IP token bucket)
     libra_rate_limit_per_minute: int = Field(default=120, alias="LIBRA_RATE_LIMIT_PER_MINUTE")
@@ -63,6 +70,17 @@ class Settings(BaseSettings):
     # Local Engine URLs
     ollama_base_url: str = Field(default="http://localhost:11434", alias="OLLAMA_BASE_URL")
     vllm_base_url: str = Field(default="http://localhost:8000", alias="VLLM_BASE_URL")
+
+    # Supabase (Postgres / Storage / optional JWT auth)
+    supabase_url: str = Field(default="", alias="SUPABASE_URL")
+    supabase_anon_key: str = Field(default="", alias="SUPABASE_ANON_KEY")
+    supabase_service_role_key: str = Field(default="", alias="SUPABASE_SERVICE_ROLE_KEY")
+    supabase_storage_bucket: str = Field(default="libra-files", alias="SUPABASE_STORAGE_BUCKET")
+    supabase_jwt_secret: str = Field(default="", alias="SUPABASE_JWT_SECRET")
+    supabase_jwt_audience: str = Field(default="authenticated", alias="SUPABASE_JWT_AUDIENCE")
+    # Opt-in: validate `Authorization: Bearer <jwt>` issued by Supabase Auth.
+    # Guests remain the default and are always supported.
+    supabase_auth_enabled: bool = Field(default=False, alias="LIBRA_SUPABASE_AUTH_ENABLED")
 
     model_config = SettingsConfigDict(
         env_file=".env",
