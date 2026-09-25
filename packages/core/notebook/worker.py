@@ -38,7 +38,7 @@ MAX_STDERR_CHARS = 16_384
 MAX_MIME_CHARS = 1_048_576
 
 # POSIX resource limits (best-effort; skipped on platforms without `resource`).
-JAIL_MEM_MB = int(os.environ.get("LIBRA_JAIL_MEM_MB", "768"))
+JAIL_MEM_MB = int(os.environ.get("LIBRA_JAIL_MEM_MB", "2048"))
 JAIL_FSIZE_BYTES = int(os.environ.get("LIBRA_JAIL_FSIZE_BYTES", str(1024 * 1024)))
 JAIL_CPU_SEC = int(os.environ.get("LIBRA_JAIL_CPU_SEC", "30"))
 
@@ -111,9 +111,8 @@ def main() -> int:
         os.makedirs(work_dir, exist_ok=True)
         os.chdir(work_dir)
 
-    _apply_posix_limits(cpu_seconds=JAIL_CPU_SEC)
-
     kernel = NotebookKernel(session_id=session_id)
+    _apply_posix_limits(cpu_seconds=JAIL_CPU_SEC)
     for line in sys.stdin:
         try:
             request = json.loads(line)

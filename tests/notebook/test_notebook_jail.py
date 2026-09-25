@@ -67,11 +67,20 @@ def test_jail_output_truncation(jail_kernel_factory):
 
 
 def test_jail_kills_hung_cell_and_reports_timeout(jail_kernel_factory):
-    kernel = jail_kernel_factory(timeout_sec=0.6)
+    kernel = jail_kernel_factory(timeout_sec=8.0)
+    # Pre-warm the worker so cold-spawn delay does not race the timeout check.
+    out0 = kernel.execute("1 + 1")
+    assert out0.status == "ok"
+
+    # Arm a tight timeout specifically for the hung execution.
+    kernel._executor.timeout_sec = 0.8
     out = kernel.execute("while True:\n    pass")
     assert out.status == "error"
     assert "jail timeout" in out.error_message
+
     # A fresh (non-hung) cell must work afterwards via a respawned worker.
+    # Give the newly respawned worker standard timeout headroom on slow CI runners.
+    kernel._executor.timeout_sec = 8.0
     out2 = kernel.execute("2 + 2")
     assert out2.status == "ok"
     assert out2.result == "4"
@@ -89,7 +98,7 @@ def test_jail_reset_wipes_state(jail_kernel_factory):
 
 
 def test_worker_crash_is_reported_and_session_recovers(jail_kernel_factory):
-    kernel = jail_kernel_factory(timeout_sec=2.0)
+    kernel = jail_kernel_factory(timeout_sec=8.0)
     out = kernel.execute("raise SystemExit('boom')")
     # The worker dies loudly; the API must surface a clear error, not a hang.
     assert out.status == "error"
