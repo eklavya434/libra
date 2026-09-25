@@ -56,9 +56,14 @@ simple enough to audit line-by-line, and every residual risk is explicit.
    accepting that rate limiting keys then on `request.client` (edge still sees
    the real IP) — otherwise an attacker who can set `X-Forwarded-For` bypasses
    the bucket.
-3. **Code execution is off, not sandboxed.** Re-enabling requires the subprocess
-   jail (rlimit/fork sandbox or gVisor) with unit tests proving no host escape —
-   until then the gate stays closed.
+3. **Notebook code execution ships OFF, and its opt-in sandbox is a process
+   boundary, not a host-hardened jail.** The default deployment keeps
+   `LIBRA_PUBLIC_CODE_EXEC=false` → `/execute` returns the exact mission message.
+   Operators who enable it can pick `LIBRA_CODE_SANDBOX=jail` (isolated
+   subprocess worker with wall-clock kill + POSIX rlimits; state confined to a
+   temp work dir — see `packages/core/notebook/jail.py`; on non-POSIX hosts only
+   the parent wall-clock kill applies) or `inprocess` (trusted single-operator).
+   UI/API executions stay gated off until explicitly enabled.
 4. **Knowledge/upload persistence is ephemeral on the free tier** (single
    instance, no free persistent disk). Persistent multi-instance storage
    requires Postgres/S3 adapters (documented, not shipped; paid disk works on a

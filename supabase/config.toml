@@ -1,0 +1,41 @@
+# ==============================================================================
+# Supabase CLI configuration for Libra migrations & local development
+#
+# The reference deployment stores durable data in a Supabase Postgres project:
+#   - conversations / messages / sessions  ->  supabase/migrations/0001_conversation_store.sql
+#   - uploaded document bytes              ->  storage bucket (SUPABASE_STORAGE_BUCKET)
+#   - optional user sessions (Supabase Auth) -> JWT validation service (LIBRA_SUPABASE_AUTH_ENABLED)
+#
+# Owner workflow (needs the Supabase CLI + a logged-in project):
+#   1. supabase login
+#   2. supabase link --project-ref <project-ref>
+#   3. supabase db push
+#   4. supabase storage buckets create libra-files   (or via dashboard)
+# Then set DATABASE_URL / SUPABASE_* secrets on the Render service (render.yaml).
+# ==============================================================================
+
+project_id = "libra"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://libra-frontend.vercel.app"]
+jwt_expiry = 3600
+enable_signup = true

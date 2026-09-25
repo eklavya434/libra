@@ -8,13 +8,19 @@
 # Free-tier reality (verified 2026):
 #   - Free web services sleep after 15 min of inactivity and cold-start in ~1 min.
 #   - Free web services CANNOT attach persistent disks. The filesystem is
-#     ephemeral: SQLite conversations reset on every redeploy/restart. This is
-#     acceptable for a public demo/lab; for real persistence, either upgrade the
-#     backend to a paid plan and re-add the `disk` block below, or connect a free
-#     Render Postgres (note: free Postgres expires after ~30 days).
+#     ephemeral: any local SQLite/uploads reset on every redeploy/restart.
+#     Durable data therefore lives in Supabase (see ./supabase/): set
+#     DATABASE_URL so conversations persist across deploys (PostgresConversation
+#     Store, schema at supabase/migrations/0001_conversation_store.sql), and
+#     SUPABASE_URL + a key so uploads land in a storage bucket.
 #   - Free = 0.1 CPU / 512 MB RAM. Cloud-provider model calls (Gemini/NVIDIA)
 #     are network-bound, so the low CPU is fine; local Ollama models stay on
 #     the owner's PC.
+#
+# Frontend note: the public frontend lives on Vercel (yet another single URL
+# requirement). vercel.json rewrites /api/:path* on the SAME origin to this
+# backend, so the browser never needs CORS here. CORS_ORIGINS below is kept for
+# direct deep-links / debugging only.
 # ==============================================================================
 
 services:
@@ -45,17 +51,34 @@ services:
         value: "120"
       - key: LIBRA_RATE_LIMIT_BURST
         value: "30"
-      # Production frontend origin. Set once the frontend service is live.
-      # MUST match the FQDN (https://libra-frontend.onrender.com by default).
+      # Same-origin /api/* proxy on Vercel means the browser never hits this
+      # origin directly; the list below just keeps curl/debug flows working.
       - key: CORS_ORIGINS
-        value: '["https://libra-frontend.onrender.com"]'
+        value: '["https://libra-frontend.vercel.app","http://localhost:3000"]'
       - key: GEMINI_API_KEY
         sync: false
       - key: NVIDIA_API_KEY
         sync: false
+      # Durability (Supabase free tier). Set these in the Render dashboard.
+      #   - DATABASE_URL: postgres://... for durable conversations
+      #   - SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY: object storage
+      #   - SUPABASE_STORAGE_BUCKET: default "libra-files"
+      # Optional Supabase Auth (enables JWT sessions on top of guests):
+      #   - LIBRA_SUPABASE_AUTH_ENABLED: "true"
+      #   - SUPABASE_JWT_SECRET / SUPABASE_JWT_AUDIENCE
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: libra-files
+      - key: LIBRA_SUPABASE_AUTH_ENABLED
+        value: "false"
       - key: LIBRA_DEPLOY_ENV
         value: render
-    # Optional: uncomment ONLY on a paid plan to persist SQLite across deploys.
+    # Optional: uncomment ONLY on a paid plan to persist local files across deploys.
     # disk:
     #   name: libra-data
     #   mountPath: /app/data
@@ -71,7 +94,9 @@ services:
     plan: free
     autoDeploy: true
     envVars:
-      # Points the browser-side API calls at the backend public URL.
-      # Replace with your custom domain once DNS is wired.
+      # Same-origin by default: vercel.json + next.config.mjs rewrite /api/* to
+      # the backend, so the browser talks ONLY to the frontend origin.
+      # NEXT_PUBLIC_API_URL below is used as the rewrite destination (build-time)
+      # and as the absolute base if we ever call the backend cross-origin.
       - key: NEXT_PUBLIC_API_URL
         value: https://libra-backend.onrender.com

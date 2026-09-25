@@ -7,15 +7,16 @@ Zero-cost public deployment for the Libra AI Laboratory & Assistant.
 ```
                         Browser (laptop / phone)
                                  |
-                                 | HTTPS + X-Libra-Session header (guest identity)
+                                 | single HTTPS origin (the ONE recruiter URL)
                                  v
                      +---------------------------+
-                     |  Frontend (Next.js 14,     |   Render free web service
-                     |  standalone Node server)   |   (Dockerfile.frontend)
+                     |  Frontend (Next.js 14)     |   Vercel, free hobby tier
+                     |  `/` landing page          |   auto-deploys on push to main
+                     |  `/chat` assistant app     |
                      +---------------------------+
-                                 |
-                                 | NEXT_PUBLIC_API_URL (absolute backend URL)
-                                 v
+                        | same-origin `/api/*` proxy
+                        | (vercel.json + next.config rewrites -> no CORS)
+                        v
                      +---------------------------+
                      |  Backend (FastAPI, non-root,)|  Render free web service
                      |  CPU-first, rate limited    |  (Dockerfile.backend)
@@ -24,86 +25,92 @@ Zero-cost public deployment for the Libra AI Laboratory & Assistant.
                       |  |  |  +--> Providers: Gemini / NVIDIA (free tier, keys
                       |  |  |        are secrets, never stored in-repo)
                       |  |  |
-                      |  |  +-----> SQLite (ephemeral on the FREE plan: resets on
-                      |  |            redeploy/restart) — see "Data persistence"
-                      |  |            below for how to claim persistence
+                      |  |  +--> Supabase Postgres (free tier): durable
+                      |  |        conversations via PostgresConversationStore
+                      |  |        when DATABASE_URL is set (recommended)
                       |  |
-                      |  +---------> RAG index (in-memory; re-seeded by document
-                      |               uploads; persisted on disk mount)
+                      |  +--> Supabase Storage bucket: uploaded document bytes
                       |
-                      +------------> Ollama: NOT deployed on the free platform.
-                                     Local models remain for the machine-learning
-                                     lab runs on YOUR PC (CPU budget < 15 min).
+                      +---------> Ollama: NOT deployed on the free platform.
+                                   Local models remain for the machine-learning
+                                   lab runs on YOUR PC (CPU budget < 15 min).
 ```
 
-Total recurring cost: **$0**. Free-tier sleeps after inactivity; cold-starts ~1 min.
+Total recurring cost: **$0**. Vercel hobby + Render free + Supabase free. Free
+instances sleep after inactivity and cold-start in ~1 min.
 
 ## Why this shape
 
-- **One account, no billing**: Render free tier hosts both Docker services and
-  gives a free `*.onrender.com` subdomain + TLS. No CLI needed.
+- **One recruiter URL**: the Vercel origin hosts both the landing page and the
+  assistant app. All `/api/*` traffic is proxied same-origin by rewrites, so
+  the browser never needs CORS and users never see the backend host.
+- **One account, no billing**: Vercel and Render free tiers + Supabase free tier;
+  no CLI or tokens required. Owner-only actions are browser signups.
 - **Guest identity instead of accounts**: each browser gets an opaque session
   token (`X-Libra-Session`, SHA-256 hashed at rest) so conversations are
   isolated per visitor without login friction or email plumbing (mission §16).
+- **Durability without paying**: `DATABASE_URL` → psycopg3
+  `PostgresConversationStore` (migration `supabase/migrations/0001_conversation_store.sql`).
+  Uploads persist to a Supabase Storage bucket.
 - **Code execution stays OFF publicly**: `LIBRA_PUBLIC_CODE_EXEC=false` (default)
-  makes the notebook executor return 503. Enabling it requires an explicit
-  operator decision and a sandboxed subprocess runner (see SECURITY.md).
-- **Honest limits**: single-replica SQLite; on the Render FREE plan the
-  filesystem is ephemeral (see "Data persistence"). Suitable for a demo/lab
-  (<10 concurrent users). Scaling out is documented below.
+  makes the notebook executor return the exact mission message. Enabling it
+  requires an operator flag AND a chosen backend (`LIBRA_CODE_SANDBOX=jail`
+  recommended, see SECURITY.md); the reference deployment keeps it OFF.
+- **Honest limits**: free 0.1 CPU / 512 MB RAM / ephemeral local filesystem.
+  Suitable for a demo/lab (<10 concurrent users). Scaling out is documented below.
 
 ## Data persistence (free vs paid — read this before deploying)
 
-Render free web services have an **ephemeral filesystem**: SQLite
-conversations + sessions are **lost on every redeploy or restart**. The
-important consequence: on the free tier, a demo visitor's chats survive within
-a cold-start cycle but not across service updates. Options, in recommended order:
+Render free web services have an **ephemeral filesystem**: anything written
+locally (`data/`) is lost on redeploy or restart. Durable data uses external
+free services instead:
 
-1. **Demo acceptable (default)**: ship as-is. Persistence across runs is not
-   guaranteed; documents exactly what the free tier provides. The
-   `conversations.db` is recreated from schema on first request.
-2. **Upgrade the backend to a paid plan (~$7/mo)**: uncomment the `disk:` block
-   in `render.yaml` (mount `/app/data`, pick 1 GB ~ $0.25/mo). SQLite then
-   persists across deploys and restarts, with daily automatic snapshots.
-3. **Free Render Postgres**: works but the free database expires after ~30 days,
-   and wiring the store to Postgres requires the untried adapter — deferred per
-   the no-untested-storage rule. Not recommended for the zero-cost mission.
+1. **Durable conversations (recommended)**: create a free Supabase project, run
+   the migration, and set `DATABASE_URL` (plus `SUPABASE_URL` /
+   `SUPABASE_SERVICE_ROLE_KEY` for uploads) on the backend service. This makes
+   guest session chats survive cold-starts and redeploys at $0.
+2. **Demo acceptable (fallback)**: leave `DATABASE_URL` unset. The backend
+   degrades to SQLite under `data/`, recreated from schema on first request —
+   honest about the ephemeral host, fine for a throwaway demo.
+3. **Paid plan**: uncomment the `disk:` block in `render.yaml` to persist local
+   files across deploys (~$0.25/mo for 1 GB).
 
 ## Step-by-step (owner actions required)
 
 ### 1. Set up the GitHub repo + CI (already done)
 `git origin` is `https://github.com/eklavya434/libra`, branch `main`, CI green.
 
-### 2. Create the Render services (manual, browser signup)
-1. Sign up at https://render.com (free, no card).
-2. New -> **Blueprint** -> connect your GitHub org and select `libra`.
-3. Render reads `render.yaml` and provisions:
-   - `libra-backend` (Docker, health `/healthz`)
-   - `libra-frontend` (Docker)
-4. Create the two screens first, then revisit the Dashboard:
-   - Services -> libra-backend -> Environment:
-     - set `GEMINI_API_KEY` and `NVIDIA_API_KEY` (your real values, stored as
-       Render secrets, never in git), or leave blank to run 100% offline/mock.
-     - set `CORS_ORIGINS` to the frontend FQDN
-       (default `["https://libra-frontend.onrender.com"]`).
-   - Services -> libra-frontend -> Environment:
-     - learn the backend FQDN, e.g. `https://libra-backend.onrender.com`
-     - set `NEXT_PUBLIC_API_URL=https://libra-backend.onrender.com`.
-   - Both services auto-deploy on every push to `main` (Blueprinted).
+### 2. Create the services (manual, browser signup)
+1. **Frontend (Vercel)**: import the repo at https://vercel.com -> Project
+   (framework Next.js, build `npm run build`). Vercel reads `vercel.json`
+   (rewrites `/api/*` -> backend) and auto-deploys pushes to `main`.
+2. **Backend (Render)**: sign up at https://render.com (free, no card) ->
+   New -> **Blueprint** -> connect GitHub and select `libra`. Render reads
+   `render.yaml` and provisions `libra-backend` (Docker, health `/healthz`).
+3. **Durability (Supabase)**: create a free project, run
+   `supabase db push` (or apply `supabase/migrations/`), create the
+   `libra-files` storage bucket, then on the Render service set:
+   - `GEMINI_API_KEY`, `NVIDIA_API_KEY` (real values, Render secrets).
+   - `DATABASE_URL` (durable conversations), `SUPABASE_URL` +
+     `SUPABASE_SERVICE_ROLE_KEY` (uploads bucket).
+   - Optional Supabase Auth: `LIBRA_SUPABASE_AUTH_ENABLED=true` +
+     `SUPABASE_JWT_SECRET` (JWT sessions layered over guests).
+4. Both services auto-deploy on every push to `main`.
 
 ### 3. Verify (before touching DNS)
-1. Open `https://libra-frontend.onrender.com` in a phone browser.
-2. Send a chat -> expect streaming with `gemini-2.5-flash` or `libra-mock-v1`.
+1. Open the Vercel FQDN in a phone browser -> landing page -> "Start chatting".
+2. Send a chat -> expect streaming through the configured provider
+   (`gemini-2.5-flash` or whatever the backend defaults to; never a mock).
 3. Refresh (sessions persist) and confirm the sidebar still lists the round.
-4. Open a second private window (or `libra-frontend.onrender.com` on another
-   device) -> conversation list is EMPTY there (isolation working).
+4. Open a second private window on another device -> conversation list is EMPTY
+   there (isolation working).
 5. Backend smoke checks:
    - `curl https://libra-backend.onrender.com/healthz` -> `{"status":"alive"}`
-   - `curl https://libra-backend.onrender.com/api/v1/models` -> 41 models,
-     `available: true/false` with reasons.
+   - `curl https://libra-backend.onrender.com/api/v1/models` -> model list with
+     `available: true/false` and reasons.
    - Notebook execution:
      `curl -X POST https://libra-backend.onrender.com/api/v1/notebook/sessions/x/execute -H 'Content-Type: application/json' -d '{"code":"print(1)"}'`
-     -> `503` (public-safe gate).
+     -> `503` with the exact mission message (public-safe gate).
 
 ### 4. Custom domain (GitHub Student domain)
 You own `libra.<subdomain>.students.github.workers.dev`? There is no such
@@ -123,7 +130,7 @@ Then set `NEXT_PUBLIC_API_URL=https://<backend-host>` and re-deploy.
 ### 5. Final validation
 Run through the mission checklist:
 - Browser on phone + desktop -> responsive, streaming, no console errors.
-- REST smoke tests through the public URLs (chat mock + Gemini, models, health).
+- REST smoke tests through the public URLs (chat via configured provider, models, health).
 - Rate limit: >120 rapid `/api/v1/chat/completions` calls -> 429.
 - Secret scan: `GEMINI_API_KEY` never appears in response bodies/headers.
 - Cost check: Gemini free tier daily quota; zero other spend.

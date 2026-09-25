@@ -73,10 +73,12 @@ jobs:
       - name: Install Dependencies
         run: cd apps/frontend && npm install
 
+      - name: Typecheck (tsc --noEmit)
+        run: cd apps/frontend && npx tsc --noEmit
+
       - name: Compile Standalone Build
         run: cd apps/frontend && npm run build
         env:
-          NEXT_PUBLIC_API_URL: http://localhost:8000
           NEXT_TELEMETRY_DISABLED: 1
 
   deployment-audit:

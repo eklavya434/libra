@@ -16,13 +16,25 @@ defined in `apps/backend/core/config.py` (pydantic-settings).
 | `CORS_ORIGINS` | localhost dev list | JSON list (`["https://front.onrender.com"]`) of allowed browser origins. Empty `[]` only when frontend+backend share one origin. |
 | `LIBRA_TRUSTED_PROXIES` | `1` | Trust count for `X-Forwarded-For` in rate limiting (`0` = never trust, for direct exposure). Matches uvicorn `--forwarded-allow-ips`. |
 | `LIBRA_SESSION_TTL_DAYS` | `30` | Guest session lifetime before expiry cleanup. Range 1–365. |
-| `LIBRA_PUBLIC_CODE_EXEC` | `false` | **Public-safety gate.** When `false`, notebook `/execute` returns 503. Only turn on with a subprocess sandbox. |
+| `LIBRA_PUBLIC_CODE_EXEC` | `false` | **Public-safety gate.** When `false`, notebook `/execute` returns 503 with the mission message. |
+| `LIBRA_CODE_SANDBOX` | *(blank)* | Execution backend when `LIBRA_PUBLIC_CODE_EXEC=true`. Blank (default) → refused (secure sandbox infrastructure not available); `jail` → isolated subprocess worker with wall-clock timeouts + POSIX rlimits (recommended); `inprocess` → trusted single-operator mode (executes inside the API process; NOT safe for multi-tenant). |
+| `LIBRA_JAIL_MEM_MB` | `768` | `RLIMIT_AS` cap for the jail worker (`os.environ`, read by worker.py). |
+| `LIBRA_JAIL_FSIZE_BYTES` | `1048576` | `RLIMIT_FSIZE` cap (jail worker won't write unbounded files). |
+| `LIBRA_JAIL_CPU_SEC` | `30` | `RLIMIT_CPU` seconds for the jail worker; wall-clock kill by the parent is the primary backstop. |
 | `LIBRA_RATE_LIMIT_PER_MINUTE` | `120` | Token bucket refill (per client IP) on compute endpoints. |
 | `LIBRA_RATE_LIMIT_BURST` | `30` | Token bucket burst capacity. |
 | `LIBRA_CACHE_DIR` | `./models` | Model cache/artifacts quota root (subject to `MAX_DISK_USAGE_PERCENT`). |
-| `LIBRA_DATA_DIR` | `./data` | Persistence root (RAG index, uploaded docs). |
+| `LIBRA_DATA_DIR` | `./data` | Persistence root (RAG index, uploaded docs, local object store). |
 | `MAX_DISK_USAGE_PERCENT` | `90.0` | Hard guard preventing disk-fill. |
-| `LIBRA_DB_PATH` | `$LIBRA_DATA_DIR/conversations.db` (package default `data/conversations.db`) | SQLite file for conversations + sessions. Read via `os.getenv`. |
+| `LIBRA_DB_PATH` | `$LIBRA_DATA_DIR/conversations.db` (package default `data/conversations.db`) | SQLite path (used only when `DATABASE_URL` is unset; read via `os.getenv`). |
+| `DATABASE_URL` | *(blank)* | Postgres connection string. When set, `get_conversation_store()` returns the psycopg3 `PostgresConversationStore` (schema via `supabase/migrations/0001_conversation_store.sql`); any connection hiccup degrades to SQLite with a warning. |
+| `SUPABASE_URL` | *(blank)* | Project URL. Used for object storage (`SupabaseStorageStore`) and optional JWT auth. |
+| `SUPABASE_ANON_KEY` | *(blank)* | Public anon key (safe in config; used for object-store REST calls). |
+| `SUPABASE_SERVICE_ROLE_KEY` | *(blank)* | Server-side admin key. NEVER exposed to the frontend or logs. |
+| `SUPABASE_STORAGE_BUCKET` | `libra-files` | Storage bucket name for uploaded document bytes. |
+| `SUPABASE_JWT_SECRET` | *(blank)* | HS256 JWT secret used to validate access tokens (raw or base64-encoded forms both accepted). |
+| `SUPABASE_JWT_AUDIENCE` | `authenticated` | Expected `aud` claim on access tokens. |
+| `LIBRA_SUPABASE_AUTH_ENABLED` | `false` | When `true` (and JWT secret set), `Authorization: Bearer <token>` is validated in the identity middleware → per-user sessions (`supabase:<sub>`); invalid tokens fall back to guest. Off by default; guests remain the default. |
 | `OPENAI_API_KEY` | *(blank)* | Optional provider key (free/paid, never committed). |
 | `ANTHROPIC_API_KEY` | *(blank)* | Optional provider key. |
 | `GEMINI_API_KEY` | *(blank)* | **Real key in your `.env` (dev) / Render secret (prod).** Powers `gemini-2.5-flash`/`-pro`. |
@@ -36,12 +48,13 @@ defined in `apps/backend/core/config.py` (pydantic-settings).
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Local model runtime (your PC only; not deployed). |
 | `VLLM_BASE_URL` | `http://localhost:8000` | Reserved GPU runtime (documented, not installed). |
 | `LIBRA_DEPLOY_ENV` | *(blank)* | Set to `render` by render.yaml for telemetry/runbook hints. |
+| `LIBRA_STORAGE_BACKEND` | *(blank)* | Object-store override: `memory` forces the in-process stash; anything else resolves automatically (`SUPABASE_URL`+key → Supabase bucket; otherwise local disk under `LIBRA_DATA_DIR/uploads` with an explicit ephemeral-host warning). |
 
 ## Frontend (`apps/frontend/.env.local`, baked at build time)
 
 | Variable | Default | Meaning |
 | :-- | :-- | :-- |
-| `NEXT_PUBLIC_API_URL` | *(unset → Next dev proxy / same origin)* | Absolute base URL the **browser** calls for `/api/v1/*`. In Render set to `https://libra-backend.onrender.com`. |
+| `NEXT_PUBLIC_API_URL` | *(unset → same origin)* | When unset, the browser calls every `/api/v1/*` on the SAME origin; `apps/frontend/next.config.mjs` rewrites `/api/:path*` → `<backend>/api/:path*` (Vercel → Render; local dev → `127.0.0.1:8000`). No CORS needed on the shared origin. Set it only to point a standalone build at an absolute backend URL. |
 
 ## Session identity (no env needed — designed-in)
 
