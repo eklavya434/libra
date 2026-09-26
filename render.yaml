@@ -78,25 +78,3 @@ services:
         value: "false"
       - key: LIBRA_DEPLOY_ENV
         value: render
-    # Optional: uncomment ONLY on a paid plan to persist local files across deploys.
-    # disk:
-    #   name: libra-data
-    #   mountPath: /app/data
-    #   sizeGB: 1
-
-  - type: web
-    name: libra-frontend
-    runtime: docker
-    repo: https://github.com/eklavya434/libra
-    branch: main
-    dockerfilePath: infra/docker/Dockerfile.frontend
-    dockerContext: .
-    plan: free
-    autoDeploy: true
-    envVars:
-      # Same-origin by default: vercel.json + next.config.mjs rewrite /api/* to
-      # the backend, so the browser talks ONLY to the frontend origin.
-      # NEXT_PUBLIC_API_URL below is used as the rewrite destination (build-time)
-      # and as the absolute base if we ever call the backend cross-origin.
-      - key: NEXT_PUBLIC_API_URL
-        value: https://libra-backend-yijf.onrender.com
