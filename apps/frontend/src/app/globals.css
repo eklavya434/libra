@@ -26,6 +26,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 button,input,textarea,select { font: inherit; }
+button, a { transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, opacity 180ms ease, box-shadow 180ms ease, transform 180ms cubic-bezier(.22,1,.36,1); }
+button:hover:not(:disabled), a:hover { transform: translateY(-1px); }
+button:active:not(:disabled), a:active { transform: translateY(0) scale(.985); }
+button:disabled { cursor: not-allowed; }
 button,a,input,textarea,select { -webkit-tap-highlight-color: transparent; }
 button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible {
   outline: 2px solid rgba(129,140,248,.7); outline-offset: 2px;
