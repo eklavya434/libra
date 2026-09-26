@@ -3,10 +3,14 @@ Libra Backend - Core Configuration Settings
 Uses pydantic-settings to validate environment variables safely.
 """
 
+import os
+
 from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+if os.path.exists("/etc/secrets/.env"):
+    load_dotenv("/etc/secrets/.env")
 load_dotenv()
 
 
@@ -83,7 +87,7 @@ class Settings(BaseSettings):
     supabase_auth_enabled: bool = Field(default=False, alias="LIBRA_SUPABASE_AUTH_ENABLED")
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=("/etc/secrets/.env", ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )

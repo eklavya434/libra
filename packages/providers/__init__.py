@@ -1,7 +1,11 @@
+import os
+
 from dotenv import load_dotenv
 
 from packages.core.network import enable_ipv4_preference
 
+if os.path.exists("/etc/secrets/.env"):
+    load_dotenv("/etc/secrets/.env")
 load_dotenv()
 enable_ipv4_preference()
 

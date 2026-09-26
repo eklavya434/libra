@@ -61,4 +61,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
 # Reads dynamic $PORT assigned by cloud platforms (e.g. Render, Railway), defaulting to 8000.
 # --forwarded-allow-ips "*" lets uvicorn rebuild the real client IP from
 # X-Forwarded-For set by the platform edge for rate limiting.
-CMD ["sh", "-c", "python3 -m uvicorn apps.backend.main:app --host 0.0.0.0 --port ${PORT:-8000} --forwarded-allow-ips '*'"]
+CMD ["sh", "-c", "if [ -f /etc/secrets/.env ]; then set -a; . /etc/secrets/.env; set +a; fi; python3 -m uvicorn apps.backend.main:app --host 0.0.0.0 --port ${PORT:-8000} --forwarded-allow-ips '*'"]
