@@ -339,10 +339,10 @@ export default function ChatArea({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-950 overflow-hidden">
+    <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-slate-950/80">
       {/* Top Header Bar */}
-      <header className="h-14 border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between bg-slate-950/70 backdrop-blur-md z-10">
-        <div className="flex items-center gap-2.5">
+      <header className="libra-glass z-10 flex h-14 items-center justify-between border-x-0 border-t-0 px-4 sm:px-6">
+        <div className="flex items-center gap-2.5 libra-fade-in">
           <ModelSelector selectedModel={selectedModel} onSelectModel={setSelectedModel} />
 
           {/* RAG Grounding Toggle */}
@@ -363,7 +363,7 @@ export default function ChatArea({
           <button
             type="button"
             onClick={() => setIsParamsOpen(true)}
-            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 transition-colors"
+            className="libra-interactive flex items-center gap-1.5 rounded-xl border border-white/[0.07] bg-white/[0.025] px-2.5 py-1.5 text-xs text-slate-400 hover:bg-white/[0.05] hover:text-slate-200"
             title="Sampling Hyperparameters"
           >
             <Sliders className="w-3.5 h-3.5 text-indigo-400" />
@@ -387,8 +387,8 @@ export default function ChatArea({
       </header>
 
       {/* Messages Scrollable Viewport */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 space-y-6">
-        <div className="max-w-3xl mx-auto space-y-6">
+      <div className="flex-1 overflow-y-auto px-4 py-7 sm:px-8">
+        <div className="mx-auto max-w-3xl space-y-7">
           {messages.map((msg, index) => {
             const isLatestAssistant =
               msg.role === 'assistant' &&
@@ -399,10 +399,10 @@ export default function ChatArea({
             return (
               <div
                 key={msg.id}
-                className={`flex gap-3.5 group ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`libra-fade-up flex gap-3.5 group ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.role === 'assistant' && (
-                  <div className="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 text-indigo-400 mt-1 shadow-sm">
+                  <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-indigo-400/15 bg-indigo-500/10 text-indigo-300 shadow-lg shadow-indigo-950/20">
                     <Bot className="w-4 h-4" />
                   </div>
                 )}
@@ -410,10 +410,10 @@ export default function ChatArea({
                 <div
                   className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm transition-all ${
                     msg.role === 'user'
-                      ? 'bg-indigo-600 text-white rounded-tr-none shadow-indigo-600/10'
+                      ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-tr-md shadow-lg shadow-indigo-950/25'
                       : msg.error
-                      ? 'bg-rose-950/40 border border-rose-800/60 text-rose-200 rounded-tl-none'
-                      : 'bg-slate-900/90 border border-slate-800 text-slate-200 rounded-tl-none leading-relaxed shadow-black/20'
+                      ? 'bg-rose-950/35 border border-rose-500/20 text-rose-200 rounded-tl-md shadow-lg shadow-rose-950/10'
+                      : 'libra-surface bg-slate-900/75 border-white/[0.07] text-slate-200 rounded-tl-md leading-relaxed shadow-xl shadow-black/15'
                   }`}
                 >
                   {/* Message Content: StreamingMarkdown for Assistant, plain pre-wrap for User */}
@@ -513,7 +513,7 @@ export default function ChatArea({
                 </div>
 
                 {msg.role === 'user' && (
-                  <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0 text-slate-300 mt-1 shadow-sm">
+                  <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.045] text-slate-300 shadow-lg shadow-black/10">
                     <User className="w-4 h-4" />
                   </div>
                 )}
@@ -526,7 +526,7 @@ export default function ChatArea({
       </div>
 
       {/* Composer Input Area */}
-      <footer className="p-4 sm:px-8 border-t border-slate-850 bg-slate-950/80 backdrop-blur-md">
+      <footer className="libra-glass border-x-0 border-b-0 p-4 sm:px-8">
         {selectedModel === 'libra-mock-v1' && (
           <div className="max-w-3xl mx-auto mb-2.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-between text-xs text-amber-300/90">
             <span className="flex items-center gap-1.5">
@@ -559,14 +559,14 @@ export default function ChatArea({
                   ? `Message ${selectedModel}...`
                   : 'No provider configured yet — add an API key or start Ollama'
             }
-            className="w-full bg-slate-900/90 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 disabled:opacity-60 rounded-xl px-4 py-3 pr-12 text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
+            className="libra-interactive w-full rounded-2xl border border-white/[0.09] bg-white/[0.045] px-4 py-3 pr-12 text-sm text-slate-100 shadow-2xl shadow-black/15 placeholder-slate-500 hover:border-white/[0.14] focus:border-indigo-400/50 focus:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-indigo-500/15 disabled:opacity-60"
           />
 
           {loading ? (
             <button
               type="button"
               onClick={handleStopGeneration}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center transition-all shadow-sm"
+              className="libra-interactive absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl bg-rose-500 text-white shadow-lg shadow-rose-950/30 hover:bg-rose-400"
               title="Stop generating (Esc)"
             >
               <Square className="w-3.5 h-3.5 fill-current" />
@@ -575,7 +575,7 @@ export default function ChatArea({
             <button
               type="submit"
               disabled={!input.trim()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:hover:bg-indigo-600 text-white flex items-center justify-center transition-all shadow-sm"
+              className="libra-interactive absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-lg shadow-indigo-950/30 hover:bg-indigo-400 disabled:opacity-30 disabled:hover:bg-indigo-500"
               title="Send message"
             >
               <Send className="w-4 h-4" />
