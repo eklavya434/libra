@@ -43,12 +43,11 @@ export default function Sidebar({
         </div>
 
         <button
-          className="libra-interactive"
           onClick={() => {
             if (onSelectTab) onSelectTab('chat');
             if (onNewConversation) onNewConversation();
           }}
-          className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2.5 text-xs font-medium text-slate-200 shadow-sm group hover:border-indigo-400/20 hover:bg-indigo-500/[0.08]"
+          className="libra-interactive mt-4 w-full flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2.5 text-xs font-medium text-slate-200 shadow-sm group hover:border-indigo-400/20 hover:bg-indigo-500/[0.08]"
         >
           <Plus className="w-3.5 h-3.5 text-indigo-400 group-hover:scale-110 transition-transform" />
           <span>New Conversation</span>
