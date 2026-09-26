@@ -2,12 +2,9 @@
 // the backend by next.config rewrites, so browsers talk only to the frontend
 // origin (no CORS). NEXT_PUBLIC_API_URL is an escape hatch for standalone use
 // (e.g. hitting the FastAPI backend directly while developing the API alone).
-const defaultApiUrl =
-  typeof window !== "undefined" && !["localhost", "127.0.0.1"].includes(window.location.hostname)
-    ? "https://libra-backend-yijf.onrender.com"
-    : "";
-
-export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || defaultApiUrl).replace(/\/+$/, "");
+export const API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "https://libra-backend-yijf.onrender.com"
+).replace(/\/+$/, "");
 
 const apiPath = (path: string): string => `${API_BASE_URL}${path}`;
 
