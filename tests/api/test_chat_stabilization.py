@@ -296,7 +296,7 @@ def test_regenerate_replaces_last_assistant_response():
 
 
 def test_models_default_endpoint():
-    """The /api/v1/models/default endpoint returns a valid default model."""
+    """The /api/v1/models/default endpoint returns a valid default model or unconfigured."""
     r = client.get("/api/v1/models/default")
     assert r.status_code == 200
     data = r.json()
@@ -306,4 +306,9 @@ def test_models_default_endpoint():
         "libra-mock-v1",
         "llama3.2:1b",
         "gpt-4o-mini",
+        None,
     )
+    if data["default_model"] is None:
+        assert data["configured"] is False
+    else:
+        assert data["configured"] is True
