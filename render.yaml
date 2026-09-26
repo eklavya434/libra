@@ -99,4 +99,4 @@ services:
       # NEXT_PUBLIC_API_URL below is used as the rewrite destination (build-time)
       # and as the absolute base if we ever call the backend cross-origin.
       - key: NEXT_PUBLIC_API_URL
-        value: https://libra-backend.onrender.com
+        value: https://libra-backend-yijf.onrender.com
