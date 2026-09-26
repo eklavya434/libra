@@ -65,14 +65,25 @@ export default function LandingPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(apiPath('/api/v1/health'), {
+        let res = await fetch(apiPath('/api/v1/health'), {
           headers: { Accept: 'application/json' },
-          signal: AbortSignal.timeout(8000),
-        });
-        if (!res.ok) throw new Error(`health ${res.status}`);
-        const body: { checks?: { name: string; status: string }[] } = await res.json();
-        if (!cancelled) {
-          setHealth({ online: true, checks: body.checks ?? [] });
+          signal: AbortSignal.timeout(12000),
+        }).catch(() => null);
+
+        if (!res || !res.ok) {
+          res = await fetch(apiPath('/healthz'), {
+            headers: { Accept: 'application/json' },
+            signal: AbortSignal.timeout(8000),
+          }).catch(() => null);
+        }
+
+        if (res && res.ok) {
+          const body: { checks?: { name: string; status: string }[] } = await res.json().catch(() => ({}));
+          if (!cancelled) {
+            setHealth({ online: true, checks: body.checks ?? [] });
+          }
+        } else {
+          throw new Error('Backend health check returned not ok');
         }
       } catch {
         if (!cancelled) {
