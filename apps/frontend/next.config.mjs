@@ -10,7 +10,11 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+    const defaultBackend =
+      process.env.NODE_ENV === "development"
+        ? "http://127.0.0.1:8000"
+        : "https://libra-backend-yijf.onrender.com";
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || defaultBackend;
     return [
       {
         source: "/api/:path*",
