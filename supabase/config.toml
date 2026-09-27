@@ -14,7 +14,7 @@
 # Then set DATABASE_URL / SUPABASE_* secrets on the Render service (render.yaml).
 # ==============================================================================
 
-project_id = "libra"
+project_id = "rlqwzyehwzlgyscmzsya"
 
 [api]
 enabled = true
