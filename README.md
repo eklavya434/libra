@@ -1,5 +1,14 @@
 # ♎ Libra: Personal LLM Laboratory & AI Assistant
 
+[![Live Production](https://img.shields.io/badge/Production-libraai.me-00f0ff?style=for-the-badge&logo=vercel)](https://www.libraai.me)
+[![Backend API](https://img.shields.io/badge/Render-API%20Live-46E3B7?style=for-the-badge&logo=render)](https://libra-backend-yijf.onrender.com/healthz)
+[![Database](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](LICENSE)
+
+> 🌐 **Live Web Application**: [https://www.libraai.me](https://www.libraai.me)  
+> ⚡ **API Documentation**: [https://libra-backend-yijf.onrender.com/docs](https://libra-backend-yijf.onrender.com/docs)  
+> 🩺 **Backend Health**: [https://libra-backend-yijf.onrender.com/healthz](https://libra-backend-yijf.onrender.com/healthz)
+
 Libra is an educational large language model (LLM) laboratory and conversational assistant built from first principles. It runs locally on consumer CPU hardware under a zero-cost ($0 / ₹0) policy, demonstrating how modern transformer architectures, inference optimizations, retrieval-augmented generation (RAG), autonomous tool-using agents, and alignment loops operate from raw mathematics to working code.
 
 ---
@@ -23,6 +32,25 @@ This project is divided into two distinct layers:
    - **Provider Adapters**: Standardized client interfaces for local engines (Ollama) and cloud APIs (Google Gemini, OpenAI, Anthropic, DeepSeek, Groq).
 
 > **Scale Note**: All custom PyTorch architectures in this repository are dimensioned educationally (e.g., hidden dimensions between 32 and 256, 1 to 4 layers) so that complete training, alignment, and evaluation runs finish on a standard laptop CPU in under 15 minutes without requiring cloud GPUs.
+
+---
+
+## 🌐 Live Architecture & Production Deployment
+
+Libra is fully deployed and publicly accessible as a production service operating under a strict **Zero-Cost ($0 / ₹0)** budget:
+
+| Tier | Component | Technology | Public Endpoint | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Primary Domain** | Custom Apex & WWW | DNS / Vercel Edge | [https://www.libraai.me](https://www.libraai.me) | 🟢 Live (SSL Valid) |
+| **Frontend UI** | Web Application | Next.js 14 App Router | [https://libra-frontend.vercel.app](https://libra-frontend.vercel.app) | 🟢 Live |
+| **Backend API** | REST & SSE Engine | FastAPI + Docker (Render) | [https://libra-backend-yijf.onrender.com](https://libra-backend-yijf.onrender.com) | 🟢 Live |
+| **Persistence** | Relational Database | Supabase (PostgreSQL 15) | `PostgresConversationStore` | 🟢 Connected |
+| **Object Storage** | Document Storage | Supabase Storage (`libra-files`) | S3-compatible REST API | 🟢 Connected |
+| **AI Providers** | Cloud Inference | Google Gemini & NVIDIA NIM | Server-side API Adapters | 🟢 Configured |
+
+- **Canonical Routing**: `https://libraai.me` permanently redirects (`308`) to `https://www.libraai.me`.
+- **Zero-CORS Client**: Vercel edge transparently proxies `/api/*` requests to the Render backend, eliminating CORS overhead for browser clients while enforcing strict origin allowlists.
+- **Durable Sessions**: Chat conversations and multi-turn states persist permanently in Supabase PostgreSQL across backend reboots and redeploys.
 
 ---
 

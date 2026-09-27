@@ -72,6 +72,16 @@ clean and `next build` succeeds locally.
 6. Optional: `LIBRA_SUPABASE_AUTH_ENABLED=true` + `SUPABASE_JWT_SECRET` to add
    real user sessions on top of guests.
 
+## 6. Live Production Verification & Domain Lineage
+
+| Endpoint | Target / Integration | Verified Status |
+| :--- | :--- | :--- |
+| `https://www.libraai.me` | Canonical Production Web App | 🟢 **VERIFIED LIVE (200 OK, TLS Valid)** |
+| `https://libraai.me` | Apex Domain Redirect | 🟢 **VERIFIED (308 Permanent Redirect)** |
+| `https://libra-backend-yijf.onrender.com/healthz` | Backend Process Liveness | 🟢 **VERIFIED (200 OK `{"status":"alive"}`)** |
+| `https://libra-backend-yijf.onrender.com/readyz` | PostgreSQL Readiness Probe | 🟢 **VERIFIED (`PostgresConversationStore`)** |
+| `https://www.libraai.me/api/v1/health` | Same-Origin Proxy via Vercel | 🟢 **VERIFIED (Commit `6b4a950`, Gemini/NVIDIA active)** |
+
 ## Verification lineage (final regression)
 
 `pytest -p no:warnings` → **665 passed, 2 skipped** (2 live-Postgres tests
