@@ -67,7 +67,11 @@ for _exc, _handler in exception_handlers().items():
 # OUTERMOST. CORS must be as close to the edge as possible (below only the
 # RequestId middleware) so headers are attached to every response, including
 # rejections from the security middleware below it.
-_trusted_origins = settings.cors_origins + ["https://libra-backend-yijf.onrender.com"]
+_trusted_origins = settings.cors_origins + [
+    "https://libra-backend-yijf.onrender.com",
+    "https://libra.me",
+    "https://www.libra.me",
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_trusted_origins,

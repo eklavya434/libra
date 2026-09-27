@@ -2,8 +2,19 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://libra.me'),
   title: 'Libra | Personal LLM Laboratory & AI Assistant',
   description: 'An educational laboratory and ChatGPT-like assistant built from first principles.',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'Libra | Personal LLM Laboratory & AI Assistant',
+    description: 'An educational laboratory and ChatGPT-like assistant built from first principles.',
+    url: 'https://libra.me',
+    siteName: 'Libra',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({

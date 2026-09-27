@@ -36,6 +36,6 @@ file_size_limit = "50MiB"
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["https://libra-frontend.vercel.app"]
+additional_redirect_urls = ["https://libra-frontend.vercel.app", "https://libra.me", "https://www.libra.me"]
 jwt_expiry = 3600
 enable_signup = true
