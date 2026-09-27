@@ -39,6 +39,8 @@ coverage.xml
 # Node & Frontend
 node_modules/
 .next/
+/public/
+!apps/frontend/public/
 out/
 .pnp
 .pnp.js

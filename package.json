@@ -7,7 +7,7 @@
     "apps/frontend"
   ],
   "scripts": {
-    "build": "npm run build --prefix apps/frontend",
+    "build": "npm run build --prefix apps/frontend && node -e \"const fs = require('fs'); if (fs.existsSync('apps/frontend/.next')) fs.cpSync('apps/frontend/.next', '.next', {recursive: true}); if (fs.existsSync('apps/frontend/public')) fs.cpSync('apps/frontend/public', 'public', {recursive: true});\"",
     "start": "npm run start --prefix apps/frontend",
     "dev:backend": "powershell -Command \".\\.venv\\Scripts\\uvicorn apps.backend.main:app --reload --port 8000\"",
     "dev:frontend": "npm run dev --prefix apps/frontend",
