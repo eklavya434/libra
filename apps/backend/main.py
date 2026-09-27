@@ -71,6 +71,8 @@ _trusted_origins = settings.cors_origins + [
     "https://libra-backend-yijf.onrender.com",
     "https://libra.me",
     "https://www.libra.me",
+    "https://libra-ai.me",
+    "https://www.libra-ai.me",
 ]
 app.add_middleware(
     CORSMiddleware,

@@ -54,7 +54,7 @@ services:
       # Same-origin /api/* proxy on Vercel means the browser never hits this
       # origin directly; the list below just keeps curl/debug flows working.
       - key: CORS_ORIGINS
-        value: '["https://libra.me","https://www.libra.me","https://libra-frontend.vercel.app","http://localhost:3000"]'
+        value: '["https://libra-ai.me","https://www.libra-ai.me","https://libra.me","https://www.libra.me","https://libra-frontend.vercel.app","http://localhost:3000"]'
       - key: GEMINI_API_KEY
         sync: false
       - key: NVIDIA_API_KEY
