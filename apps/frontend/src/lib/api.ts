@@ -10,6 +10,23 @@ const apiPath = (path: string): string => `${API_BASE_URL}${path}`;
 
 export { apiPath };
 
+/**
+ * Extract the backend's structured error message ({"detail": "..."}) from a
+ * non-ok response. The backend already returns honest, generic messages, so the
+ * UI surfaces those instead of dumping the raw response body.
+ */
+async function extractBackendError(res: Response, fallback: string): Promise<string> {
+  try {
+    const body = await res.json();
+    if (typeof body.detail === "string" && body.detail.trim()) {
+      return `${fallback}: ${body.detail}`;
+    }
+  } catch {
+    // non-JSON error body; fall through to the fallback message
+  }
+  return fallback;
+}
+
 // ---------------------------------------------------------------------------
 // Guest session identity
 //
@@ -432,7 +449,7 @@ export async function fetchModels(): Promise<ModelMetadata[]> {
   } catch (err) {
     // Honest empty list: the UI must not pretend mock engines exist. The
     // model selector shows an "unavailable" state instead.
-console.warn("Could not fetch models:", err);
+    console.warn("Could not fetch models:", err);
     return [];
   }
 }
@@ -703,8 +720,11 @@ export async function streamChat(
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Chat request failed (${response.status}): ${errText}`);
+      const detail = await extractBackendError(
+        response,
+        `Chat request failed (${response.status})`
+      );
+      throw new Error(detail);
     }
 
     // If the backend minted a fresh session for us, persist it now.

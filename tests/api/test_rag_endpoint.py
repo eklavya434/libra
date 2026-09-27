@@ -135,3 +135,76 @@ def test_hybrid_rag_query(client):
     assert len(data["results"]) >= 1
     assert data["results"][0]["chunk"]["doc_title"] == "Machine Learning Hardware"
     assert data["results"][0]["rank"] == 1
+
+
+def _mint_session(client) -> str:
+    res = client.get("/api/v1/auth/session")
+    assert res.status_code == 200
+    return res.json()["token"]
+
+
+def test_rag_documents_are_isolated_between_guest_sessions(client):
+    tenant_a = _mint_session(client)
+    tenant_b = _mint_session(client)
+
+    headers_a = {"X-Libra-Session": tenant_a}
+    headers_b = {"X-Libra-Session": tenant_b}
+
+    ingest = client.post(
+        "/api/v1/rag/documents",
+        headers=headers_a,
+        json={"title": "Secret of Tenant A", "content": "The launch password is LibraPrime-77."},
+    )
+    assert ingest.status_code == 200
+    doc_id = ingest.json()["id"]
+
+    # Tenant B cannot list, read, query, or delete Tenant A's document.
+    b_list = client.get("/api/v1/rag/documents", headers=headers_b)
+    assert all(d["id"] != doc_id for d in b_list.json())
+
+    b_get = client.get(f"/api/v1/rag/documents/{doc_id}", headers=headers_b)
+    assert b_get.status_code == 404
+
+    b_query = client.post(
+        "/api/v1/rag/query",
+        headers=headers_b,
+        json={"query": "launch password LibraPrime", "top_k": 3},
+    )
+    assert b_query.status_code == 200
+    assert b_query.json()["results"] == []
+
+    b_delete = client.delete(f"/api/v1/rag/documents/{doc_id}", headers=headers_b)
+    assert b_delete.status_code == 404
+    # Document still exists for the owner.
+    assert client.get(f"/api/v1/rag/documents/{doc_id}", headers=headers_a).status_code == 200
+
+    # Tenant A can still retrieve and delete it.
+    a_query = client.post(
+        "/api/v1/rag/query",
+        headers=headers_a,
+        json={"query": "launch password LibraPrime", "top_k": 3},
+    )
+    assert a_query.status_code == 200
+    assert any(r["chunk"]["doc_title"] == "Secret of Tenant A" for r in a_query.json()["results"])
+
+    del_res = client.delete(f"/api/v1/rag/documents/{doc_id}", headers=headers_a)
+    assert del_res.status_code == 200
+
+
+def test_rag_public_scope_does_not_see_guest_documents(client):
+    guest = _mint_session(client)
+    client.post(
+        "/api/v1/rag/documents",
+        headers={"X-Libra-Session": guest},
+        json={"title": "Confidential Guest Notes", "content": "Private data that must not leak."},
+    )
+
+    public_list = client.get("/api/v1/rag/documents")
+    assert all(d["title"] != "Confidential Guest Notes" for d in public_list.json())
+
+    public_query = client.post(
+        "/api/v1/rag/query",
+        json={"query": "Confidential Guest Notes leak", "top_k": 3},
+    )
+    assert public_query.status_code == 200
+    assert public_query.json()["results"] == []

@@ -109,3 +109,13 @@ def test_react_agent_streaming_endpoint(client):
     assert "data: " in text
     assert '"type": "start"' in text
     assert '"type": "finish"' in text
+
+
+def test_agent_without_model_fails_loudly_when_no_provider_configured(client, monkeypatch):
+    """Omitting model_id must never silently run on MockProvider."""
+    import apps.backend.api.v1.endpoints.models as models_endpoint
+
+    monkeypatch.setattr(models_endpoint, "get_system_default_model", lambda: None)
+    res = client.post("/api/v1/agents/react", json={"prompt": "Hello"})
+    assert res.status_code == 400
+    assert "no provider is configured" in res.json()["detail"]

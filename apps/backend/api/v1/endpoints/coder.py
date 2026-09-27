@@ -12,6 +12,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from apps.backend.api.v1.deps import resolve_effective_model_id
 from packages.agents import (
     AgentTrajectory,
     AutoDebugger,
@@ -27,7 +28,10 @@ class PALRequest(BaseModel):
     """Payload for Program-Aided Language Model solving."""
 
     prompt: str = Field(..., description="Math, logic, or combinatorics word problem")
-    model_id: str = Field("mock-model", description="Model ID to generate the Python code")
+    model_id: str | None = Field(
+        None,
+        description="Model ID to generate the Python code (defaults to the configured provider)",
+    )
     provider_name: str | None = Field(None, description="Optional provider override")
     timeout_sec: float = Field(30.0, ge=5.0, le=120.0, description="Execution timeout in seconds")
     temperature: float = Field(0.0, ge=0.0, le=2.0, description="Sampling temperature")
@@ -40,7 +44,10 @@ class CodeGenerateRequest(BaseModel):
     assertions: str | None = Field(
         None, description="Unit test assertions to verify against (e.g. 'assert func(2) == 4')"
     )
-    model_id: str = Field("mock-model", description="Model ID to generate and repair code")
+    model_id: str | None = Field(
+        None,
+        description="Model ID to generate and repair code (defaults to the configured provider)",
+    )
     provider_name: str | None = Field(None, description="Optional provider override")
     max_iterations: int = Field(
         3, ge=1, le=10, description="Maximum self-correction repair attempts"
@@ -59,7 +66,10 @@ class DebugRequest(BaseModel):
     assertions: str | None = Field(
         None, description="Optional test assertions that fail on this code"
     )
-    model_id: str = Field("mock-model", description="Model ID to diagnose and fix the bug")
+    model_id: str | None = Field(
+        None,
+        description="Model ID to diagnose and fix the bug (defaults to the configured provider)",
+    )
     provider_name: str | None = Field(None, description="Optional provider override")
     max_iterations: int = Field(
         3, ge=1, le=10, description="Maximum self-correction repair attempts"
@@ -73,7 +83,7 @@ class DebugRequest(BaseModel):
 async def run_pal(request: PALRequest) -> AgentTrajectory:
     """Solves symbolic, arithmetic, or algorithmic problems via Python code synthesis and execution."""
     agent = PALAgent(
-        model_id=request.model_id,
+        model_id=resolve_effective_model_id(request.model_id),
         provider_name=request.provider_name,
         timeout_sec=request.timeout_sec,
         temperature=request.temperature,
@@ -87,7 +97,7 @@ async def run_pal(request: PALRequest) -> AgentTrajectory:
 async def generate_code(request: CodeGenerateRequest) -> CodeTrajectory:
     """Synthesizes code according to task specification, runs assertions, and auto-repairs any failures."""
     agent = CodeAgent(
-        model_id=request.model_id,
+        model_id=resolve_effective_model_id(request.model_id),
         provider_name=request.provider_name,
         max_debug_iterations=request.max_iterations,
         timeout_sec=request.timeout_sec,
@@ -104,7 +114,7 @@ async def generate_code(request: CodeGenerateRequest) -> CodeTrajectory:
 async def debug_code(request: DebugRequest) -> CodeTrajectory:
     """Takes a broken Python code snippet, runs it in the sandbox, diagnoses failure, and iteratively fixes it."""
     debugger = AutoDebugger(
-        model_id=request.model_id,
+        model_id=resolve_effective_model_id(request.model_id),
         provider_name=request.provider_name,
         temperature=request.temperature,
     )

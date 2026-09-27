@@ -108,3 +108,23 @@ def test_clear_messages(memory_store):
     assert detail is not None
     assert detail.messages == []
     assert detail.message_count == 0
+
+
+def test_renew_session_slides_expiry(memory_store):
+    memory_store.create_session(token="tok-abc", ttl_days=1)
+    before = memory_store.get_session("tok-abc")
+    assert before is not None
+
+    memory_store.renew_session("tok-abc", ttl_days=30)
+    after = memory_store.get_session("tok-abc")
+    assert after is not None
+    assert after["expires_at"] != before["expires_at"]
+    assert after["expires_at"] > before["expires_at"]
+
+
+def test_renew_session_does_not_revive_expired_session(memory_store):
+    memory_store.create_session(token="tok-dead", ttl_days=-1)
+    assert memory_store.get_session("tok-dead") is None
+
+    memory_store.renew_session("tok-dead", ttl_days=30)
+    assert memory_store.get_session("tok-dead") is None

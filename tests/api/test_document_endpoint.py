@@ -119,6 +119,23 @@ def test_upload_persists_stored_object_and_serves_it_back(memory_storage, client
     assert served.content == content.encode("utf-8")
 
 
+def test_uploaded_file_cannot_be_read_by_other_guest(memory_storage, client):
+    content = "# Private Budget\n| Item | Cost |\n| Servers | $12k |\n"
+    upload = client.post(
+        "/api/v1/document/upload",
+        files={"file": ("budget.md", content.encode("utf-8"), "text/markdown")},
+    )
+    assert upload.status_code == 200
+    key = upload.json()["storage"]["key"]
+
+    guest = client.get("/api/v1/auth/session").json()["token"]
+    foreign = client.get(f"/api/v1/document/files/{key}", headers={"X-Libra-Session": guest})
+    assert foreign.status_code == 404
+
+    # The owner (anonymous/public scope) can still read it.
+    assert client.get(f"/api/v1/document/files/{key}").status_code == 200
+
+
 def test_files_endpoint_rejects_non_document_keys(client):
     response = client.get("/api/v1/document/files/not-a-document/x.bin")
     assert response.status_code == 404

@@ -44,33 +44,93 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        # HSTS is only meaningful when the client actually used HTTPS (the
+        # Render/Vercel edges terminate TLS, so X-Forwarded-Proto carries it).
+        if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https":
+            response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
         return response
 
 
-class RequestSizeLimiterMiddleware(BaseHTTPMiddleware):
-    """Enforces maximum incoming payload size (default 10 MB)."""
+class RequestSizeLimiterMiddleware:
+    """Enforces maximum incoming payload size (default 10 MB).
+
+    Handles both ``Content-Length`` headers and chunked/streamed bodies, so an
+    attacker cannot bypass the limit by omitting the length. Implemented as a
+    plain ASGI middleware (not BaseHTTPMiddleware) so the bounded body can be
+    replayed to the downstream app — with BaseHTTPMiddleware the app would
+    receive an already-consumed stream and see an empty body.
+    """
 
     def __init__(self, app, max_bytes: int = 10 * 1024 * 1024) -> None:
-        super().__init__(app)
+        self.app = app
         self.max_bytes = max_bytes
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        content_length = request.headers.get("content-length")
+    async def _reject(self, send) -> None:
+        body = (
+            f'{{"detail": "Payload too large. Maximum allowed size is '
+            f'{self.max_bytes // (1024 * 1024)} MB."}}'
+        ).encode()
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 413,
+                "headers": [
+                    (b"content-type", b"application/json"),
+                    (b"content-length", str(len(body)).encode()),
+                ],
+            }
+        )
+        await send({"type": "http.response.body", "body": body})
+
+    async def __call__(self, scope, receive, send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        headers = {k.lower(): v for k, v in scope.get("headers", [])}
+        content_length = headers.get(b"content-length")
         if content_length:
             try:
                 if int(content_length) > self.max_bytes:
-                    return JSONResponse(
-                        status_code=413,
-                        content={
-                            "detail": f"Payload too large. Maximum allowed size is {self.max_bytes // (1024 * 1024)} MB."
-                        },
-                    )
+                    await self._reject(send)
+                    return
             except ValueError:
                 pass
-        return await call_next(request)
+            await self.app(scope, receive, send)
+            return
+
+        # No content-length (chunked or proxy-stripped): buffer the stream but
+        # hard-stop once the ceiling is crossed so memory stays bounded.
+        payload = bytearray()
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            if message["type"] != "http.request":
+                continue
+            payload.extend(message.get("body", b""))
+            if len(payload) > self.max_bytes:
+                await self._reject(send)
+                return
+            if not message.get("more_body", False):
+                break
+
+        # Replay the fully-buffered body so application endpoints see it intact.
+        body_bytes = bytes(payload)
+        sent = False
+
+        async def replayed_receive():
+            nonlocal sent
+            if not sent:
+                sent = True
+                return {"type": "http.request", "body": body_bytes, "more_body": False}
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        await self.app(scope, replayed_receive, send)
 
 
 class RateLimitingMiddleware(BaseHTTPMiddleware):
@@ -88,6 +148,10 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
         "/api/v1/security",
         "/api/v1/upload",
         "/api/v1/files",
+        "/api/v1/parse",
+        "/api/v1/chunk",
+        "/api/v1/qa",
+        "/api/v1/document",
         "/api/v1/document_ocr",
         "/api/v1/ocr",
         "/api/v1/notebook",

@@ -55,33 +55,33 @@ class RoutingDecision(BaseModel):
 class DynamicRouter:
     """Intelligently routes inference requests across model tiers with fallback guarantees."""
 
-    # Default model mapping per tier
+    # Default model mapping per tier. Primaries and alternatives are REAL
+    # providers only; the router never fabricates output when no provider can
+    # serve the request (see route_and_execute).
     TIER_MODEL_MAP: ClassVar[dict[ExecutionTier, dict[str, Any]]] = {
         ExecutionTier.FAST_LOCAL: {
-            "primary": ("mock-provider", "mock-model"),
-            "local_alt": ("ollama", "qwen2.5:0.5b"),
+            "primary": ("ollama", "qwen2.5:0.5b"),
             "latency": "< 50ms",
             "cost": "$0 / ₹0 (Local CPU)",
         },
         ExecutionTier.BALANCED: {
-            "primary": ("mock-provider", "mock-model"),
+            "primary": ("ollama", "llama3.2:3b"),
             "cloud_alt": ("openai", "gpt-4o-mini"),
-            "local_alt": ("ollama", "llama3.2:3b"),
             "latency": "200ms - 800ms",
-            "cost": "$0 / ₹0 (Local / Mock)",
+            "cost": "$0 / ₹0 (Local CPU)",
         },
         ExecutionTier.FRONTIER_REASONING: {
-            "primary": ("mock-provider", "mock-model"),
-            "cloud_alt": ("deepseek", "deepseek-r1"),
+            "primary": ("deepseek", "deepseek-r1"),
             "local_alt": ("ollama", "qwen2.5-coder:7b"),
             "latency": "1.0s - 3.5s",
-            "cost": "$0 / ₹0 (Local / Mock)",
+            "cost": "$0 / ₹0 (Local, or cloud tier pricing)",
         },
         ExecutionTier.MULTI_AGENT: {
-            "primary": ("mock-provider", "mock-model"),
+            "primary": ("ollama", "llama3.2:3b"),
+            "cloud_alt": ("kimi", "moonshot-v1-8k"),
             "team_mode": True,
             "latency": "3.0s - 10.0s",
-            "cost": "$0 / ₹0 (Local / Mock)",
+            "cost": "$0 / ₹0 (Local, or cloud tier pricing)",
         },
     }
 
@@ -124,7 +124,7 @@ class DynamicRouter:
         tier_info = self.TIER_MODEL_MAP[selected_tier]
         primary_provider, primary_model = tier_info["primary"]
 
-        # 3. Construct Fallback Cascade Chain
+        # 3. Construct Fallback Cascade Chain (real providers only)
         fallbacks: list[dict[str, str]] = []
         if "local_alt" in tier_info:
             fallbacks.append(
@@ -134,8 +134,6 @@ class DynamicRouter:
             fallbacks.append(
                 {"provider": tier_info["cloud_alt"][0], "model": tier_info["cloud_alt"][1]}
             )
-        # Universal zero-cost safety net
-        fallbacks.append({"provider": "mock-provider", "model": "mock-model"})
 
         # Avoid redundant duplicate fallbacks
         seen = set()
@@ -158,6 +156,14 @@ class DynamicRouter:
             routing_rationale=rationale,
         )
 
+    @staticmethod
+    def _extract_content(result: dict[str, Any]) -> str:
+        """Extract assistant text from a provider chat result (OpenAI-style dict)."""
+        try:
+            return result["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError):
+            return result.get("content", "") or ""
+
     async def route_and_execute(
         self,
         messages: list[dict[str, Any]],
@@ -165,7 +171,11 @@ class DynamicRouter:
         prefer_local: bool = True,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        """Plans routing and executes completion with multi-level fallback resilience."""
+        """Plans routing and executes completion with fallback resilience.
+
+        Reaches into **real** providers only. When no attempt can serve the
+        request it raises instead of fabricating a mock response.
+        """
         # Extract prompt from last user message
         prompt = ""
         for m in reversed(messages):
@@ -180,7 +190,7 @@ class DynamicRouter:
             conversation_history=messages[:-1] if len(messages) > 1 else None,
         )
 
-        # Attempt primary provider
+        # Attempt primary provider, then each fallback
         attempts = [
             {"provider": decision.selected_provider, "model": decision.selected_model}
         ] + decision.fallback_chain
@@ -199,7 +209,7 @@ class DynamicRouter:
 
                 result = await provider.chat(messages, model=model_name, **kwargs)
                 return {
-                    "content": result.get("content", ""),
+                    "content": self._extract_content(result),
                     "model_used": model_name,
                     "provider_used": prov_name,
                     "tier_used": decision.selected_tier.value,
@@ -211,19 +221,17 @@ class DynamicRouter:
                 logger.warning("Routing attempt failed for %s/%s: %s", prov_name, model_name, e)
                 last_error = e
 
-        # Final safety net
-        mock = self.provider_router.get_provider("mock-provider")
-        result = await mock.chat(messages, model="mock-model", **kwargs)
-        return {
-            "content": result.get("content", ""),
-            "model_used": "mock-model",
-            "provider_used": "mock-provider",
-            "tier_used": ExecutionTier.FAST_LOCAL.value,
-            "routing_decision": decision.model_dump(),
-            "fallback_triggered": True,
-            "error_fallback": str(last_error) if last_error else None,
-            "usage": result.get("usage", {}),
-        }
+        attempt_desc = ", ".join(f"{a['provider']}/{a['model']}" for a in attempts)
+        if isinstance(last_error, Exception):
+            raise RuntimeError(
+                f"No routing attempt succeeded for tier {decision.selected_tier.value} "
+                f"(tried: {attempt_desc}). Last error: {last_error}"
+            ) from last_error
+        raise RuntimeError(
+            f"No routing attempt was available for tier {decision.selected_tier.value} "
+            f"(tried: {attempt_desc}). Install the required local Ollama models or "
+            "configure a cloud provider."
+        )
 
 
 _default_dynamic_router: DynamicRouter | None = None

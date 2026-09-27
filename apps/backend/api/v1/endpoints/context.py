@@ -14,6 +14,7 @@ import torch
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from apps.backend.api.v1.deps import run_provider_completion
 from packages.evaluation.needle_haystack import (
     DEFAULT_NEEDLE_FACT,
     DEFAULT_NEEDLE_KEY,
@@ -164,13 +165,15 @@ async def evaluate_needle_in_haystack(req: NeedleEvaluationRequest) -> NeedleEva
     )
 
     def generate_fn(prompt: str) -> str:
-        # If prompt contains the needle directly, resolve answer
-        if req.target_key in prompt:
-            return (
-                f"According to the text, the secret access code to the vault is {req.target_key}."
-            )
-        res = provider.generate([{"role": "user", "content": prompt}], temperature=0.0)
-        return res.content
+        # 'mock' is an explicitly-marked educational generator: it answers
+        # deterministically when the target key is present, so students can run
+        # the benchmark without a provider. Real models NEVER short-circuit —
+        # special-casing them would fabricate a perfect score.
+        if req.model.lower() in ("mock", "test"):
+            if req.target_key in prompt:
+                return f"According to the text, the secret access code to the vault is {req.target_key}."
+            return "[MockGenerator] Target key not present in the prompt."
+        return run_provider_completion(req.model, prompt, max_tokens=100, temperature=0.0)
 
     results = evaluator.run_grid(
         generator_fn=generate_fn,

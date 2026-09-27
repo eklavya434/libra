@@ -83,6 +83,7 @@ class DeepResearchAgent:
         topic: str,
         max_iterations: int = 3,
         max_sources_per_query: int = 3,
+        scope: str = "public",
     ) -> DeepResearchReport:
         """
         Executes an iterative research workflow:
@@ -90,6 +91,9 @@ class DeepResearchAgent:
         2. Web + Knowledge base collection
         3. Cross-source synthesis
         4. Structured report generation
+
+        Local knowledge-base lookups are restricted to the caller's ``scope``
+        so research never surfaces another tenant's documents.
         """
         subqueries = self._decompose_query(topic, max_subqueries=max_iterations)
         all_sources: list[ResearchSource] = []
@@ -117,8 +121,8 @@ class DeepResearchAgent:
                     section_sources.append(src)
                     all_sources.append(src)
 
-            # 2. Query Local Knowledge Base
-            local_results = self.retriever.search(sq, top_k=2, mode="hybrid")
+            # 2. Query Local Knowledge Base (scoped to the caller)
+            local_results = self.retriever.search(sq, top_k=2, mode="hybrid", scope=scope)
             for lr in local_results:
                 local_url = f"libra-kb://{lr.chunk.doc_id}"
                 if local_url not in seen_urls:

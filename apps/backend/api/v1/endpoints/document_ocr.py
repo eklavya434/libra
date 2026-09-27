@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
@@ -25,6 +25,15 @@ router = APIRouter(prefix="/document", tags=["Document Understanding & OCR"])
 
 parser = DocumentLayoutParser()
 qa_engine = DocumentQAEngine()
+
+# Uploaded storage key -> owning session scope ("public" for anonymous).
+# Mirrors the identity model so one guest cannot read another's documents.
+_file_owner: dict[str, str] = {}
+
+
+def _scope(request: Request) -> str:
+    return request.state.session_id
+
 
 DOCUMENT_PRESETS = [
     {
@@ -260,6 +269,7 @@ def _extract_text_from_bytes(filename: str, raw: bytes) -> str:
 
 @router.post("/upload")
 async def upload_document(
+    request: Request,
     file: UploadFile = File(..., description="Text, markdown, CSV, or PDF document"),
     title: str | None = None,
 ) -> dict[str, Any]:
@@ -301,11 +311,16 @@ async def upload_document(
             or mimetypes.guess_type(filename)[0]
             or "application/octet-stream",
         )
+        _file_owner[key] = _scope(request)
         storage["backend"] = store.backend
         storage["key"] = key
         storage["signed_url"] = await store.signed_url(key)
-    except Exception as exc:  # storage is best-effort; document parsing still succeeds
-        storage["error"] = f"File could not be persisted: {exc}"
+    except Exception:  # storage is best-effort; document parsing still succeeds
+        # Never echo provider exception detail to the client.
+        import logging
+
+        logging.getLogger("libra.document").exception("File could not be persisted")
+        storage["error"] = "File could not be persisted at this time."
 
     return {
         "status": "success",
@@ -319,14 +334,17 @@ async def upload_document(
 
 
 @router.get("/files/{key:path}")
-async def get_stored_file(key: str) -> Response:
+async def get_stored_file(key: str, request: Request) -> Response:
     """Fetch a stored document object by its storage key (documents/* only).
 
     Files are served through the backend so storage URLs/keys are never leaked
     directly to browsers; Supabase-backed deployments use signed URLs created
-    by the upload endpoint.
+    by the upload endpoint. Reads are restricted to the uploading session scope.
     """
     if not key.startswith("documents/"):
+        raise HTTPException(status_code=404, detail="Object not found.")
+    owner = _file_owner.get(key, "public")
+    if owner != _scope(request):
         raise HTTPException(status_code=404, detail="Object not found.")
     store = get_object_store()
     data = await store.read(key)

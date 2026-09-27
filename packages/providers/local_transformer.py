@@ -19,6 +19,7 @@ from packages.models.generation import decode_tokens, encode_string, generate
 from packages.models.modern_config import ModernTransformerConfig
 from packages.models.modern_transformer import ModernTransformerLM
 from packages.providers.base import BaseProvider, ModelMetadata
+from packages.providers.errors import ProviderOfflineError
 from packages.providers.prompt_template import PromptTemplate
 
 
@@ -53,54 +54,84 @@ class LocalTransformerProvider(BaseProvider):
             "supports_streaming": True,
         }
 
-    def _ensure_loaded(self) -> tuple[ModernTransformerLM, EducationalBPETokenizer]:
-        """Lazy loader for model weights and tokenizer."""
-        if self._model is not None and self._tokenizer is not None:
+    def _ensure_loaded(self) -> tuple[ModernTransformerLM, Optional[EducationalBPETokenizer]]:
+        """Lazy loader for model weights and tokenizer.
+
+        Raises ``ProviderOfflineError`` (never a silent random-weight output) when
+        the trained checkpoint required for real inference is absent.
+        """
+        if self._model is not None:
             return self._model, self._tokenizer
 
-        # 1. Load Tokenizer
+        if not os.path.exists(self.checkpoint_path):
+            raise ProviderOfflineError(
+                message=(
+                    f"No trained Libra checkpoints found at '{self.checkpoint_path}'. "
+                    "This model is only available on a machine where the educational "
+                    "training pipeline has been run. Run a Phase 4/5 training job, or "
+                    "select a cloud/Ollama/mock model instead."
+                ),
+                provider="libra_lab",
+                status_code=503,
+            )
+
+        # 1. Load Tokenizer (optional: only used to surface BPE metadata)
         if os.path.exists(self.tokenizer_path):
             self._tokenizer = EducationalBPETokenizer.load(self.tokenizer_path)
         else:
-            # Fallback training on default corpus
-            corpus_path = "data/raw/educational_science_corpus.txt"
-            if os.path.exists(corpus_path):
-                with open(corpus_path, "r", encoding="utf-8") as f:
-                    corpus = f.read()
-            else:
-                corpus = "Project Libra educational transformer."
-            tok = EducationalBPETokenizer()
-            tok.train(corpus, num_merges=40)
-            self._tokenizer = tok
+            self._tokenizer = None
 
-        # 2. Load Model Architecture
-        if os.path.exists(self.config_path):
-            config = ModernTransformerConfig.from_yaml(self.config_path)
-        else:
-            config = ModernTransformerConfig(vocab_size=512, d_model=128, n_heads=4, n_layers=2)
-
+        # 2. Load Model Architecture (a matching config is required for real weights)
+        if not os.path.exists(self.config_path):
+            raise ProviderOfflineError(
+                message=(
+                    f"No architecture config found at '{self.config_path}'. The trained "
+                    "checkpoint cannot be used without the config that produced it."
+                ),
+                provider="libra_lab",
+                status_code=503,
+            )
+        config = ModernTransformerConfig.from_yaml(self.config_path)
         model = ModernTransformerLM(config).to(self.device)
 
         # 3. Load Checkpoint Weights
-        if os.path.exists(self.checkpoint_path):
+        try:
             state = torch.load(self.checkpoint_path, map_location=self.device, weights_only=False)
             if "model_state_dict" in state:
                 model.load_state_dict(state["model_state_dict"])
             else:
                 model.load_state_dict(state)
+        except RuntimeError as e:
+            raise ProviderOfflineError(
+                message=(
+                    f"Checkpoint '{self.checkpoint_path}' is incompatible with the "
+                    f"configured architecture: {e}"
+                ),
+                provider="libra_lab",
+                status_code=503,
+            ) from e
 
         model.eval()
         self._model = model
         return self._model, self._tokenizer
 
+    def is_ready(self) -> bool:
+        """True only when a real trained checkpoint exists on disk."""
+        return os.path.exists(self.checkpoint_path) and os.path.exists(self.config_path)
+
     async def health(self) -> dict[str, Any]:
-        has_checkpoint = os.path.exists(self.checkpoint_path)
+        ready = self.is_ready()
         return {
-            "status": "online",
+            "status": "online" if ready else "offline",
             "provider": "libra_lab",
-            "checkpoint_loaded": has_checkpoint,
+            "checkpoint_loaded": ready,
             "checkpoint_path": self.checkpoint_path,
             "device": str(self.device),
+            "detail": (
+                None
+                if ready
+                else "No trained checkpoint. Run the training pipeline or configure a cloud/Ollama provider."
+            ),
         }
 
     async def list_models(self) -> list[ModelMetadata]:
@@ -195,5 +226,7 @@ class LocalTransformerProvider(BaseProvider):
             yield chunk
 
     async def embeddings(self, texts: list[str], model: str | None = None) -> list[list[float]]:
-        # Dummy or placeholder embeddings for local model
-        return [[0.0] * 128 for _ in texts]
+        raise NotImplementedError(
+            "LocalTransformerProvider does not implement embeddings; "
+            "use an embedding-capable provider (e.g. OpenAI/Gemini) for RAG."
+        )

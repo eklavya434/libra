@@ -502,6 +502,20 @@ class SQLiteConversationStore:
             )
             conn.commit()
 
+    def renew_session(self, token: str, ttl_days: int = 30) -> None:
+        """Sliding-expiry refresh: bump last-seen and extend an unexpired session."""
+        token_hash = self._hash_token(token)
+        now = datetime.now(timezone.utc)
+        expires_at = (now + timedelta(days=ttl_days)).isoformat()
+        now_iso = now.isoformat()
+        with self._get_connection() as conn:
+            conn.execute(
+                "UPDATE sessions SET last_seen_at = ?, expires_at = ? "
+                "WHERE token_hash = ? AND expires_at > ?;",
+                (now_iso, expires_at, token_hash, now_iso),
+            )
+            conn.commit()
+
     def delete_session(self, token: str) -> bool:
         """Remove a session (logout)."""
         token_hash = self._hash_token(token)

@@ -9,6 +9,7 @@ with optional conversation memory persistence and context window management.
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from typing import Any, Literal, Optional
 
@@ -20,7 +21,16 @@ from packages.core.memory import (
     ContextWindowManager,
     get_conversation_store,
 )
+from packages.providers.errors import (
+    LibraProviderError,
+    ModelNotFoundError,
+    ProviderAuthenticationError,
+    ProviderQuotaExceededError,
+    ProviderRateLimitError,
+)
 from packages.providers.router import get_router
+
+logger = logging.getLogger("libra")
 
 router = APIRouter()
 
@@ -193,10 +203,50 @@ async def create_chat_completion(request: ChatCompletionRequest, fastapi_request
                             owner_id=session_id,
                         )
             return response
-        except ConnectionError as e:
-            raise HTTPException(status_code=503, detail=str(e))
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
+            # Map provider failures to honest, non-leaking client errors. Full
+            # exception details are logged server-side with the request id.
+            request_id = getattr(fastapi_request.state, "request_id", None)
+            if isinstance(e, ProviderAuthenticationError):
+                raise HTTPException(
+                    status_code=503,
+                    detail="The selected provider's API key is invalid, expired, or not configured on this deployment.",
+                )
+            if isinstance(e, (ProviderRateLimitError, ProviderQuotaExceededError)):
+                raise HTTPException(
+                    status_code=429,
+                    detail="The selected provider is rate-limited or its free quota is exhausted. Try another model or retry later.",
+                )
+            if isinstance(e, ModelNotFoundError):
+                raise HTTPException(
+                    status_code=404,
+                    detail="The selected model is not recognized by the provider. Check the model name and provider configuration.",
+                )
+            if isinstance(e, LibraProviderError):
+                raise HTTPException(
+                    status_code=503,
+                    detail=str(getattr(e, "message", e) or "The selected provider is unavailable."),
+                )
+            if isinstance(e, (ConnectionError, TimeoutError, OSError)):
+                logger.warning(
+                    "Provider connection failure (request_id=%s, model=%s): %s",
+                    request_id,
+                    request.model,
+                    str(e),
+                )
+                raise HTTPException(
+                    status_code=503,
+                    detail="The selected provider is unreachable. Check network connectivity or try another model.",
+                )
+            logger.exception(
+                "Non-streaming chat failed (request_id=%s, model=%s)",
+                request_id,
+                request.model,
+            )
+            raise HTTPException(
+                status_code=500,
+                detail="Inference error: the request could not be completed. See the server logs for details.",
+            )
 
     # Streaming mode via Server-Sent Events (SSE)
     async def event_generator():
@@ -242,16 +292,30 @@ async def create_chat_completion(request: ChatCompletionRequest, fastapi_request
 
             yield "data: [DONE]\n\n"
         except Exception as e:
-            msg = str(e)
-            if "429" in msg or "RESOURCE_EXHAUSTED" in msg or "rate" in msg.lower():
-                user_msg = (
-                    "Provider rate limit or daily free tier quota exhausted. "
-                    "Please switch to 'libra-mock-v1' or an Ollama local model, or try again later."
+            request_id = getattr(fastapi_request.state, "request_id", None)
+            if isinstance(e, ProviderAuthenticationError):
+                user_msg = "The selected provider's API key is invalid, expired, or not configured on this deployment."
+            elif isinstance(e, (ProviderRateLimitError, ProviderQuotaExceededError)):
+                user_msg = "The selected provider is rate-limited or its free quota is exhausted. Try another model or retry later."
+            elif isinstance(e, ModelNotFoundError):
+                user_msg = "The selected model is not recognized by the provider. Check the model name and provider configuration."
+            elif isinstance(e, LibraProviderError):
+                user_msg = str(getattr(e, "message", e) or "The selected provider is unavailable.")
+            elif isinstance(e, (ConnectionError, TimeoutError, OSError)):
+                logger.warning(
+                    "Provider connection failure (request_id=%s, model=%s): %s",
+                    request_id,
+                    request.model,
+                    str(e),
                 )
-            elif "401" in msg or "api_key" in msg.lower() or "auth" in msg.lower():
-                user_msg = "Provider authentication error. Please verify your API key in .env or switch to a local model."
+                user_msg = "The selected provider is unreachable. Check network connectivity or try another model."
             else:
-                user_msg = f"Inference error: {msg}"
+                logger.exception(
+                    "Streaming chat failed (request_id=%s, model=%s)",
+                    request_id,
+                    request.model,
+                )
+                user_msg = "Inference error: the request failed unexpectedly. See the server logs for details."
             err_chunk = {"error": user_msg}
             yield f"data: {json.dumps(err_chunk)}\n\n"
             yield "data: [DONE]\n\n"

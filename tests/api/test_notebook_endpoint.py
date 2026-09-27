@@ -140,3 +140,82 @@ def test_api_jail_backend_end_to_end(monkeypatch):
     vars_resp = client.get(f"/api/v1/notebook/sessions/{sid}/variables")
     assert vars_resp.status_code == 200
     assert any(v["name"] == "a" and v["value_repr"] == "21" for v in vars_resp.json())
+
+
+def _mint_token() -> str:
+    """Mint a real guest token through the auth endpoint."""
+    res = client.get("/api/v1/auth/session")
+    assert res.status_code == 200
+    token = res.json().get("token")
+    assert token, "expected a minted guest token"
+    return token
+
+
+def _guest_client():
+    return TestClient(app, headers={"X-Libra-Session": _mint_token()})
+
+
+def test_session_scope_isolates_guest_from_guest(enable_code_exec):
+    """Two different guest tokens must never share or enumerate kernels."""
+    alice = _guest_client()
+    bob = _guest_client()
+
+    make_alice = alice.post("/api/v1/notebook/sessions", json={"session_id": "shared_name"})
+    assert make_alice.status_code == 200
+    assert make_alice.json()["session_id"] == "shared_name"
+
+    # Alice executes code in her kernel named "shared_name".
+    exec_alice = alice.post(
+        "/api/v1/notebook/sessions/shared_name/execute",
+        json={"code": "secret = 'alice-secret'\nsecret"},
+    )
+    assert exec_alice.status_code == 200
+    assert exec_alice.json()["result"] == "'alice-secret'"
+
+    # Bob has his own empty kernel with the same client-side name.
+    exec_bob = bob.post(
+        "/api/v1/notebook/sessions/shared_name/execute",
+        json={"code": "secret + '!'"},
+    )
+    assert exec_bob.status_code == 200
+    assert exec_bob.json()["status"] == "error"
+    assert "secret" in exec_bob.json()["error_message"]
+
+    # The "public" (no-token) scope is distinct from the guest scope.
+    anon = client.post(
+        "/api/v1/notebook/sessions/shared_name/execute",
+        json={"code": "secret"},
+    )
+    if anon.status_code == 200:
+        assert "alice-secret" not in str(anon.json())
+    else:
+        assert anon.status_code == 503
+
+
+def test_session_listings_and_delete_are_scoped(enable_code_exec):
+    """Alice's listing only shows her kernels; deleting her own id never touches Bob's."""
+    alice = _guest_client()
+    bob = _guest_client()
+
+    alice.post("/api/v1/notebook/sessions", json={"session_id": "merge"}).json()
+    bob.post("/api/v1/notebook/sessions", json={"session_id": "merge"}).json()
+
+    alice_sids = [s["session_id"] for s in alice.get("/api/v1/notebook/sessions").json()]
+    assert "merge" in alice_sids
+    # Both lists evaluate to only the caller's own single kernel.
+    for s in alice.get("/api/v1/notebook/sessions").json():
+        assert s["session_id"] == "merge"
+
+    alice.delete("/api/v1/notebook/sessions/merge")
+    assert alice.get("/api/v1/notebook/sessions").json() == []
+    # Bob's kernel still exists and works.
+    bob_vars = bob.get("/api/v1/notebook/sessions/merge/variables")
+    assert bob_vars.status_code == 200
+
+
+def test_session_create_rejects_tenant_escape(enable_code_exec):
+    """A crafted session id must not escape the caller's entity scope."""
+    guest = _guest_client()
+    resp = guest.post("/api/v1/notebook/sessions", json={"session_id": "public:other:evil"})
+    assert resp.status_code == 200
+    assert resp.json()["session_id"] == "public_other_evil"

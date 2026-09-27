@@ -8,6 +8,7 @@ import torch
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from apps.backend.api.v1.deps import run_provider_completion
 from packages.evaluation.multi_needle import MultiNeedleEvaluator, MultiNeedleItem
 from packages.evaluation.needle_haystack import (
     DEFAULT_NEEDLE_FACT,
@@ -16,14 +17,15 @@ from packages.evaluation.needle_haystack import (
     NeedleInHaystackEvaluator,
 )
 from packages.models.components.compacted_kv_cache import CompactedKVCache
-from packages.providers.router import get_router
 
 router = APIRouter(prefix="/long_context", tags=["Long-Context & Attention Compaction"])
-_provider_router = get_router()
 
 
 class SingleNeedleGridRequest(BaseModel):
-    model: str = Field(default="mock", description="Model provider name or mock")
+    model: str = Field(
+        default="mock",
+        description="Model id to evaluate. Use 'mock' for the explicitly-marked educational mock generator.",
+    )
     needle: str = Field(default=DEFAULT_NEEDLE_FACT)
     target_key: str = Field(default=DEFAULT_NEEDLE_KEY)
     retrieval_prompt: str = Field(default=DEFAULT_NEEDLE_PROMPT)
@@ -38,7 +40,10 @@ class MultiNeedleItemSchema(BaseModel):
 
 
 class MultiNeedleEvalRequest(BaseModel):
-    model: str = Field(default="mock")
+    model: str = Field(
+        default="mock",
+        description="Model id to evaluate. Use 'mock' for the explicitly-marked educational mock generator.",
+    )
     context_length: int = Field(default=600)
     needles: Optional[List[MultiNeedleItemSchema]] = None
     question: Optional[str] = None
@@ -55,45 +60,36 @@ class CompactionSimulationRequest(BaseModel):
 
 
 def _get_generator(model_name: str):
-    """Returns a callable generation function for the selected provider or mock."""
+    """Returns a callable generation function for the selected provider.
+
+    Only the literal model ``mock`` maps to the explicitly-marked educational
+    mock generator. Every other model id is routed to the real provider;
+    failures surface as an honest HTTP 503 rather than fabricated text.
+    """
     if model_name.lower() in ("mock", "test"):
-
-        def _mock_gen(prompt: str) -> str:
-            # Check for needle keys in prompt and return them
-            lines = prompt.split("\n")
-            # Return any key-like token or the known answer
-            for line in lines:
-                if "secret" in line.lower() or "code" in line.lower() or "key" in line.lower():
-                    words = line.split()
-                    for w in words:
-                        if any(c.isdigit() for c in w) or "-" in w:
-                            return f"The requested code is {w.strip('.,')}"
-            return "Retrieved factual response containing 849204 and Alpha-77, Falcon, Omega-Zero."
-
         return _mock_gen
 
-    async def _provider_gen(prompt: str) -> str:
-        res = await _provider_router.generate(prompt=prompt, model=model_name, max_tokens=100)
-        return res.content
-
-    # Synchronous wrapper
     def _sync_wrapper(prompt: str) -> str:
-        import asyncio
-
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                import concurrent.futures
-
-                with concurrent.futures.ThreadPoolExecutor() as pool:
-                    return pool.submit(asyncio.run, _provider_gen(prompt)).result()
-            return loop.run_until_complete(_provider_gen(prompt))
-        except Exception:
-            return (
-                "Fallback mock generation result containing 849204 and Alpha-77 Falcon Omega-Zero"
-            )
+        return run_provider_completion(model_name, prompt, max_tokens=100, temperature=0.0)
 
     return _sync_wrapper
+
+
+def _mock_gen(prompt: str) -> str:
+    """Explicitly-marked educational mock generator (aggressive honesty).
+
+    Used ONLY when the caller requests model='mock'. Looks for labelled keys in
+    the prompt and answers, exactly like the presets, so students can run the
+    benchmark without a provider — it is never used for real deployments.
+    """
+    lines = prompt.split("\n")
+    for line in lines:
+        if "secret" in line.lower() or "code" in line.lower() or "key" in line.lower():
+            words = line.split()
+            for w in words:
+                if any(c.isdigit() for c in w) or "-" in w:
+                    return f"The requested code is {w.strip('.,')}"
+    return "[MockGenerator] No key-like token found in the prompt."
 
 
 @router.post("/evaluate/needle")

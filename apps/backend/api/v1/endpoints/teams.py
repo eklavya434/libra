@@ -14,6 +14,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from apps.backend.api.v1.deps import resolve_effective_model_id
 from packages.agents import CollaborativeTeam, TeamTrajectory
 
 router = APIRouter()
@@ -23,7 +24,10 @@ class TeamRunRequest(BaseModel):
     """Payload to launch a multi-agent collaborative session."""
 
     prompt: str = Field(..., description="The user task or engineering objective to solve")
-    model_id: str = Field("mock-model", description="Model ID powering the specialized agents")
+    model_id: str | None = Field(
+        None,
+        description="Model ID powering the specialized agents (defaults to the configured provider)",
+    )
     provider_name: str | None = Field(None, description="Optional provider override")
     max_rounds: int = Field(3, ge=1, le=10, description="Maximum collaboration rounds")
     timeout_sec: float = Field(
@@ -40,7 +44,7 @@ class TeamRunRequest(BaseModel):
 async def collaborate_team(request: TeamRunRequest) -> TeamTrajectory:
     """Executes a collaborative multi-agent workflow (Architect -> Coder -> Reviewer -> Tester)."""
     team = CollaborativeTeam(
-        model_id=request.model_id,
+        model_id=resolve_effective_model_id(request.model_id),
         provider_name=request.provider_name,
         max_rounds=request.max_rounds,
         timeout_sec=request.timeout_sec,
@@ -53,7 +57,7 @@ async def collaborate_team(request: TeamRunRequest) -> TeamTrajectory:
 async def stream_collaborate_team(request: TeamRunRequest) -> StreamingResponse:
     """Streams real-time inter-agent messages, code proposals, reviews, and test runs via SSE."""
     team = CollaborativeTeam(
-        model_id=request.model_id,
+        model_id=resolve_effective_model_id(request.model_id),
         provider_name=request.provider_name,
         max_rounds=request.max_rounds,
         timeout_sec=request.timeout_sec,

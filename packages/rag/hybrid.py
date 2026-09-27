@@ -38,10 +38,21 @@ class HybridRetriever:
         self.bm25_index = bm25_index or BM25Index()
         self.reranker = reranker or HeuristicReRanker()
         self.deduplicator = deduplicator or ChunkDeduplicator()
+        # doc_id -> owning session scope. Mirrors the backend identity model
+        # ("public" for anonymous, "sess-..."/"supabase:..." otherwise).
+        self._owners: dict[str, str] = {}
 
         # If vector store already has chunks, index them in BM25
         if self.vector_store._chunks and self.bm25_index.total_chunks == 0:
             self.bm25_index.add_chunks(self.vector_store._chunks)
+
+    def _is_owned(self, doc_id: str, scope: str) -> bool:
+        """True when ``doc_id`` belongs to ``scope`` (legacy docs default to public)."""
+        owner = self._owners.get(doc_id)
+        if owner is None:
+            doc = self.vector_store.get_document(doc_id)
+            owner = doc.metadata.get("session_id", "public") if doc else "public"
+        return owner == scope
 
     @property
     def total_documents(self) -> int:
@@ -57,20 +68,44 @@ class HybridRetriever:
         content: str,
         doc_id: Optional[str] = None,
         metadata: Optional[dict[str, Any]] = None,
+        scope: str = "public",
     ) -> tuple[Document, list[DocumentChunk]]:
-        """Splits, embeds in vector store, and indexes in BM25 inverted index."""
+        """Splits, embeds in vector store, and indexes in BM25 inverted index.
+
+        ``scope`` is stamped server-side into the document metadata, so a
+        client-supplied metadata session id cannot spoof another tenant.
+        """
+        stamped = {"session_id": scope}
+        if metadata:
+            stamped.update(metadata)
+        stamped["session_id"] = scope
         doc, chunks = self.vector_store.add_document(
-            title=title, content=content, doc_id=doc_id, metadata=metadata
+            title=title, content=content, doc_id=doc_id, metadata=stamped
         )
+        self._owners[doc.id] = scope
         if chunks:
             self.bm25_index.add_chunks(chunks)
         return doc, chunks
 
-    def delete_document(self, doc_id: str) -> bool:
-        """Purges document from both vector store and BM25 index."""
+    def delete_document(self, doc_id: str, scope: str = "public") -> bool:
+        """Purges document from both vector store and BM25 index (scoped)."""
+        if not self._is_owned(doc_id, scope):
+            return False
         v_ok = self.vector_store.delete_document(doc_id)
         self.bm25_index.remove_document(doc_id)
+        self._owners.pop(doc_id, None)
         return v_ok
+
+    def list_documents(self, scope: str = "public") -> list[Document]:
+        """List documents visible to ``scope``."""
+        return [d for d in self.vector_store.list_documents() if self._is_owned(d.id, scope)]
+
+    def get_document(self, doc_id: str, scope: str = "public") -> Optional[Document]:
+        """Fetch a single document, but only if owned by ``scope``."""
+        doc = self.vector_store.get_document(doc_id)
+        if doc is None or not self._is_owned(doc_id, scope):
+            return None
+        return doc
 
     def clear(self) -> None:
         """Clears both dense and sparse storage."""
@@ -88,10 +123,12 @@ class HybridRetriever:
         use_deduplication: bool = True,
         rrf_k: int = 60,
         min_score: float = 0.0,
+        scope: str = "public",
     ) -> list[SearchResult]:
         """
         Executes search using dense, sparse, or unified hybrid retrieval with optional
-        re-ranking and deduplication.
+        re-ranking and deduplication. Results are restricted to documents owned by
+        ``scope`` so tenants never see each other's indexed content.
         """
         if self.total_chunks == 0 or not query.strip():
             return []
@@ -129,6 +166,10 @@ class HybridRetriever:
                     alpha=alpha,
                     top_k=pool_size,
                 )
+
+        # Enforce tenant scoping before re-ranking so foreign documents can
+        # neither surface in results nor influence ranks/deduplication.
+        candidates = [c for c in candidates if self._is_owned(c.chunk.doc_id, scope)]
 
         if not candidates:
             return []

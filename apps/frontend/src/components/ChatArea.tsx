@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sliders, Zap, RotateCcw, AlertCircle, Copy, Check, Square, RefreshCw, Activity } from 'lucide-react';
+import { Send, Bot, User, Sliders, Zap, RotateCcw, AlertCircle, Copy, Check, Square, RefreshCw, Activity, Menu } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import ModelSelector from './ModelSelector';
 import HyperparametersModal from './HyperparametersModal';
@@ -28,12 +28,14 @@ interface ChatAreaProps {
   conversationId?: string;
   onConversationUpdated?: () => void;
   onSelectConversation?: (id: string) => void;
+  onToggleSidebar?: () => void;
 }
 
 export default function ChatArea({
   conversationId,
   onConversationUpdated,
   onSelectConversation,
+  onToggleSidebar,
 }: ChatAreaProps) {
   const [messages, setMessages] = useState<ExtendedMessage[]>([
     {
@@ -230,7 +232,7 @@ export default function ChatArea({
                   content:
                     msg.content
                       ? `${msg.content}\n\n⚠️ Streaming Error: ${err.message}`
-                      : `⚠️ Inference Error: ${err.message}\nEnsure the Libra backend is running on :8000. For offline use, select Libra Mock v1. Cloud models require a working provider connection.`,
+                      : `⚠️ Inference Error: ${err.message}\nEnsure the backend is online and the selected model's provider is configured.`,
                   error: true,
                 }
               : msg
@@ -343,6 +345,16 @@ export default function ChatArea({
       {/* Top Header Bar */}
       <header className="libra-glass z-10 flex h-14 items-center justify-between border-x-0 border-t-0 px-4 sm:px-6">
         <div className="flex items-center gap-2.5 libra-fade-in">
+          {onToggleSidebar && (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              className="md:hidden flex items-center gap-1.5 rounded-xl border border-white/[0.07] bg-white/[0.025] px-2.5 py-1.5 text-xs text-slate-400 hover:bg-white/[0.05] hover:text-slate-200"
+              title="Toggle navigation menu"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+          )}
           <ModelSelector selectedModel={selectedModel} onSelectModel={setSelectedModel} />
 
           {/* RAG Grounding Toggle */}

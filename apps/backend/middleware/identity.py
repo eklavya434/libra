@@ -76,6 +76,12 @@ class SessionIdentityMiddleware(BaseHTTPMiddleware):
             info = store.get_session(raw_token)
             if info:
                 session_id = info["session_id"]
+                try:
+                    # Sliding expiry: honest usage renews the session TTL; a
+                    # storage failure must never break the request.
+                    store.renew_session(raw_token, ttl_days=self.ttl_days)
+                except Exception:  # noqa: BLE001
+                    logger.warning("Failed to renew session TTL", exc_info=True)
             else:
                 # Header present but invalid/expired: degrade to public scope.
                 logger.debug("Ignoring invalid or expired session token")

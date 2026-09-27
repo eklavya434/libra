@@ -14,6 +14,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from apps.backend.api.v1.deps import resolve_effective_model_id
 from packages.agents import (
     AgentTrajectory,
     PlanAndSolveAgent,
@@ -27,7 +28,10 @@ class AgentRunRequest(BaseModel):
     """Payload to launch an autonomous agent execution."""
 
     prompt: str = Field(..., description="The user task or inquiry to solve")
-    model_id: str = Field("mock-model", description="Model identifier to power the agent")
+    model_id: Optional[str] = Field(
+        None,
+        description="Model identifier to power the agent (defaults to the configured provider)",
+    )
     provider_name: Optional[str] = Field(None, description="Optional provider override")
     max_steps: int = Field(10, ge=1, le=30, description="Maximum number of reasoning steps")
     timeout_sec: float = Field(60.0, ge=5.0, le=300.0, description="Wall-clock timeout in seconds")
@@ -37,8 +41,9 @@ class AgentRunRequest(BaseModel):
 @router.post("/react", response_model=AgentTrajectory, summary="Run ReAct Agent synchronously")
 async def run_react_agent(request: AgentRunRequest) -> AgentTrajectory:
     """Execute a ReAct agent loop to completion, returning the complete trajectory and final answer."""
+    model_id = resolve_effective_model_id(request.model_id)
     agent = ReActAgent(
-        model_id=request.model_id,
+        model_id=model_id,
         provider_name=request.provider_name,
         max_steps=request.max_steps,
         timeout_sec=request.timeout_sec,
@@ -50,8 +55,9 @@ async def run_react_agent(request: AgentRunRequest) -> AgentTrajectory:
 @router.post("/react/stream", summary="Stream ReAct Agent execution steps via SSE")
 async def stream_react_agent(request: AgentRunRequest) -> StreamingResponse:
     """Stream ReAct agent thought, action, observation, and final answer events in real-time."""
+    model_id = resolve_effective_model_id(request.model_id)
     agent = ReActAgent(
-        model_id=request.model_id,
+        model_id=model_id,
         provider_name=request.provider_name,
         max_steps=request.max_steps,
         timeout_sec=request.timeout_sec,
@@ -83,8 +89,9 @@ async def stream_react_agent(request: AgentRunRequest) -> StreamingResponse:
 @router.post("/plan-and-solve", response_model=AgentTrajectory, summary="Run Plan-and-Solve Agent")
 async def run_plan_and_solve_agent(request: AgentRunRequest) -> AgentTrajectory:
     """Execute a Plan-and-Solve agent, returning milestone plan and synthesized answer."""
+    model_id = resolve_effective_model_id(request.model_id)
     agent = PlanAndSolveAgent(
-        model_id=request.model_id,
+        model_id=model_id,
         provider_name=request.provider_name,
         max_steps=request.max_steps,
         timeout_sec=request.timeout_sec,

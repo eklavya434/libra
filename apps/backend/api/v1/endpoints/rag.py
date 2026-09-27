@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from packages.rag import (
@@ -28,40 +28,46 @@ from packages.rag import (
 router = APIRouter()
 
 
-@router.get("/documents", response_model=list[Document], summary="List all indexed documents")
-async def list_documents() -> list[Document]:
-    """Retrieve all indexed documents with chunk statistics."""
+def _scope(request: Request) -> str:
+    """Session identity scoping: anonymous=public, otherwise the resolved entity id."""
+    return request.state.session_id
+
+
+@router.get("/documents", response_model=list[Document], summary="List indexed documents")
+async def list_documents(request: Request) -> list[Document]:
+    """Retrieve all indexed documents visible to the caller's session scope."""
     retriever = get_hybrid_retriever()
-    return retriever.vector_store.list_documents()
+    return retriever.list_documents(scope=_scope(request))
 
 
 @router.post("/documents", response_model=Document, summary="Ingest and index a document")
-async def ingest_document(request: IngestDocumentRequest) -> Document:
+async def ingest_document(request: IngestDocumentRequest, req: Request) -> Document:
     """Ingest a text document, segment into chunks, compute embeddings, and index in BM25."""
     retriever = get_hybrid_retriever()
     doc, _ = retriever.add_document(
         title=request.title,
         content=request.content,
         metadata=request.metadata,
+        scope=_scope(req),
     )
     return doc
 
 
 @router.get("/documents/{doc_id}", response_model=Document, summary="Get document details")
-async def get_document(doc_id: str) -> Document:
-    """Fetch an indexed document by ID."""
+async def get_document(doc_id: str, request: Request) -> Document:
+    """Fetch an indexed document by ID (only within the caller's scope)."""
     retriever = get_hybrid_retriever()
-    doc = retriever.vector_store.get_document(doc_id)
+    doc = retriever.get_document(doc_id, scope=_scope(request))
     if not doc:
         raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found")
     return doc
 
 
 @router.delete("/documents/{doc_id}", summary="Delete document and purge vectors/BM25")
-async def delete_document(doc_id: str) -> dict[str, Any]:
-    """Delete a document and purge all its chunks from dense and BM25 index."""
+async def delete_document(doc_id: str, request: Request) -> dict[str, Any]:
+    """Delete a document and purge all its chunks from dense and BM25 index (scoped)."""
     retriever = get_hybrid_retriever()
-    success = retriever.delete_document(doc_id)
+    success = retriever.delete_document(doc_id, scope=_scope(request))
     if not success:
         raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found")
     return {"status": "deleted", "id": doc_id}
@@ -72,11 +78,12 @@ async def delete_document(doc_id: str) -> dict[str, Any]:
     response_model=RAGQueryResponse,
     summary="Hybrid vector/BM25 search & prompt synthesis",
 )
-async def query_vector_store(request: RAGQueryRequest) -> RAGQueryResponse:
+async def query_vector_store(request: RAGQueryRequest, req: Request) -> RAGQueryResponse:
     """
     Execute dense, sparse (BM25), or hybrid retrieval with optional
     Reciprocal Rank Fusion, multi-factor re-ranking, and chunk deduplication.
     """
+    scope = _scope(req)
     retriever = get_hybrid_retriever()
     results = retriever.search(
         query=request.query,
@@ -88,6 +95,7 @@ async def query_vector_store(request: RAGQueryRequest) -> RAGQueryResponse:
         use_deduplication=request.use_deduplication,
         rrf_k=request.rrf_k,
         min_score=request.min_score,
+        scope=scope,
     )
 
     synthesizer = RAGPromptSynthesizer()
@@ -119,7 +127,11 @@ async def execute_web_search(query: str, max_results: int = 5) -> list[WebSearch
     response_model=DeepResearchReport,
     summary="Autonomous deep research agent workflow",
 )
-async def execute_deep_research(request: ResearchRequest) -> DeepResearchReport:
+async def execute_deep_research(request: ResearchRequest, req: Request) -> DeepResearchReport:
     """Decompose inquiry, gather web and local knowledge, synthesize citations, and generate report."""
     agent = DeepResearchAgent()
-    return await agent.execute_research(topic=request.topic, max_iterations=request.max_iterations)
+    return await agent.execute_research(
+        topic=request.topic,
+        max_iterations=request.max_iterations,
+        scope=_scope(req),
+    )

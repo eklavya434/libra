@@ -1,5 +1,8 @@
+import os
+
 import pytest
 
+from packages.providers.errors import ProviderOfflineError
 from packages.providers.local_transformer import LocalTransformerProvider
 
 
@@ -13,6 +16,12 @@ async def test_local_transformer_provider_chat():
     models = await provider.list_models()
     assert len(models) == 1
     assert models[0].id == "libra-llama-tied"
+
+    if not os.path.exists(provider.checkpoint_path):
+        pytest.skip(
+            f"Trained checkpoint {provider.checkpoint_path} not present "
+            "(CI runner / deployment without the training pipeline)"
+        )
 
     # Chat execution test
     response = await provider.chat(
@@ -36,8 +45,6 @@ async def test_local_transformer_output_has_no_control_characters():
     offset by +4) while training used raw byte ids 0..255, so generated text
     decoded into control-char paddling (e.g. '\\x1c'). Output must be plain text.
     """
-    import os
-
     provider = LocalTransformerProvider()
     if not os.path.exists(provider.checkpoint_path):
         pytest.skip(
@@ -54,3 +61,29 @@ async def test_local_transformer_output_has_no_control_characters():
     assert content, "expected non-empty local model output"
     control_chars = [c for c in content if ord(c) < 32 and c not in "\n\r\t"]
     assert not control_chars, f"garbage control chars in output: {content!r}"
+
+
+@pytest.mark.asyncio
+async def test_local_transformer_offline_when_checkpoint_missing():
+    """A missing checkpoint must raise, never serve random-weight output."""
+    provider = LocalTransformerProvider(
+        checkpoint_path=os.path.join("nope", "missing_checkpoint.pt"),
+        config_path=os.path.join("nope", "missing_config.yaml"),
+    )
+
+    health = await provider.health()
+    assert health["status"] == "offline"
+    assert health["checkpoint_loaded"] is False
+    assert provider.is_ready() is False
+
+    with pytest.raises(ProviderOfflineError) as excinfo:
+        await provider.chat(messages=[{"role": "user", "content": "hello"}])
+    assert excinfo.value.provider == "libra_lab"
+    assert "checkpoint" in excinfo.value.message.lower()
+
+
+@pytest.mark.asyncio
+async def test_local_transformer_embeddings_not_implemented():
+    provider = LocalTransformerProvider()
+    with pytest.raises(NotImplementedError):
+        await provider.embeddings(["text"])

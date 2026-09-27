@@ -466,6 +466,21 @@ class PostgresConversationStore:
             )
             conn.commit()
 
+    def renew_session(self, token: str, ttl_days: int = 30) -> None:
+        """Sliding-expiry refresh: bump last-seen and extend an unexpired session."""
+        self._configured()
+        token_hash = self._hash_token(token)
+        now = datetime.now(timezone.utc)
+        expires_at = (now + timedelta(days=ttl_days)).isoformat()
+        now_iso = now.isoformat()
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE sessions SET last_seen_at = %s, expires_at = %s "
+                "WHERE token_hash = %s AND expires_at > %s;",
+                (now_iso, expires_at, token_hash, now_iso),
+            )
+            conn.commit()
+
     def delete_session(self, token: str) -> bool:
         self._configured()
         token_hash = self._hash_token(token)

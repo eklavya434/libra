@@ -10,6 +10,7 @@ Libra Backend - Observability Middleware
 from __future__ import annotations
 
 import logging
+import re
 import uuid
 from typing import Callable
 
@@ -22,6 +23,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 logger = logging.getLogger(__name__)
 
 REQUEST_ID_HEADER = "X-Request-Id"
+
+# Client-supplied request ids are advisory only: they must be short and
+# URL-safe, otherwise a fresh id is generated. Prevents log-injection and
+# unbounded header values.
+_REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:/-]{1,64}$")
 
 # Secrets that must never appear in error responses or request logging.
 _REDACT_KEYS = (
@@ -38,9 +44,14 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
     """Attach a request ID to every request and response."""
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        request.state.request_id = request.headers.get(REQUEST_ID_HEADER) or uuid.uuid4().hex[:16]
+        raw_id = request.headers.get(REQUEST_ID_HEADER)
+        if raw_id and _REQUEST_ID_PATTERN.match(raw_id):
+            request_id = raw_id
+        else:
+            request_id = uuid.uuid4().hex[:16]
+        request.state.request_id = request_id
         response = await call_next(request)
-        response.headers[REQUEST_ID_HEADER] = request.state.request_id
+        response.headers[REQUEST_ID_HEADER] = request_id
         return response
 
 

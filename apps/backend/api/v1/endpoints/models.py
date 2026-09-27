@@ -2,6 +2,7 @@
 Libra API v1 - Models & Registry Endpoint
 """
 
+import re
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
@@ -13,6 +14,24 @@ from packages.providers.router import get_router
 router = APIRouter()
 registry = get_default_registry()
 provider_router = get_router()
+
+
+def _parse_param_count(value: str | int | None) -> int:
+    """Parse an Ollama-style parameter size string ('1.5B', '467M') into an int.
+
+    Returns 0 when the size is unknown so callers never fabricate a number.
+    """
+    if isinstance(value, int):
+        return value
+    if not value:
+        return 0
+    match = re.match(r"^\s*([0-9.]+)\s*([BMK]?)\s*$", str(value).strip().upper())
+    if not match:
+        return 0
+    num = float(match.group(1))
+    unit = match.group(2)
+    multiplier = {"B": 1_000_000_000, "M": 1_000_000, "K": 1_000}.get(unit, 1)
+    return int(num * multiplier)
 
 
 @router.get("/models", summary="List all available models across providers")
@@ -36,23 +55,28 @@ async def list_models(
         installed_ollama = await ollama_prov.list_models()
         installed_ollama_ids = {om.id for om in installed_ollama}
         for om in installed_ollama:
-            if om.id not in registry._models:
-                registry.register(
-                    ModelMetadata(
-                        model_id=om.id,
-                        name=f"Ollama {om.name}",
-                        organization="Local Ollama",
-                        provider="ollama",
-                        architecture=om.architecture or "Transformer",
-                        parameter_count=4_000_000_000,
-                        context_length=om.context_length or 4096,
-                        license="Open Weights",
-                        license_type=LicenseType.OPEN_WEIGHTS_COMMUNITY,
-                        quantization=om.quantization or "Q4_K_M",
-                        capabilities=["chat", "stream", "reasoning"],
-                        description=f"Locally installed model '{om.id}' ready for CPU inference.",
-                    )
+            if registry.get(om.id) is not None:
+                continue
+            param_count = _parse_param_count(om.parameter_count)
+            if param_count <= 0:
+                # Never fabricate a parameter count for an unknown model.
+                continue
+            registry.register(
+                ModelMetadata(
+                    model_id=om.id,
+                    name=f"Ollama {om.name}",
+                    organization="Local Ollama",
+                    provider="ollama",
+                    architecture=om.architecture or "Transformer",
+                    parameter_count=param_count,
+                    context_length=om.context_length or 4096,
+                    license="Open Weights",
+                    license_type=LicenseType.OPEN_WEIGHTS_COMMUNITY,
+                    quantization=om.quantization or "Q4_K_M",
+                    capabilities=["chat", "stream", "reasoning"],
+                    description=f"Locally installed model '{om.id}' ready for CPU inference.",
                 )
+            )
     except (ConnectionError, RuntimeError, OSError, ValueError, KeyError):
         pass
 
@@ -61,7 +85,11 @@ async def list_models(
         try:
             hw_tier = HardwareTier(tier)
         except ValueError:
-            pass
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown hardware tier '{tier}'. Valid tiers: "
+                + ", ".join(t.value for t in HardwareTier),
+            )
 
     filter_provider = provider if isinstance(provider, str) else None
     filter_cpu_friendly = cpu_friendly_only if isinstance(cpu_friendly_only, bool) else False

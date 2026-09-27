@@ -33,6 +33,8 @@ export default function ChatApp() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [configuredDefaultModel, setConfiguredDefaultModel] = useState<string | null>(null);
+  // On small screens the sidebar is an overlay drawer; docked full-height on md+.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     fetchDefaultModel().then(setConfiguredDefaultModel);
@@ -79,24 +81,48 @@ export default function ChatApp() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-950">
-      <Sidebar
-        currentSessionId={currentSessionId}
-        activeTab={activeTab}
-        conversations={conversations}
-        onSelectTab={setActiveTab}
-        onSelectConversation={(id) => {
-          setCurrentSessionId(id);
-          setActiveTab('chat');
-        }}
-        onNewConversation={handleNewConversation}
-        onDeleteConversation={handleDeleteConversation}
-      />
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
+      {/* Mobile drawer overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-slate-950/70 backdrop-blur-sm md:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar: docked on md+, animated overlay drawer on small screens */}
+      <div
+        className={`fixed inset-y-0 left-0 z-40 flex-shrink-0 transform transition-transform duration-200 md:static md:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <Sidebar
+          currentSessionId={currentSessionId}
+          activeTab={activeTab}
+          conversations={conversations}
+          onSelectTab={(tab) => {
+            setActiveTab(tab);
+            setSidebarOpen(false);
+          }}
+          onSelectConversation={(id) => {
+            setCurrentSessionId(id);
+            setActiveTab('chat');
+            setSidebarOpen(false);
+          }}
+          onNewConversation={() => {
+            handleNewConversation();
+            setSidebarOpen(false);
+          }}
+          onDeleteConversation={handleDeleteConversation}
+        />
+      </div>
+      <main className="flex h-full flex-1 flex-col overflow-hidden">
         {activeTab === 'chat' && (
           <ChatArea
             conversationId={currentSessionId}
             onConversationUpdated={loadConversations}
             onSelectConversation={setCurrentSessionId}
+            onToggleSidebar={() => setSidebarOpen(true)}
           />
         )}
         {activeTab === 'arena' && <ArenaView />}

@@ -12,8 +12,10 @@ from typing import Any, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from apps.backend.api.v1.deps import resolve_effective_model_id
 from packages.core.grammar import SchemaCompiler
 from packages.providers import StructuredOutputGenerator, StructuredResult
+from packages.providers.errors import LibraProviderError
 
 router = APIRouter()
 
@@ -23,7 +25,10 @@ class StructuredGenerateRequest(BaseModel):
 
     prompt: str = Field(..., description="User prompt describing the requested information")
     schema_dict: dict[str, Any] = Field(..., description="Target JSON schema specification")
-    model_id: str = Field("mock-model", description="Model identifier to use for generation")
+    model_id: Optional[str] = Field(
+        None,
+        description="Model identifier to use for generation (defaults to the configured provider)",
+    )
     provider_name: Optional[str] = Field(None, description="Optional provider override")
     system_prompt: Optional[str] = Field(None, description="Optional custom system prompt")
     temperature: float = Field(0.0, ge=0.0, le=2.0, description="Sampling temperature")
@@ -50,12 +55,13 @@ class ValidateStructuredResponse(BaseModel):
 )
 async def generate_structured(request: StructuredGenerateRequest) -> StructuredResult[Any]:
     """Generate structured response guaranteed to parse against schema_dict with self-healing fallback."""
+    model_id = resolve_effective_model_id(request.model_id)
     generator = StructuredOutputGenerator()
     try:
         result = await generator.generate(
             prompt=request.prompt,
             schema=request.schema_dict,
-            model_id=request.model_id,
+            model_id=model_id,
             provider_name=request.provider_name,
             system_prompt=request.system_prompt,
             max_retries=request.max_retries,
@@ -64,6 +70,11 @@ async def generate_structured(request: StructuredGenerateRequest) -> StructuredR
     except ValueError as exc:
         raise HTTPException(
             status_code=404, detail=f"Structured generation failed: {exc!s}"
+        ) from exc
+    except LibraProviderError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Structured generation failed: the selected provider is unavailable.",
         ) from exc
     return result
 

@@ -4,6 +4,7 @@ Libra API v1 - Dynamic Model Routing & Speculative Decoding Endpoints
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -24,6 +25,8 @@ from packages.routing.dynamic_router import (
     RoutingPolicy,
     get_dynamic_router,
 )
+
+logger = logging.getLogger("libra")
 
 router = APIRouter(prefix="/routing", tags=["Dynamic Routing"])
 
@@ -117,8 +120,15 @@ async def route_and_generate(request: RouteGenerateRequest) -> dict[str, Any]:
             policy=request.policy,
             prefer_local=request.prefer_local,
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        logger.warning("Dynamic routing generation failed: %s", str(e))
+        raise HTTPException(
+            status_code=503,
+            detail="Routing generation failed: no model provider could serve this request. "
+            "Install the required local Ollama models or configure a cloud provider.",
+        ) from e
 
 
 @router.post("/speculative", response_model=SpeculativeResult)

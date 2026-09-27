@@ -336,7 +336,15 @@ class ProviderRouter:
             return True, ""
 
         if "libra" in model_lower and "mock" not in model_lower:
-            return True, ""
+            prov = self._providers["libra_lab"]
+            if getattr(prov, "is_ready", lambda: False)():
+                return True, ""
+            return (
+                False,
+                "The Libra lab model has no trained checkpoint on this deployment "
+                "(missing 'checkpoints/best_engine_model.pt'). It is only usable on a "
+                "machine where the educational training pipeline has been run.",
+            )
 
         if "mock" in model_lower:
             return True, ""

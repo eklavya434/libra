@@ -8,6 +8,7 @@ iterative self-healing repair loops across local and cloud providers.
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 import time
 from typing import Any, Generic, Optional, Type, TypeVar
@@ -17,6 +18,8 @@ from pydantic import BaseModel, Field
 from packages.core.grammar.schema_compiler import SchemaCompiler, SchemaConstraint
 from packages.providers.base import BaseProvider
 from packages.providers.router import ProviderRouter, get_router
+
+logger = logging.getLogger("libra")
 
 T = TypeVar("T")
 
@@ -59,8 +62,7 @@ def extract_json_from_text(text: str) -> str:
 
 
 class StructuredOutputGenerator:
-    """
-    Coordinates structured schema-constrained output generation with
+    """Coordinates structured schema-constrained output generation with
     automatic validation and self-healing repair loops.
     """
 
@@ -151,7 +153,11 @@ class StructuredOutputGenerator:
                 last_error = err_msg or "Unknown validation failure"
 
             except Exception as ex:
-                last_error = f"Provider error: {ex}"
+                logger.warning(
+                    "Structured generation provider error on attempt %s: %s", attempt, ex
+                )
+                last_error = "The provider failed to respond with valid structured JSON."
+                last_raw = ""
 
             # Self-healing feedback step if retries remain
             if attempt <= max_retries:
