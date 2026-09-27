@@ -6,6 +6,7 @@ Phase 26: Token-level Confidence, Surprisal, Entropy, Top-k Alternatives, and Re
 from __future__ import annotations
 
 import json
+import logging
 import time
 from typing import Any
 
@@ -24,24 +25,43 @@ from packages.models.telemetry import (
     astream_generate_with_telemetry,
     stream_generate_with_telemetry,
 )
+from packages.providers.errors import ProviderOfflineError
 from packages.providers.local_transformer import LocalTransformerProvider
 
 router = APIRouter(prefix="/telemetry", tags=["Token Telemetry"])
+
+logger = logging.getLogger(__name__)
 
 # Global singleton provider instance for fast reuse
 _local_provider: LocalTransformerProvider | None = None
 
 
 def get_or_create_model_and_tokenizer():
-    """Retrieves the local transformer model and tokenizer."""
+    """Retrieves the local transformer model and tokenizer.
+
+    Telemetry is an educational instrument, not a model-serving path: when no
+    trained checkpoint is available it intentionally computes surprisal/entropy
+    from the untrained first-principles architecture (random weights), which is
+    honest math and marked as such in the logs.
+    """
     global _local_provider
     if _local_provider is None:
         _local_provider = LocalTransformerProvider()
     try:
         model, tokenizer = _local_provider._ensure_loaded()
         return model, tokenizer
-    except (RuntimeError, FileNotFoundError, OSError):
-        # Fallback to in-memory educational model
+    except (ProviderOfflineError, RuntimeError, FileNotFoundError, OSError) as exc:
+        if isinstance(exc, ProviderOfflineError):
+            logger.warning(
+                "No trained Libra checkpoint available; telemetry uses the untrained "
+                "in-memory educational transformer (random weights)."
+            )
+        else:
+            logger.warning(
+                "Local Libra checkpoint could not be loaded (%s); telemetry uses the "
+                "untrained in-memory educational transformer (random weights).",
+                type(exc).__name__,
+            )
         config = ModernTransformerConfig(
             vocab_size=256,
             d_model=64,

@@ -5,6 +5,7 @@ Phase 27: Regex & Context-Free Grammar (CFG) Token Masking
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import torch
@@ -17,22 +18,41 @@ from packages.core.grammar.regex_automaton import RegexAutomaton
 from packages.models.grammar_generation import generate_with_grammar
 from packages.models.modern_config import ModernTransformerConfig
 from packages.models.modern_transformer import ModernTransformerLM
+from packages.providers.errors import ProviderOfflineError
 from packages.providers.local_transformer import LocalTransformerProvider
 
 router = APIRouter(prefix="/grammar", tags=["Grammar & Constrained Decoding"])
+
+logger = logging.getLogger(__name__)
 
 _local_provider: LocalTransformerProvider | None = None
 
 
 def get_model_and_tokenizer():
-    """Retrieves or initializes local transformer and tokenizer."""
+    """Retrieves or initializes local transformer and tokenizer.
+
+    The grammar lab is an educational instrument, not a model-serving path: when
+    no trained checkpoint is available it constrains the untrained
+    first-principles architecture, which is honest math and marked in the logs.
+    """
     global _local_provider
     if _local_provider is None:
         _local_provider = LocalTransformerProvider()
     try:
         model, tokenizer = _local_provider._ensure_loaded()
         return model, tokenizer
-    except (RuntimeError, FileNotFoundError, OSError):
+    except (ProviderOfflineError, RuntimeError, FileNotFoundError, OSError) as exc:
+        if isinstance(exc, ProviderOfflineError):
+            logger.warning(
+                "No trained Libra checkpoint available; grammar lab uses the untrained "
+                "in-memory educational transformer (random weights)."
+            )
+        else:
+            logger.warning(
+                "Local Libra checkpoint could not be loaded (%s); grammar lab uses the "
+                "untrained in-memory educational transformer (random weights).",
+                type(exc).__name__,
+            )
         config = ModernTransformerConfig(
             vocab_size=256,
             d_model=64,
