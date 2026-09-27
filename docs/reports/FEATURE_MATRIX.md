@@ -14,6 +14,7 @@ Legend: **PROD** = verified working on the deployed app; **FAIL-HONEST** = works
 | Sliding session TTL (refresh on activity) | PROD | `tests/memory/test_sqlite_memory.py` |
 | Cross-session isolation (conversations/RAG/OCR) | PROD | `tests/api/test_rag_endpoint.py`, `test_document_endpoint.py` |
 | Chat with unconfigured/unavailable model | FAIL-HONEST | generic 4xx/503, never fake; smoke: bogus model → 400 + `X-Request-Id` |
+| Provider finish reason fidelity | PROD | `tests/unit/test_gemini_honesty.py`; live: `MAX_TOKENS` → honest 503 naming the exhausted budget, not an empty 200 |
 | Chat error UX | PROD | backend `detail` surfaced, no raw body, no mock suggestion |
 
 ## Providers & models

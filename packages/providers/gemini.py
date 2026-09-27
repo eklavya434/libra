@@ -16,9 +16,79 @@ import httpx
 from packages.core.network import enable_ipv4_preference
 from packages.providers.base import BaseProvider, ModelMetadata
 from packages.providers.cost import calculate_cost
-from packages.providers.errors import ProviderAuthenticationError, normalize_http_error
+from packages.providers.errors import (
+    LibraProviderError,
+    ProviderAuthenticationError,
+    normalize_http_error,
+)
 
 enable_ipv4_preference()
+
+FINISH_REASON_MAP: dict[str, str] = {
+    "STOP": "stop",
+    "MAX_TOKENS": "length",
+    "SAFETY": "content_filter",
+    "RECITATION": "content_filter",
+    "BLOCKLIST": "content_filter",
+    "PROHIBITED_CONTENT": "content_filter",
+    "SPII": "content_filter",
+}
+
+BLOCKED_FINISH_REASONS = frozenset(
+    {"SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"}
+)
+
+
+def map_finish_reason(raw: str) -> str:
+    """Map a Gemini ``finishReason`` to the OpenAI-style ``finish_reason``.
+
+    Gemini distinguishes STOP, MAX_TOKENS, and the safety/recitation blocks.
+    Collapsing them all into ``stop`` turns a truncated or blocked completion
+    into a fake success, so the distinction has to survive the adapter.
+    """
+    return FINISH_REASON_MAP.get(raw.strip().upper(), "stop")
+
+
+def empty_completion_error(
+    provider: str,
+    model: str,
+    max_tokens: int,
+    raw_finish_reason: str,
+) -> LibraProviderError:
+    """Build an honest error for a 200 response that carried no visible text.
+
+    Returning an empty 200 would be a fabricated success: the caller renders an
+    empty assistant bubble and the request looks like it succeeded.
+    """
+    reason = raw_finish_reason.strip().upper()
+    if reason == "MAX_TOKENS":
+        return LibraProviderError(
+            message=(
+                f"[{provider.upper()}] {model} returned no visible text: the "
+                f"max_tokens budget of {max_tokens} was exhausted before any answer was "
+                "emitted. Reasoning/thinking tokens count against this budget. Retry "
+                "with a larger max_tokens (512 or more)."
+            ),
+            provider=provider,
+            status_code=502,
+        )
+    if reason in BLOCKED_FINISH_REASONS:
+        return LibraProviderError(
+            message=(
+                f"[{provider.upper()}] {model} returned no content because the response "
+                f"was blocked by the provider ({reason})."
+            ),
+            provider=provider,
+            status_code=502,
+        )
+    return LibraProviderError(
+        message=(
+            f"[{provider.upper()}] {model} returned an empty completion "
+            f"(finish reason: {reason or 'unspecified'})."
+        ),
+        provider=provider,
+        status_code=502,
+    )
 
 
 class GeminiProvider(BaseProvider):
@@ -249,13 +319,19 @@ class GeminiProvider(BaseProvider):
 
         data = resp.json()
         text_out = ""
+        raw_finish_reason = "STOP"
         try:
             candidates = data.get("candidates", [])
             if candidates:
-                parts = candidates[0].get("content", {}).get("parts", [])
+                candidate = candidates[0]
+                raw_finish_reason = str(candidate.get("finishReason") or "STOP")
+                parts = candidate.get("content", {}).get("parts", [])
                 text_out = "".join(p.get("text", "") for p in parts)
         except Exception:
             text_out = ""
+
+        if not text_out.strip():
+            raise empty_completion_error(self.name, target_model, max_tokens, raw_finish_reason)
 
         usage = data.get("usageMetadata", {})
         prompt_tokens = usage.get("promptTokenCount", 0)
@@ -270,7 +346,7 @@ class GeminiProvider(BaseProvider):
                 {
                     "index": 0,
                     "message": {"role": "assistant", "content": text_out},
-                    "finish_reason": "stop",
+                    "finish_reason": map_finish_reason(raw_finish_reason),
                 }
             ],
             "usage": {
@@ -317,6 +393,8 @@ class GeminiProvider(BaseProvider):
 
         client = self._get_client()
         last_err: Optional[Exception] = None
+        emitted_any = False
+        last_finish_reason = "STOP"
 
         for target_model in candidate_models:
             url = f"{self.base_url}/models/{target_model}:streamGenerateContent?alt=sse&key={self.api_key}"
@@ -349,13 +427,21 @@ class GeminiProvider(BaseProvider):
                                     chunk = json.loads(line_data)
                                     candidates = chunk.get("candidates", [])
                                     if candidates:
-                                        parts = candidates[0].get("content", {}).get("parts", [])
+                                        candidate = candidates[0]
+                                        if candidate.get("finishReason"):
+                                            last_finish_reason = str(candidate["finishReason"])
+                                        parts = candidate.get("content", {}).get("parts", [])
                                         for p in parts:
                                             txt = p.get("text", "")
                                             if txt:
+                                                emitted_any = True
                                                 yield txt
                                 except json.JSONDecodeError:
                                     continue
+                        if not emitted_any:
+                            raise empty_completion_error(
+                                self.name, target_model, max_tokens, last_finish_reason
+                            )
                         return
                 except Exception as e:
                     if "429" in str(e) and target_model != candidate_models[-1]:

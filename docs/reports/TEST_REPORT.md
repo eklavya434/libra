@@ -6,7 +6,7 @@ Audit 2026-09-27. All numbers are from actual runs on this machine (Intel i5-124
 
 | Command | Result |
 | :-- | :-- |
-| `pytest tests/ --ignore=tests/frontend` | **693 passed, 2 skipped** (Postgres parity, live-URL only) |
+| `pytest tests/ --ignore=tests/frontend` | **712 passed, 2 skipped** (Postgres parity, live-URL only) |
 | `pytest tests/frontend/` | **5 passed** (structural invariants) |
 | `ruff check .` | All checks passed |
 | `ruff format --check .` | 520 files already formatted |
@@ -20,6 +20,7 @@ Audit 2026-09-27. All numbers are from actual runs on this machine (Intel i5-124
 | :-- | :-- | :-- |
 | Chat plumbing | `tests/api/test_chat_endpoint.py` | honest errors, no fake streaming data |
 | Provider offline | `tests/unit/test_local_provider_integrity.py` (5) | 503 when checkpoint **or** config is missing, incompatible checkpoint, `health()` matches disk truth, stream is not a bypass |
+| Gemini adapter honesty | `tests/unit/test_gemini_honesty.py` (15) | `finishReason` mapped not collapsed; empty completion raises instead of faking `stop`; blocked/whitespace responses rejected; stream does not truncate silently |
 | Router honesty | `tests/unit/test_dynamic_router_honesty.py` (6) | tier map is real-providers-only, no mock class referenced, exhausted chain raises, unavailable-attempt message, health gate precedes `chat()`, no tier/policy selects a mock |
 | Routing 503 | `tests/api/test_routing_endpoint.py` | generic message, no internals |
 | Agent/model resolution | `tests/api/test_agents_endpoint.py` | configured-provider resolution only |
@@ -43,6 +44,9 @@ Audit 2026-09-27. All numbers are from actual runs on this machine (Intel i5-124
 | `GET /api/v1/auth/session` | minted `sess-*` token + 30-day TTL |
 | `POST /chat/completions` (bogus model) | 400, generic detail, `X-Request-Id` present |
 | `POST /chat/completions` (`libra-llama-tied`, stream=false, max_tokens=16) | 200, real tokens, `finish=stop` (real first-principles inference, not fabricated) |
+| `POST /chat/completions` (`gemini-2.5-flash`, stream=false, max_tokens=1024) | 200, real answer, `finish=stop`, 35 completion tokens |
+| `POST /chat/completions` (`gemini-2.5-flash`, stream=true, max_tokens=1024) | SSE: metadata chunk, token delta `"Hello there!"`, `[DONE]` |
+| `POST /chat/completions` (`gemini-2.5-flash`, max_tokens=1/2/4/8) | 503 honest error naming the exhausted budget (was 200 + empty + `finish=stop` before BUG-09) |
 
 ## Skips (2) — honest
 

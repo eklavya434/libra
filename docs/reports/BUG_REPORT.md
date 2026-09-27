@@ -113,3 +113,18 @@ Audit 2026-09-27. Each bug has a reproduction, root cause, fix, and a regression
 **Fix:** `api.ts::extractBackendError` yields the backend `detail` (generated to be honest and generic server-side); `ChatArea.tsx` copy now instructs checking backend/provider configuration.
 
 **Verify:** `npm run typecheck`, `npm run build`, component inspection.
+
+---
+
+## BUG-09 · Gemini reported an empty completion as a successful one
+
+**Severity:** P0 · **Repro:**
+1. Configure a valid `GEMINI_API_KEY` and chat with the default `gemini-2.5-flash`.
+2. Send a request with a small `max_tokens` (e.g. 8).
+3. Old behavior: **HTTP 200** with `content: ""`, `finish_reason: "stop"`, `completion_tokens: 0` — a blank assistant bubble that looked like a successful answer. Intermittent: identical requests sometimes returned text and sometimes did not, because it depended on whether the model's internal reasoning happened to consume the budget first.
+
+**Root cause:** `packages/providers/gemini.py` read `candidates[0].content.parts[*].text` and **discarded `finishReason` entirely**, then hardcoded `"finish_reason": "stop"` in the response. A `MAX_TOKENS` truncation (Gemini 2.5 counts thinking tokens against `maxOutputTokens`) was indistinguishable from a clean stop, and the empty result was returned as a normal completion. The streaming path had the same blind spot and simply ended after yielding nothing.
+
+**Fix:** `map_finish_reason` now preserves the provider's distinction (`STOP`→`stop`, `MAX_TOKENS`→`length`, `SAFETY`/`RECITATION`/`BLOCKLIST`/`PROHIBITED_CONTENT`/`SPII`→`content_filter`). When a 200 response carries no visible text, `empty_completion_error` raises an honest 502 that names the exhausted budget and tells the caller to retry with a larger `max_tokens`, instead of returning an empty success. The streaming path applies the same guard rather than truncating silently.
+
+**Verify:** `tests/unit/test_gemini_honesty.py` (15 tests). Live before: `HTTP 200 content=[] finish=stop tokens=0`. Live after: `HTTP 503` with `"returned no visible text: the max_tokens budget of 8 was exhausted before any answer was emitted"` plus a `request_id`, and a normal `max_tokens=1024` request still returns a real streamed answer.
