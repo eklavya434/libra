@@ -112,6 +112,14 @@ async def list_models(
         d["unavailable_reason"] = reason
         annotated.append(d)
 
+    # Surface immediately available models first
+    annotated.sort(
+        key=lambda x: (
+            0 if x.get("available") is True else 1,
+            x.get("name", "").lower(),
+        )
+    )
+
     return {
         "count": len(models),
         "default_model": def_model_id,

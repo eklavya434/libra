@@ -134,9 +134,9 @@ class GeminiProvider(BaseProvider):
         if clean.startswith("models/"):
             clean = clean[7:]
         if clean in ("gemini-1.5-flash", "gemini-flash", "gemini-flash-1.5", "gemini"):
-            return "gemini-2.5-flash"
-        if clean in ("gemini-1.5-pro", "gemini-pro", "gemini-pro-1.5"):
-            return "gemini-2.5-pro"
+            return "gemini-flash-latest"
+        if clean in ("gemini-1.5-pro", "gemini-pro", "gemini-pro-1.5", "gemini-2.5-pro"):
+            return "gemini-flash-latest"
         return clean
 
     def _get_client(self) -> httpx.AsyncClient:
@@ -277,8 +277,8 @@ class GeminiProvider(BaseProvider):
 
         primary_model = self._normalize_model(model)
         candidate_models = [primary_model]
-        if primary_model == "gemini-2.5-flash" and "gemini-2.5-pro" not in candidate_models:
-            candidate_models.append("gemini-2.5-pro")
+        if "gemini-flash-latest" not in candidate_models:
+            candidate_models.append("gemini-flash-latest")
 
         contents, system_instruction = self._convert_messages(messages)
         payload: dict[str, Any] = {
@@ -375,8 +375,8 @@ class GeminiProvider(BaseProvider):
 
         primary_model = self._normalize_model(model)
         candidate_models = [primary_model]
-        if primary_model == "gemini-2.5-flash" and "gemini-2.5-pro" not in candidate_models:
-            candidate_models.append("gemini-2.5-pro")
+        if "gemini-flash-latest" not in candidate_models:
+            candidate_models.append("gemini-flash-latest")
 
         contents, system_instruction = self._convert_messages(messages)
         payload: dict[str, Any] = {
