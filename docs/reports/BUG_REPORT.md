@@ -15,7 +15,7 @@ Audit 2026-09-27. Each bug has a reproduction, root cause, fix, and a regression
 
 **Fix:** `packages/providers/local_transformer.py` now raises `ProviderOfflineError` unless `checkpoint_path` AND architecture `config_path` exist; `is_ready()` returns the same disk truth; the API maps the error to an honest 503.
 
-**Verify:** `tests/unit/test_local_provider_integrity.py`; live `/api/v1/models` shows `available` for `libra-llama-tied` only because the checkpoint + `configs/models/tiny_modern_tied.yaml` exist on this machine.
+**Verify:** `tests/unit/test_local_provider_integrity.py` (5 tests: missing checkpoint, missing config, incompatible checkpoint, health disk-truth, stream guard), `tests/providers/test_local_transformer_provider.py::test_local_transformer_offline_when_checkpoint_missing`; live `/api/v1/models` shows `available` for `libra-llama-tied` only because the checkpoint + `configs/models/tiny_modern_tied.yaml` exist on this machine.
 
 ---
 
@@ -30,7 +30,7 @@ Audit 2026-09-27. Each bug has a reproduction, root cause, fix, and a regression
 
 **Fix:** `packages/routing/dynamic_router.py` has a real tier map only. All tiers off → `RuntimeError` → generic 503 in `routing.py`. No mock anywhere in the path.
 
-**Verify:** `tests/unit/test_dynamic_router_honesty.py`, `tests/api/test_routing_endpoint.py`.
+**Verify:** `tests/unit/test_dynamic_router_honesty.py` (6 tests: real-only tier map, no mock class referenced, exhausted chain raises, no-available-attempt message, health gate precedes chat, no tier/policy selects a mock), `tests/api/test_routing_endpoint.py::test_endpoint_routing_generate_fails_loudly_when_no_provider`.
 
 ---
 
@@ -73,7 +73,7 @@ Audit 2026-09-27. Each bug has a reproduction, root cause, fix, and a regression
 
 **Fix:** `_file_owner` map {key → session}. Non-owner access → 404. Storage exceptions are also sanitized.
 
-**Verify:** `tests/api/test_document_endpoint.py::test_cross_tenant_file_404`.
+**Verify:** `tests/api/test_document_endpoint.py::test_uploaded_file_cannot_be_read_by_other_guest`.
 
 ---
 
@@ -86,7 +86,7 @@ Audit 2026-09-27. Each bug has a reproduction, root cause, fix, and a regression
 
 **Fix:** `main.py` returns a generic message plus `store_backend`, `database_url_configured`, and `degraded` status when applicable. No `str(exc)` in the response.
 
-**Verify:** `tests/api/test_hardening_middleware.py::test_readyz_no_leak`, `test_readyz_degraded`.
+**Verify:** `tests/api/test_hardening_middleware.py::test_readyz_never_leaks_exception_details`, `test_readyz_degraded_reflects_store_backend`.
 
 ---
 
@@ -100,7 +100,7 @@ Audit 2026-09-27. Each bug has a reproduction, root cause, fix, and a regression
 
 **Fix:** `apps/backend/middleware/security.py` rewrote the limiter as pure ASGI middleware that owns `receive`, buffers bounded chunks, returns 413 when the budget is exceeded, and replays the buffered body downstream otherwise.
 
-**Verify:** `tests/api/test_hardening_middleware.py::test_chunked_body_limited`, `test_under_limit_replayed`, `test_content_length_too_large`.
+**Verify:** `tests/api/test_hardening_middleware.py::test_chunked_body_over_limit_rejected`, `test_chunked_body_under_limit_replayed_to_app`, `test_content_length_over_limit_rejected`.
 
 ---
 

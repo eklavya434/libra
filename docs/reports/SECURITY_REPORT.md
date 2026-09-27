@@ -15,7 +15,7 @@ Audit 2026-09-27. Honest statement of what is enforced, how it is verified, and 
 | Tenant isolation | Conversation store, RAG store, OCR file store all scoped by minted guest-session token; foreign access → 404 | `test_rag_endpoint.py`, `test_document_endpoint.py` |
 | Log redaction | Keyed secrets (`api_key`, `token`, `password`, `secret`, `authorization`, `bearer`) and bare 40+ char runs masked in logs | `test_log_redaction` |
 | Error disclosure | API returns generic messages; no `str(exc)` in `/readyz`; no raw body forwarded to chat UI | `test_readyz_no_leak`, `test_document_endpoint*` |
-| Session lifecycle | Guest tokens minted server-side; sliding TTL refresh on activity; expired tokens never revived | `tests/memory/test_sqlite_memory.py::test_renew_session*` |
+| Session lifecycle | Guest tokens minted server-side; sliding TTL refresh on activity; expired tokens never revived | `tests/memory/test_sqlite_memory.py::test_renew_session_slides_expiry`, `test_renew_session_does_not_revive_expired_session` |
 | Secret handling | `.env` never committed; keys read from env only; no secret echoed in health/readyz/models | live smoke + repo hygiene |
 
 ## What "security" deliberately is NOT

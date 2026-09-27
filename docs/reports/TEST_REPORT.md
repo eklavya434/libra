@@ -6,20 +6,21 @@ Audit 2026-09-27. All numbers are from actual runs on this machine (Intel i5-124
 
 | Command | Result |
 | :-- | :-- |
-| `pytest tests/ --ignore=tests/frontend` | **682 passed, 2 skipped** (Postgres parity, live-URL only) |
+| `pytest tests/ --ignore=tests/frontend` | **693 passed, 2 skipped** (Postgres parity, live-URL only) |
 | `pytest tests/frontend/` | **5 passed** (structural invariants) |
 | `ruff check .` | All checks passed |
-| `ruff format --check .` | 513 files already formatted |
+| `ruff format --check .` | 520 files already formatted |
 | `npm run typecheck` (apps/frontend) | clean |
 | `npm run build` (apps/frontend) | compiled, 5 static pages preredendered |
+| report reference audit | 48 `tests/...` citations across the 5 reports verified to resolve to real files and real test functions |
 
 ## New regression coverage added during this audit
 
 | Area | File | What it proves |
 | :-- | :-- | :-- |
 | Chat plumbing | `tests/api/test_chat_endpoint.py` | honest errors, no fake streaming data |
-| Provider offline | `tests/unit/test_local_provider_integrity.py` | 503 without checkpoint/config |
-| Router honesty | `tests/unit/test_dynamic_router_honesty.py` | no mock fallback; RuntimeError on exhaustion |
+| Provider offline | `tests/unit/test_local_provider_integrity.py` (5) | 503 when checkpoint **or** config is missing, incompatible checkpoint, `health()` matches disk truth, stream is not a bypass |
+| Router honesty | `tests/unit/test_dynamic_router_honesty.py` (6) | tier map is real-providers-only, no mock class referenced, exhausted chain raises, unavailable-attempt message, health gate precedes `chat()`, no tier/policy selects a mock |
 | Routing 503 | `tests/api/test_routing_endpoint.py` | generic message, no internals |
 | Agent/model resolution | `tests/api/test_agents_endpoint.py` | configured-provider resolution only |
 | Notebook scoping | `tests/api/test_notebook_endpoint.py` | entity-scoped kernels, 404 on foreign |
@@ -29,6 +30,7 @@ Audit 2026-09-27. All numbers are from actual runs on this machine (Intel i5-124
 | OCR isolation | `tests/api/test_document_endpoint.py` | cross-tenant file 404, sanitized storage errors |
 | Long-context | `tests/api/test_long_context_endpoint.py` | real-model generation via sync bridge; mock only for `model="mock"` |
 | Context/NIAH | `tests/api/test_context_endpoint.py` | needle cheat restricted to mock; RoPE/continuity paths |
+| Lab labs without checkpoints | `tests/api/test_telemetry_endpoint.py`, `tests/api/test_grammar_endpoint.py` | fall back to an explicitly-flagged untrained in-memory transformer instead of 503 on a machine with no trained checkpoint |
 | Frontend invariants | `tests/frontend/test_frontend_structure.py` | no hardcoded model/mock leaks; stream guard preserved |
 
 ## Live smoke tests (running server, port 8000)

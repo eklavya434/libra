@@ -49,8 +49,8 @@ Legend: **PROD** = verified working on the deployed app; **FAIL-HONEST** = works
 | Request size limit (content-length + chunked) | PROD | `tests/api/test_hardening_middleware.py` |
 | Rate limiting across chat + OCR | PROD | regression suite |
 | X-Request-Id tracing | PROD | live smoke (present on every response) |
-| Log redaction | PROD | `tests/api/test_hardening_middleware.py::test_log_redaction` |
-| CORS (outermost, credentials, exposed headers) | PROD | `tests/api/test_hardening_middleware.py::test_cors_expose_headers` |
+| Log redaction | PROD | `tests/api/test_hardening_middleware.py::test_log_redaction_formatter_scrubs_secrets` |
+| CORS (outermost, credentials, exposed headers) | PROD | `tests/api/test_hardening_middleware.py::test_cors_exposes_libra_headers` |
 | Mobile responsive chat (drawer + toggle) | PROD | build + structural tests |
 | CI (lint, backend, frontend, deploy audit, regression) | PROD | workflow always-checks; format gate now passes |
 
