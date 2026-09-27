@@ -1,0 +1,19 @@
+name: Backend Keepalive Ping
+
+on:
+  schedule:
+    # Run every 12 minutes to keep free-tier Render container warm during active hours
+    - cron: '*/12 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping Live Backend Engine
+        run: |
+          echo "Pinging Render backend healthz..."
+          curl -fsS --retry 2 --max-time 30 https://libra-backend-yijf.onrender.com/healthz || echo "Backend waking up"
+          echo "Pinging through public custom domain..."
+          curl -fsS --retry 2 --max-time 30 https://www.libraai.me/api/v1/health || echo "Edge proxy warming up"

@@ -1,14 +1,56 @@
 'use client';
 
-import React from 'react';
-import { Plus, MessageSquare, BookOpen, Layers, Sparkles, Terminal, Trash2, Database, FileText, ShieldAlert, Activity, FileSearch, Compass, GitBranch, Shrink, Network, FastForward, Scale, CheckCheck, Award, Crown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  Plus,
+  MessageSquare,
+  BookOpen,
+  Layers,
+  Sparkles,
+  Terminal,
+  Trash2,
+  Database,
+  FileText,
+  ShieldAlert,
+  Activity,
+  FileSearch,
+  Compass,
+  GitBranch,
+  Shrink,
+  Network,
+  FastForward,
+  Scale,
+  CheckCheck,
+  ChevronDown,
+} from 'lucide-react';
 import { ConversationSummary } from '@/lib/api';
+import { MODULE_REGISTRY, getMaturityStyle } from '@/lib/module-status';
+
+type WorkspaceTab =
+  | 'chat'
+  | 'arena'
+  | 'rag'
+  | 'corpus'
+  | 'security'
+  | 'observability'
+  | 'batch'
+  | 'document'
+  | 'notebook'
+  | 'long_context'
+  | 'mcts'
+  | 'distillation'
+  | 'moe'
+  | 'medusa'
+  | 'kto'
+  | 'verifiable_search'
+  | 'self_rewarding'
+  | 'grand_capstone';
 
 interface SidebarProps {
   currentSessionId: string;
-  activeTab?: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa' | 'kto' | 'verifiable_search' | 'self_rewarding' | 'grand_capstone';
+  activeTab?: WorkspaceTab;
   conversations?: ConversationSummary[];
-  onSelectTab?: (tab: 'chat' | 'arena' | 'rag' | 'corpus' | 'security' | 'observability' | 'batch' | 'document' | 'notebook' | 'long_context' | 'mcts' | 'distillation' | 'moe' | 'medusa' | 'kto' | 'verifiable_search' | 'self_rewarding' | 'grand_capstone') => void;
+  onSelectTab?: (tab: WorkspaceTab) => void;
   onSelectConversation?: (id: string) => void;
   onNewConversation?: () => void;
   onDeleteConversation?: (id: string) => void;
@@ -23,6 +65,68 @@ export default function Sidebar({
   onNewConversation,
   onDeleteConversation,
 }: SidebarProps) {
+  // Advanced Labs collapsed by default; state persisted in localStorage
+  const [advancedExpanded, setAdvancedExpanded] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('libra_sidebar_advanced_expanded');
+      if (stored !== null) {
+        setAdvancedExpanded(stored === 'true');
+      }
+    }
+  }, []);
+
+  const toggleAdvanced = () => {
+    setAdvancedExpanded((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('libra_sidebar_advanced_expanded', next.toString());
+      }
+      return next;
+    });
+  };
+
+  // Helper to render an item's status indicator
+  const renderStatusBadge = (moduleId: string) => {
+    const mod = MODULE_REGISTRY[moduleId];
+    if (!mod) return null;
+    const style = getMaturityStyle(mod.maturity);
+    return (
+      <span
+        className={`ml-auto flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wider border ${style.bgColor} ${style.textColor} ${style.borderColor}`}
+        title={`${mod.name}: ${mod.label}`}
+      >
+        <span className={`h-1.5 w-1.5 rounded-full ${style.dotColor}`} />
+        <span>{mod.shortBadge}</span>
+      </span>
+    );
+  };
+
+  const coreModules: { id: WorkspaceTab; name: string; icon: React.ElementType }[] = [
+    { id: 'chat', name: 'Interactive Chat', icon: MessageSquare },
+    { id: 'arena', name: 'Model Arena', icon: Sparkles },
+    { id: 'rag', name: 'Knowledge Base (RAG)', icon: Database },
+    { id: 'notebook', name: 'Code Notebook', icon: Terminal },
+  ];
+
+  const advancedModules: { id: WorkspaceTab; name: string; icon: React.ElementType }[] = [
+    { id: 'corpus', name: 'Corpus & SFT Lab', icon: FileText },
+    { id: 'security', name: 'Security Lab', icon: ShieldAlert },
+    { id: 'observability', name: 'Observability & Traces', icon: Activity },
+    { id: 'batch', name: 'Batch Inference', icon: Layers },
+    { id: 'document', name: 'Document OCR', icon: FileSearch },
+    { id: 'long_context', name: 'Long Context & NIAH', icon: Compass },
+    { id: 'mcts', name: 'MCTS Reasoning', icon: GitBranch },
+    { id: 'distillation', name: 'Distillation Lab', icon: Shrink },
+    { id: 'moe', name: 'MoE Sparse Lab', icon: Network },
+    { id: 'medusa', name: 'Medusa Speculative', icon: FastForward },
+    { id: 'kto', name: 'KTO Alignment', icon: Scale },
+    { id: 'verifiable_search', name: 'Verifiable Search', icon: CheckCheck },
+    { id: 'self_rewarding', name: 'Self-Rewarding', icon: Sparkles },
+    { id: 'grand_capstone', name: 'Grand Capstone', icon: Layers },
+  ];
+
   return (
     <aside className="libra-glass flex h-full w-64 shrink-0 flex-col justify-between border-r border-white/[0.07] select-none">
       {/* Brand Header */}
@@ -47,7 +151,7 @@ export default function Sidebar({
             if (onSelectTab) onSelectTab('chat');
             if (onNewConversation) onNewConversation();
           }}
-          className="libra-interactive mt-4 w-full flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2.5 text-xs font-medium text-slate-200 shadow-sm group hover:border-indigo-400/20 hover:bg-indigo-500/[0.08]"
+          className="libra-interactive mt-4 w-full flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2 text-xs font-medium text-slate-200 shadow-sm group hover:border-indigo-400/20 hover:bg-indigo-500/[0.08]"
         >
           <Plus className="w-3.5 h-3.5 text-indigo-400 group-hover:scale-110 transition-transform" />
           <span>New Conversation</span>
@@ -55,249 +159,92 @@ export default function Sidebar({
       </div>
 
       {/* Navigation Sections */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 text-xs scrollbar-thin">
-        {/* Workspace Modes */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 text-xs scrollbar-thin space-y-4">
+        {/* Tier 1: Core Modules */}
         <div>
-          <div className="mb-2 flex items-center gap-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-            <Layers className="w-3 h-3 text-indigo-400" />
-            <span>Workspace</span>
+          <div className="mb-1.5 flex items-center justify-between px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <Layers className="w-3 h-3 text-indigo-400" />
+              <span>Core Workspace</span>
+            </span>
+            <span className="text-[9px] text-slate-500 font-normal font-mono">Primary</span>
           </div>
+
           <div className="space-y-1">
-            <button
-              onClick={() => onSelectTab && onSelectTab('chat')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'chat'
-                  ? 'bg-indigo-500/[0.10] border border-indigo-400/20 shadow-[inset_2px_0_0_rgba(129,140,248,.9)] text-indigo-200 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <MessageSquare className={`w-4 h-4 ${activeTab === 'chat' ? 'text-indigo-400' : 'text-slate-400'}`} />
-              <span>Interactive Chat</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('arena')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'arena'
-                  ? 'bg-indigo-500/[0.10] border border-indigo-400/20 shadow-[inset_2px_0_0_rgba(129,140,248,.9)] text-indigo-200 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <Sparkles className={`w-4 h-4 ${activeTab === 'arena' ? 'text-indigo-400' : 'text-slate-400'}`} />
-              <span>Model Arena</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('rag')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'rag'
-                  ? 'bg-indigo-500/[0.10] border border-indigo-400/20 shadow-[inset_2px_0_0_rgba(129,140,248,.9)] text-indigo-200 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <Database className={`w-4 h-4 ${activeTab === 'rag' ? 'text-indigo-400' : 'text-slate-400'}`} />
-              <span>Knowledge Base (RAG)</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('corpus')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'corpus'
-                  ? 'bg-indigo-500/[0.10] border border-indigo-400/20 shadow-[inset_2px_0_0_rgba(129,140,248,.9)] text-indigo-200 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <FileText className={`w-4 h-4 ${activeTab === 'corpus' ? 'text-indigo-400' : 'text-slate-400'}`} />
-              <span>Corpus & SFT Lab</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('security')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'security'
-                  ? 'bg-emerald-500/[0.08] border border-emerald-400/20 shadow-[inset_2px_0_0_rgba(52,211,153,.9)] text-emerald-300 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <ShieldAlert className={`w-4 h-4 ${activeTab === 'security' ? 'text-emerald-400' : 'text-slate-400'}`} />
-              <span>Security Lab</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('observability')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'observability'
-                  ? 'bg-indigo-500/[0.10] border border-indigo-400/20 shadow-[inset_2px_0_0_rgba(129,140,248,.9)] text-indigo-300 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <Activity className={`w-4 h-4 ${activeTab === 'observability' ? 'text-indigo-400' : 'text-slate-400'}`} />
-              <span>Observability & Traces</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('batch')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'batch'
-                  ? 'bg-amber-500/[0.08] border border-amber-400/20 shadow-[inset_2px_0_0_rgba(251,191,36,.9)] text-amber-300 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <Layers className={`w-4 h-4 ${activeTab === 'batch' ? 'text-amber-400' : 'text-slate-400'}`} />
-              <span>Batch Inference</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('document')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'document'
-                  ? 'bg-cyan-600/20 border border-cyan-500/40 text-cyan-300 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <FileSearch className={`w-4 h-4 ${activeTab === 'document' ? 'text-cyan-400' : 'text-slate-400'}`} />
-              <span>Document OCR</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('notebook')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'notebook'
-                  ? 'bg-violet-600/20 border border-violet-500/40 text-violet-300 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <Terminal className={`w-4 h-4 ${activeTab === 'notebook' ? 'text-violet-400' : 'text-slate-400'}`} />
-              <span>Code Notebook</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('long_context')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'long_context'
-                  ? 'bg-teal-600/20 border border-teal-500/40 text-teal-300 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <Compass className={`w-4 h-4 ${activeTab === 'long_context' ? 'text-teal-400' : 'text-slate-400'}`} />
-              <span>Long Context & NIAH</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('mcts')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'mcts'
-                  ? 'bg-purple-600/20 border border-purple-500/40 text-purple-300 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <GitBranch className={`w-4 h-4 ${activeTab === 'mcts' ? 'text-purple-400' : 'text-slate-400'}`} />
-              <span>MCTS Reasoning</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('distillation')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'distillation'
-                  ? 'bg-rose-600/20 border border-rose-500/40 text-rose-300 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <Shrink className={`w-4 h-4 ${activeTab === 'distillation' ? 'text-rose-400' : 'text-slate-400'}`} />
-              <span>Distillation Lab</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('moe')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'moe'
-                  ? 'bg-purple-600/20 border border-purple-500/40 text-purple-300 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <Network className={`w-4 h-4 ${activeTab === 'moe' ? 'text-purple-400' : 'text-slate-400'}`} />
-              <span>MoE Sparse Lab</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('medusa')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'medusa'
-                  ? 'bg-amber-500/[0.08] border border-amber-400/20 shadow-[inset_2px_0_0_rgba(251,191,36,.9)] text-amber-300 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <FastForward className={`w-4 h-4 ${activeTab === 'medusa' ? 'text-amber-400' : 'text-slate-400'}`} />
-              <span>Medusa Speculative</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('kto')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'kto'
-                  ? 'bg-amber-500/[0.08] border border-amber-400/20 shadow-[inset_2px_0_0_rgba(251,191,36,.9)] text-amber-300 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <Scale className={`w-4 h-4 ${activeTab === 'kto' ? 'text-amber-400' : 'text-slate-400'}`} />
-              <span>KTO Alignment</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('verifiable_search')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'verifiable_search'
-                  ? 'bg-cyan-600/20 border border-cyan-500/40 text-cyan-300 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <CheckCheck className={`w-4 h-4 ${activeTab === 'verifiable_search' ? 'text-cyan-400' : 'text-slate-400'}`} />
-              <span>Verifiable Search</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('self_rewarding')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'self_rewarding'
-                  ? 'bg-amber-500/[0.08] border border-amber-400/20 shadow-[inset_2px_0_0_rgba(251,191,36,.9)] text-amber-300 font-medium'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035]'
-              }`}
-            >
-              <Award className={`w-4 h-4 ${activeTab === 'self_rewarding' ? 'text-amber-400' : 'text-slate-400'}`} />
-              <span>Self-Rewarding</span>
-            </button>
-
-            <button
-              onClick={() => onSelectTab && onSelectTab('grand_capstone')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left libra-interactive transition-all ${
-                activeTab === 'grand_capstone'
-                  ? 'bg-gradient-to-r from-amber-600/30 to-yellow-600/30 border border-amber-400/60 text-amber-200 font-bold shadow-sm shadow-amber-950/40'
-                  : 'text-amber-400/80 hover:text-amber-300 hover:bg-amber-950/30'
-              }`}
-            >
-              <Crown className={`w-4 h-4 ${activeTab === 'grand_capstone' ? 'text-amber-300' : 'text-amber-400'}`} />
-              <span className="flex-1">Grand Capstone</span>
-              <span className="text-[9px] font-mono bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30">
-                P50
-              </span>
-            </button>
+            {coreModules.map((mod) => {
+              const Icon = mod.icon;
+              const isSelected = activeTab === mod.id;
+              return (
+                <button
+                  key={mod.id}
+                  onClick={() => onSelectTab && onSelectTab(mod.id)}
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left libra-interactive transition-all ${
+                    isSelected
+                      ? 'bg-indigo-500/[0.12] border border-indigo-400/30 shadow-[inset_2px_0_0_rgba(129,140,248,.9)] text-indigo-100 font-medium'
+                      : 'text-slate-300 hover:text-white hover:bg-white/[0.04] border border-transparent'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-indigo-400' : 'text-slate-400'}`} />
+                  <span className="truncate">{mod.name}</span>
+                  {renderStatusBadge(mod.id)}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Recent Conversations List */}
-        <div>
-          <div className="flex items-center justify-between px-2 mb-2">
-            <span className="flex items-center gap-1.5 text-slate-400 font-medium tracking-wider uppercase text-[10px]">
-              <MessageSquare className="w-3 h-3 text-cyan-400" />
-              <span>Conversations</span>
+        {/* Tier 2: Advanced Labs (Collapsible) */}
+        <div className="border-t border-white/[0.06] pt-3">
+          <button
+            onClick={toggleAdvanced}
+            className="w-full mb-1.5 flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 hover:text-slate-200 hover:bg-white/[0.03] transition-colors"
+          >
+            <span className="flex items-center gap-1.5">
+              <Terminal className="w-3 h-3 text-violet-400" />
+              <span>Advanced Labs ({advancedModules.length})</span>
             </span>
-            <span className="text-[10px] text-slate-400 font-mono">
-              {conversations.length}
-            </span>
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                advancedExpanded ? 'rotate-180 text-violet-400' : ''
+              }`}
+            />
+          </button>
+
+          {advancedExpanded && (
+            <div className="space-y-1 pl-1 pt-1 animate-in fade-in duration-200">
+              {advancedModules.map((mod) => {
+                const Icon = mod.icon;
+                const isSelected = activeTab === mod.id;
+                return (
+                  <button
+                    key={mod.id}
+                    onClick={() => onSelectTab && onSelectTab(mod.id)}
+                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left libra-interactive transition-all ${
+                      isSelected
+                        ? 'bg-violet-500/[0.12] border border-violet-400/30 text-violet-100 font-medium'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035] border border-transparent'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-violet-400' : 'text-slate-500'}`} />
+                    <span className="truncate text-[11px]">{mod.name}</span>
+                    {renderStatusBadge(mod.id)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Stored Conversations */}
+        <div className="border-t border-white/[0.06] pt-3">
+          <div className="flex items-center gap-1.5 text-slate-400 font-medium px-2 mb-2 tracking-wider uppercase text-[10px]">
+            <MessageSquare className="w-3 h-3 text-indigo-400" />
+            <span>Conversations</span>
           </div>
-          <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+
+          <div className="space-y-0.5 max-h-40 overflow-y-auto scrollbar-thin">
             {conversations.length === 0 ? (
-              <div className="px-3 py-2 text-slate-400 italic text-[11px]">
+              <div className="px-3 py-2 text-slate-500 italic text-[11px]">
                 No stored conversations
               </div>
             ) : (
@@ -310,14 +257,18 @@ export default function Sidebar({
                       if (onSelectTab) onSelectTab('chat');
                       if (onSelectConversation) onSelectConversation(conv.id);
                     }}
-                    className={`group flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer libra-interactive transition-all ${
+                    className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer libra-interactive transition-all ${
                       isSelected
                         ? 'bg-indigo-950/60 border border-indigo-700/60 text-indigo-200 font-medium'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/70 border border-transparent'
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate pr-1">
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSelected ? 'bg-indigo-400' : 'bg-slate-600'}`} />
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                          isSelected ? 'bg-indigo-400' : 'bg-slate-600'
+                        }`}
+                      />
                       <span className="truncate text-xs">{conv.title}</span>
                     </div>
 
@@ -341,26 +292,18 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* Milestones */}
-        <div>
+        {/* System & Curriculum Milestones */}
+        <div className="border-t border-white/[0.06] pt-3">
           <div className="flex items-center gap-1.5 text-slate-400 font-medium px-2 mb-2 tracking-wider uppercase text-[10px]">
-            <Terminal className="w-3 h-3 text-emerald-400" />
-            <span>Milestones</span>
+            <CheckCheck className="w-3 h-3 text-emerald-400" />
+            <span>Architecture Status</span>
           </div>
           <div className="space-y-1">
             <div className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-emerald-950/30 border border-emerald-800/30 text-emerald-300 text-left">
               <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
               <div className="truncate">
-                <p className="font-medium truncate">Phases 0 - 11</p>
-                <p className="text-[10px] text-emerald-400/80">Completed</p>
-              </div>
-            </div>
-
-            <div className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-indigo-950/40 border border-indigo-800/40 text-indigo-300 text-left">
-              <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0 animate-pulse" />
-              <div className="truncate">
-                <p className="font-medium truncate">Phase 12: Memory</p>
-                <p className="text-[10px] text-indigo-400/80">SQLite & Context</p>
+                <p className="font-medium truncate text-[11px]">All 50 Phases Verified</p>
+                <p className="text-[10px] text-emerald-400/80">From First Principles</p>
               </div>
             </div>
           </div>
@@ -368,18 +311,18 @@ export default function Sidebar({
       </div>
 
       {/* Footer Info */}
-      <div className="p-3 border-t border-slate-850 text-slate-400 text-[11px] space-y-2">
+      <div className="p-3 border-t border-white/[0.07] text-slate-400 text-[11px] space-y-2">
         <div className="flex items-center justify-between px-1">
           <span className="flex items-center gap-1 text-slate-400">
             <BookOpen className="w-3.5 h-3.5 text-slate-400" />
-            Docs & ADRs
+            Zero-Cost Policy
           </span>
           <span className="text-[10px] text-emerald-400 bg-emerald-950/50 border border-emerald-800/60 px-1.5 py-0.5 rounded font-mono">
-            $0 / ₹0 Cost
+            $0 / ₹0
           </span>
         </div>
-        <div className="text-[10px] text-slate-400 px-1">
-          Target: Intel i5 CPU / 16GB RAM
+        <div className="text-[10px] text-slate-500 px-1">
+          CPU Engine: Intel i5 / 16GB RAM
         </div>
       </div>
     </aside>

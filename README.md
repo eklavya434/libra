@@ -256,6 +256,12 @@ code execution **off** (`LIBRA_PUBLIC_CODE_EXEC=false`), per-IP rate limiting,
 config-driven in `.env.example` (see
 [`docs/deployment/ENV_INVENTORY.md`](docs/deployment/ENV_INVENTORY.md)).
 
+### 6. Known Limitations & Ops Notes
+
+- **Free-Tier Cold Starts**: On free container infrastructure (Render), inactivity after 15 minutes causes the container to spin down. A cold start takes approximately 20–35 seconds. The frontend features an interactive state machine (`idle` → `connecting` → `slow (>5s)` → `connected` / `error`) with transparent expectation-setting copy ("Waking up backend — hang tight") and retry affordances.
+- **Automated Keep-Alive Ping**: To maintain snappy recruiter and visitor interactions during active hours, a scheduled GitHub Actions cron job (`.github/workflows/keepalive.yml`) sends an automated health probe to `/healthz` every 12 minutes to keep the instance warm without incurring costs.
+- **Hardware Isolation**: GPU-bound models and heavy local fine-tuning run locally on developer hardware; public web deployments utilize Google Gemini and NVIDIA NIM cloud inference endpoints to maintain zero-cost compliance.
+
 ---
 
 ## Documentation

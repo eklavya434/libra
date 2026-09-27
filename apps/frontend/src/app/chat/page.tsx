@@ -20,6 +20,7 @@ import KTOView from '@/components/KTOView';
 import VerifiableSearchView from '@/components/VerifiableSearchView';
 import SelfRewardingView from '@/components/SelfRewardingView';
 import GrandCapstoneView from '@/components/GrandCapstoneView';
+import OnboardingTour from '@/components/OnboardingTour';
 import {
   ConversationSummary,
   fetchConversations,
@@ -143,6 +144,7 @@ export default function ChatApp() {
         {activeTab === 'self_rewarding' && <SelfRewardingView />}
         {activeTab === 'grand_capstone' && <GrandCapstoneView />}
       </main>
+      <OnboardingTour />
     </div>
   );
 }

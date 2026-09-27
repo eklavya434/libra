@@ -2,18 +2,23 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://libraai.me'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://www.libraai.me'),
   title: 'Libra | Personal LLM Laboratory & AI Assistant',
   description: 'An educational laboratory and ChatGPT-like assistant built from first principles.',
   alternates: {
-    canonical: '/',
+    canonical: 'https://www.libraai.me',
   },
   openGraph: {
     title: 'Libra | Personal LLM Laboratory & AI Assistant',
     description: 'An educational laboratory and ChatGPT-like assistant built from first principles.',
-    url: 'https://libraai.me',
+    url: 'https://www.libraai.me',
     siteName: 'Libra',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Libra | Personal LLM Laboratory & AI Assistant',
+    description: 'An educational laboratory and ChatGPT-like assistant built from first principles.',
   },
 };
 
