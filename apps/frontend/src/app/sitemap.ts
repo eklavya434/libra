@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://libra-ai.me';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://libraai.me';
   return [
     {
       url: baseUrl,

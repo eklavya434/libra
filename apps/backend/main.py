@@ -69,10 +69,12 @@ for _exc, _handler in exception_handlers().items():
 # rejections from the security middleware below it.
 _trusted_origins = settings.cors_origins + [
     "https://libra-backend-yijf.onrender.com",
-    "https://libra.me",
-    "https://www.libra.me",
+    "https://libraai.me",
+    "https://www.libraai.me",
     "https://libra-ai.me",
     "https://www.libra-ai.me",
+    "https://libra.me",
+    "https://www.libra.me",
 ]
 app.add_middleware(
     CORSMiddleware,

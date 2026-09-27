@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://libra-ai.me'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://libraai.me'),
   title: 'Libra | Personal LLM Laboratory & AI Assistant',
   description: 'An educational laboratory and ChatGPT-like assistant built from first principles.',
   alternates: {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Libra | Personal LLM Laboratory & AI Assistant',
     description: 'An educational laboratory and ChatGPT-like assistant built from first principles.',
-    url: 'https://libra-ai.me',
+    url: 'https://libraai.me',
     siteName: 'Libra',
     type: 'website',
   },
