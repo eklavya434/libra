@@ -681,6 +681,16 @@
 - **Stabilization Test Suite (`tests/api/test_chat_stabilization.py`)**:
   - 4 automated regression tests covering session auto-creation, SSE conversation metadata, model alias normalization, and provider router error raising.
 
+### LL. Production Hardening Audit — Honesty, Tenancy, Security & Evidence Integrity
+Full audit reports live in `docs/reports/` (ISSUE_MATRIX, FEATURE_MATRIX, BUG_REPORT, SECURITY_REPORT, TEST_REPORT).
+
+- **Provider Honesty (P0)**: `LocalTransformerProvider` now raises `ProviderOfflineError` (HTTP 503) unless a real trained checkpoint **and** its architecture config both exist; `is_ready()` and `health()` report disk truth; an incompatible checkpoint fails honestly instead of silently loading a mismatched architecture. `DynamicRouter` has a real-provider tier map only — no mock on any path, and an exhausted fallback chain raises `RuntimeError` → generic 503. Agent/coder/team/structured/notebook endpoints resolve only configured providers via `resolve_effective_model_id`. Long-context and NIAH endpoints bridge async chat into sync generator callbacks for real models; the "cheating" needle short-circuit is reachable only for `model="mock"`.
+- **Readiness & Diagnostics**: `/readyz` returns a generic message plus `store_backend`, `database_url_configured`, and `status: degraded` (never `str(exc)`); `/health` derives `active_providers` from live checks (API-key presence, Ollama connectivity, `libra_lab.is_ready()`) instead of advertising mock/vLLM.
+- **Security Middleware**: `RedactionFormatter` scrubs credentials from logs; `SecurityHeadersMiddleware` sets CSP (`default-src 'none'; frame-ancestors 'none'`) and HSTS on https; the request-size limiter was rewritten as **pure ASGI** bounded chunk buffering with body replay (413 over limit) so chunked `Transfer-Encoding` cannot bypass it; CORS is registered outermost with `allow_credentials` and exposed `X-Request-Id`/session/rate-limit headers; client-supplied `X-Request-Id` is validated against `^[A-Za-z0-9._:/-]{1,64}$`.
+- **Tenant Isolation**: a `scope` parameter is stitched identity → store → endpoints for conversations, RAG documents/chunks, and OCR uploads; foreign access returns 404 (never 403-style leakage). `renew_session()` slides the guest TTL on activity and never revives an expired token.
+- **Evidence Integrity (Prime Directive #8)**: every `tests/...::test_...` citation in `docs/reports/` is machine-checked by `tests/unit/test_report_citations.py` to resolve to a real file and a real test function. `tests/unit/test_local_provider_integrity.py` (5) and `tests/unit/test_dynamic_router_honesty.py` (6) exist as real suites, so the P0 claims are backed by assertions rather than by documentation.
+- **Lab Fallback Honesty**: telemetry and grammar labs fall back to an explicitly-flagged **untrained in-memory educational transformer (random weights)** with a warning log when no trained checkpoint exists, instead of 503 — so the labs remain usable on machines (CI, Render) where the training pipeline has never run.
+
 ---
 
 ## 4. Resource Usage & Storage Quota Audit
@@ -696,7 +706,7 @@
 - **Remaining Storage Quota**: **13,891.50 MB** (90.4% free)
 - **Total Cost**: **$0 / ₹0** (100% free offline development)
 - **Active Git Branch**: `main` synced with `https://github.com/eklavya434/libra.git`
-- **Pytest Status**: **568 passed, 0 failed** across all 50 phases (100% pass rate)
+- **Pytest Status**: **702 passed, 2 skipped** (697 backend + 5 frontend structural), 0 failed. The 2 skips are live-Postgres parity tests gated on `LIBRA_TEST_DATABASE_URL` (no URL available).
 - **Frontend Status**: Next.js 14 production build clean (0 errors, 4/4 static pages)
 
 
