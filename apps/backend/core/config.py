@@ -61,6 +61,7 @@ class Settings(BaseSettings):
 
     # Provider Keys (Optional)
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
+    openrouter_api_key: str = Field(default="", alias="OPENROUTER_API_KEY")
     anthropic_api_key: str = Field(default="", alias="ANTHROPIC_API_KEY")
     gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
     groq_api_key: str = Field(default="", alias="GROQ_API_KEY")

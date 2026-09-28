@@ -87,6 +87,19 @@ class ProviderRouter:
 
         # 1. Cloud routing heuristics by model prefix
         if (
+            model_lower.startswith("openrouter/")
+            or model_lower == "openrouter"
+            or "openrouter" in model_lower
+        ):
+            prov = self._providers["openrouter"]
+            if getattr(prov, "api_key", None):
+                return prov
+            raise ValueError(
+                f"OpenRouter model '{model_id}' requested, but OPENROUTER_API_KEY is not configured in .env. "
+                "Please configure OPENROUTER_API_KEY or select a local/mock model."
+            )
+
+        if (
             model_lower.startswith("gpt-")
             or model_lower.startswith("o1")
             or model_lower.startswith("chatgpt")
@@ -153,15 +166,6 @@ class ProviderRouter:
             raise ValueError(
                 f"Groq model '{model_id}' requested, but GROQ_API_KEY is not configured in .env. "
                 "Please configure GROQ_API_KEY or select a local/mock model."
-            )
-
-        if "openrouter" in model_lower:
-            prov = self._providers["openrouter"]
-            if getattr(prov, "api_key", None):
-                return prov
-            raise ValueError(
-                f"OpenRouter model '{model_id}' requested, but OPENROUTER_API_KEY is not configured in .env. "
-                "Please configure OPENROUTER_API_KEY or select a local/mock model."
             )
 
         if (
@@ -270,6 +274,15 @@ class ProviderRouter:
             return bool(prov and getattr(prov, "api_key", None))
 
         if (
+            model_lower.startswith("openrouter/")
+            or model_lower == "openrouter"
+            or "openrouter" in model_lower
+        ):
+            if has("openrouter"):
+                return True, ""
+            return False, "Add OPENROUTER_API_KEY to .env to enable OpenRouter models."
+
+        if (
             model_lower.startswith("gpt-")
             or model_lower.startswith("o1")
             or model_lower.startswith("chatgpt")
@@ -312,11 +325,6 @@ class ProviderRouter:
             if has("groq"):
                 return True, ""
             return False, "Add GROQ_API_KEY to .env to enable Groq models."
-
-        if "openrouter" in model_lower:
-            if has("openrouter"):
-                return True, ""
-            return False, "Add OPENROUTER_API_KEY to .env to enable OpenRouter models."
 
         if (
             model_lower.startswith("nvidia/")
