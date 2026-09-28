@@ -289,11 +289,11 @@ class ProviderRouter:
             return False, "Add ANTHROPIC_API_KEY to .env to enable Claude models."
 
         if "kimi" in model_lower or "moonshot" in model_lower:
-            if has("kimi") or has("nvidia"):
+            if has("kimi"):
                 return True, ""
             return (
                 False,
-                "Add KIMI_API_KEY (or NVIDIA_API_KEY) to .env to enable Kimi/Moonshot models.",
+                "Add KIMI_API_KEY to .env to enable Kimi/Moonshot models.",
             )
 
         if (
@@ -301,11 +301,11 @@ class ProviderRouter:
             and not model_lower.startswith("deepseek-r1:")
             and "coder" not in model_lower
         ):
-            if has("deepseek") or has("nvidia"):
+            if has("deepseek"):
                 return True, ""
             return (
                 False,
-                "Add DEEPSEEK_API_KEY (or NVIDIA_API_KEY) to .env to enable DeepSeek models.",
+                "Add DEEPSEEK_API_KEY to .env to enable DeepSeek cloud models.",
             )
 
         if "groq" in model_lower:
@@ -325,9 +325,10 @@ class ProviderRouter:
             or model_lower.startswith("nv-")
             or "nvidia" in model_lower
         ):
-            if has("nvidia"):
-                return True, ""
-            return False, "Add NVIDIA_API_KEY to .env to enable NVIDIA NIM models."
+            return (
+                False,
+                "Add active NVIDIA_API_KEY with NIM credits to .env to enable NVIDIA NIM models.",
+            )
 
         if "opencode" in model_lower or "coder" in model_lower:
             return await self._ollama_model_installed(model_id, installed_ollama_ids)

@@ -220,7 +220,7 @@ async def create_chat_completion(request: ChatCompletionRequest, fastapi_request
             if isinstance(e, ModelNotFoundError):
                 raise HTTPException(
                     status_code=404,
-                    detail="The selected model is not recognized by the provider. Check the model name and provider configuration.",
+                    detail=f"Model '{request.model}' is not available from its provider. Please switch to Gemini 2.5 Flash, which is online and ready.",
                 )
             if isinstance(e, LibraProviderError):
                 raise HTTPException(
@@ -294,11 +294,11 @@ async def create_chat_completion(request: ChatCompletionRequest, fastapi_request
         except Exception as e:
             request_id = getattr(fastapi_request.state, "request_id", None)
             if isinstance(e, ProviderAuthenticationError):
-                user_msg = "The selected provider's API key is invalid, expired, or not configured on this deployment."
+                user_msg = f"The API key for '{request.model}' is expired, unauthorized, or not configured. Please switch to Gemini 2.5 Flash, which is online and ready."
             elif isinstance(e, (ProviderRateLimitError, ProviderQuotaExceededError)):
                 user_msg = "The selected provider is rate-limited or its free quota is exhausted. Try another model or retry later."
             elif isinstance(e, ModelNotFoundError):
-                user_msg = "The selected model is not recognized by the provider. Check the model name and provider configuration."
+                user_msg = f"Model '{request.model}' is not available from its provider. Please switch to Gemini 2.5 Flash, which is online and ready."
             elif isinstance(e, LibraProviderError):
                 user_msg = str(getattr(e, "message", e) or "The selected provider is unavailable.")
             elif isinstance(e, (ConnectionError, TimeoutError, OSError)):

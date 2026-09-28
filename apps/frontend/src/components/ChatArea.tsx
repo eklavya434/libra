@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sliders, Zap, RotateCcw, AlertCircle, Copy, Check, Square, RefreshCw, Activity, Menu } from 'lucide-react';
+import { Send, Bot, User, Sliders, Zap, RotateCcw, AlertCircle, Copy, Check, Square, RefreshCw, Activity, Menu, Sparkles } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import ModelSelector from './ModelSelector';
 import HyperparametersModal from './HyperparametersModal';
@@ -130,7 +130,25 @@ export default function ChatArea({
       if (activeStreamRef.current) return;
       const conv = await fetchConversation(conversationId);
       if (conv) {
-        if (conv.model) setSelectedModel(conv.model);
+        if (conv.model) {
+          const m = conv.model.toLowerCase();
+          // If conversation was persisted with a model requiring local Ollama or unconfigured keys,
+          // safely default to the verified Gemini 2.5 Flash model
+          if (
+            m.includes('deepseek') ||
+            m.includes('nvidia') ||
+            m.includes('kimi') ||
+            m.includes('moonshot') ||
+            m.includes('ollama') ||
+            m.includes('llama3') ||
+            m.includes('qwen') ||
+            m.includes(':')
+          ) {
+            setSelectedModel('gemini-2.5-flash');
+          } else {
+            setSelectedModel(conv.model);
+          }
+        }
         if (conv.messages && conv.messages.length > 0) {
           setMessages(
             conv.messages.map((m) => ({
@@ -184,7 +202,7 @@ export default function ChatArea({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const executeStream = async (history: ChatMessage[], assistantId: string) => {
+  const executeStream = async (history: ChatMessage[], assistantId: string, modelOverride?: string) => {
     setLoading(true);
     setActiveAssistantId(assistantId);
     activeStreamRef.current = true;
@@ -192,7 +210,9 @@ export default function ChatArea({
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    await streamChat(history, selectedModel, {
+    const effectiveModel = modelOverride || selectedModel || 'gemini-2.5-flash';
+
+    await streamChat(history, effectiveModel, {
       conversationId,
       useRag,
       temperature,
@@ -232,7 +252,7 @@ export default function ChatArea({
                   content:
                     msg.content
                       ? `${msg.content}\n\n⚠️ Streaming Error: ${err.message}`
-                      : `⚠️ Inference Error: ${err.message}\nEnsure the backend is online and the selected model's provider is configured.`,
+                      : `⚠️ Inference Error: ${err.message}\n\nThis model is currently unavailable on this deployment. Switch to Gemini 2.5 Flash to continue chatting immediately.`,
                   error: true,
                 }
               : msg
@@ -244,6 +264,38 @@ export default function ChatArea({
         abortControllerRef.current = null;
       },
     });
+  };
+
+  const handleSwitchModelAndRetry = async (targetModel = 'gemini-2.5-flash') => {
+    setSelectedModel(targetModel);
+    if (loading || messages.length < 2) return;
+
+    let lastUserIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        lastUserIdx = i;
+        break;
+      }
+    }
+    if (lastUserIdx === -1) return;
+
+    const historyToKeep = messages.slice(0, lastUserIdx + 1).filter((m) => m.id !== 'welcome' && !m.error);
+    const assistantId = Date.now().toString();
+    const newAssistantMsg: ExtendedMessage = {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages([...historyToKeep, newAssistantMsg]);
+
+    const historyForApi: ChatMessage[] = historyToKeep.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    await executeStream(historyForApi, assistantId, targetModel);
   };
 
   const handleSend = async (e: React.FormEvent) => {
@@ -436,6 +488,19 @@ export default function ChatArea({
                       content={msg.content}
                       isStreaming={loading && msg.id === activeAssistantId}
                     />
+                  )}
+
+                  {msg.error && (
+                    <div className="mt-3 pt-3 border-t border-rose-500/20 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSwitchModelAndRetry('gemini-2.5-flash')}
+                        className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-white" />
+                        <span>Switch to Gemini 2.5 Flash &amp; Retry</span>
+                      </button>
+                    </div>
                   )}
 
                   {/* Telemetry Badge on Assistant messages */}

@@ -76,9 +76,9 @@ class NvidiaProvider(OpenAIProvider):
                 return "moonshotai/kimi-k3"
             return "moonshotai/kimi-k2.6"
         if "deepseek" in m:
-            if "pro" in m:
-                return "deepseek-ai/deepseek-v4-pro-0813"
-            return "deepseek-ai/deepseek-v4-flash-0731"
+            if "coder" in m:
+                return "deepseek-ai/deepseek-coder-6.7b-instruct"
+            return "deepseek-ai/deepseek-v4.1-flash"
         if "nemotron" in m and "70b" in m:
             return "nvidia/llama-3.1-nemotron-70b-instruct"
         if "nemotron" in m and "340b" in m:

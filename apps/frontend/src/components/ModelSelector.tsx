@@ -57,10 +57,13 @@ export default function ModelSelector({ selectedModel, onSelectModel }: ModelSel
     return models.find((m) => m.available !== false) || null;
   }, [models]);
 
-  // When no model is selected yet, surface the first actually-available model
+  // When no model is selected yet, or if current selection is unavailable, surface the first ready model
   useEffect(() => {
-    if (!selectedModel && models.length > 0) {
-      if (defaultReadyModel) onSelectModel(defaultReadyModel.id);
+    if (models.length > 0) {
+      const selected = models.find((m) => m.id === selectedModel);
+      if (!selectedModel || (selected && selected.available === false)) {
+        if (defaultReadyModel) onSelectModel(defaultReadyModel.id);
+      }
     }
   }, [models, selectedModel, onSelectModel, defaultReadyModel]);
 
