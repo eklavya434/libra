@@ -133,7 +133,7 @@ export default function ChatArea({
         if (conv.model) {
           const m = conv.model.toLowerCase();
           // If conversation was persisted with a model requiring local Ollama or unconfigured keys,
-          // safely default to the verified Gemini 2.5 Flash model
+          // safely default to the verified default model resolved from the backend
           if (
             m.includes('deepseek') ||
             m.includes('nvidia') ||
@@ -144,7 +144,9 @@ export default function ChatArea({
             m.includes('qwen') ||
             m.includes(':')
           ) {
-            setSelectedModel('gemini-2.5-flash');
+            fetchDefaultModel().then((dm) => {
+              if (dm) setSelectedModel(dm);
+            });
           } else {
             setSelectedModel(conv.model);
           }
@@ -210,7 +212,7 @@ export default function ChatArea({
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    const effectiveModel = modelOverride || selectedModel || 'gemini-2.5-flash';
+    const effectiveModel = modelOverride || selectedModel;
 
     await streamChat(history, effectiveModel, {
       conversationId,
@@ -252,7 +254,7 @@ export default function ChatArea({
                   content:
                     msg.content
                       ? `${msg.content}\n\n⚠️ Streaming Error: ${err.message}`
-                      : `⚠️ Inference Error: ${err.message}\n\nThis model is currently unavailable on this deployment. Switch to Gemini 2.5 Flash to continue chatting immediately.`,
+                      : `⚠️ Inference Error: ${err.message}\n\nThis model is currently unavailable on this deployment. Switch to an available model to continue chatting immediately.`,
                   error: true,
                 }
               : msg
@@ -266,8 +268,13 @@ export default function ChatArea({
     });
   };
 
-  const handleSwitchModelAndRetry = async (targetModel = 'gemini-2.5-flash') => {
-    setSelectedModel(targetModel);
+  const handleSwitchModelAndRetry = async (targetModel?: string) => {
+    let modelToUse = targetModel;
+    if (!modelToUse) {
+      const dm = await fetchDefaultModel();
+      modelToUse = dm || selectedModel;
+    }
+    setSelectedModel(modelToUse);
     if (loading || messages.length < 2) return;
 
     let lastUserIdx = -1;
@@ -295,7 +302,7 @@ export default function ChatArea({
       content: m.content,
     }));
 
-    await executeStream(historyForApi, assistantId, targetModel);
+    await executeStream(historyForApi, assistantId, modelToUse);
   };
 
   const handleSend = async (e: React.FormEvent) => {
@@ -494,11 +501,11 @@ export default function ChatArea({
                     <div className="mt-3 pt-3 border-t border-rose-500/20 flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => handleSwitchModelAndRetry('gemini-2.5-flash')}
+                        onClick={() => handleSwitchModelAndRetry()}
                         className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-all hover:scale-[1.02] active:scale-[0.98]"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-white" />
-                        <span>Switch to Gemini 2.5 Flash &amp; Retry</span>
+                        <span>Switch to Default Model &amp; Retry</span>
                       </button>
                     </div>
                   )}
