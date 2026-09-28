@@ -38,6 +38,6 @@ def test_models_endpoint():
     data = response.json()
     assert "models" in data
     assert data["count"] >= 1
-    model = data["models"][0]
-    assert model["id"] == "libra-mock-v1"
-    assert model["provider"] == "mock-provider"
+    mock_model = next((m for m in data["models"] if m.get("id") == "libra-mock-v1"), None)
+    assert mock_model is not None, "libra-mock-v1 not found in models endpoint"
+    assert mock_model["provider"] == "mock-provider"
