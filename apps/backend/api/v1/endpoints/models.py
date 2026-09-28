@@ -141,6 +141,7 @@ def get_system_default_model() -> str | None:
     )
     candidates = [
         ("gemini", "gemini-2.5-flash"),
+        ("openrouter", "openrouter/auto"),
         ("anthropic", "claude-3-5-haiku-20241022"),
         ("nvidia", "nvidia/llama-3.1-nemotron-70b-instruct"),
         ("openai", "gpt-4o-mini"),

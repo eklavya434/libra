@@ -59,6 +59,8 @@ services:
         sync: false
       - key: NVIDIA_API_KEY
         sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
       # Durability (Supabase free tier). Set these in the Render dashboard.
       #   - DATABASE_URL: postgres://... for durable conversations
       #   - SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY: object storage

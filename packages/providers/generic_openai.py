@@ -51,9 +51,18 @@ class OpenRouterProvider(OpenAIProvider):
             http_client=http_client,
         )
 
+    def _normalize_model_id(self, model: str) -> str:
+        clean = model.strip()
+        if clean.startswith("openrouter/"):
+            rest = clean[11:]
+            if rest in ("auto", ""):
+                return "openrouter/auto"
+            return rest
+        return clean
+
     def _get_headers(self) -> dict[str, str]:
         headers = super()._get_headers()
-        headers["HTTP-Referer"] = "https://github.com/eklavya434/libra"
+        headers["HTTP-Referer"] = "https://www.libraai.me"
         headers["X-Title"] = "Project Libra"
         return headers
 
